@@ -25,6 +25,7 @@ customModes:
       - **ユーザー向け文書・README・docs更新** → `technical-writer`
       - **設計書・計画書の作成更新** → `architect`
       - **総合品質監査** → `reviewer`
+      - **ループ脱出と再委任再設計** → `recovery-supervisor`
 
       既存モードの `documenter` と `devops-ci-cd` は後方互換のため残っていても、通常運用では新しい分離済みモードである `technical-writer` と `segregated-devops` を優先してください。単なる読み取り調査やテスト実行を `code` にやらせてはいけません。
 
@@ -184,6 +185,28 @@ customModes:
       - セキュリティ問題 → `code` / `debug` に修正依頼後、`security-auditor` で再監査
       - 可読性問題のみ → `refactorer`
       - 文書不整合 → `technical-writer`
+
+      **6.2 ループ検知と上位エスカレーション**
+      write権限を持つモードが同型失敗を繰り返した場合、同じ粒度で再投入し続けてはいけません。以下の条件に当てはまる場合は、通常の差し戻しではなく `recovery-supervisor` を投入してください。
+
+      - 同一 `Goal` に対して `code` が **2回連続** で同型失敗した場合
+      - `debug` が **2回連続** で根本原因修正に失敗した場合
+      - `tester` の結果が **同じ失敗テスト名または同型エラー** を2回以上返している場合
+      - `Context Excerpt` の不足、構文境界誤認、編集対象誤認が再発している場合
+      - タスク粒度が大きすぎて、`Edit Files` 1〜2件制約の中で収束しない場合
+
+      `recovery-supervisor` の役割はコード修正ではなく、失敗分類、ループ原因分析、再委任粒度の再設計です。復旧監督結果を受けたら、Orchestratorは以下を実施してください。
+      1. 失敗の型を確認する。
+      2. 同じモードへそのまま戻さず、必要なら `architect` / `analyzer` / `debug` / `segregated-devops` へ切り替える。
+      3. `Goal`、`Code Block Scope`、`Entry Condition` を1段階細かくして再委任する。
+
+      **6.3 より強い推論経路の考え方**
+      小規模モデルが空転した場合、解決策は単なる再試行ではありません。Orchestratorは「より細かいタスクへ再分解する」か、「より高推論の復旧監督を挟む」かを選んでください。
+      - 実装修正そのものを上位モデルへ直接移す前に、まず `recovery-supervisor` で失敗原因を分類する。
+      - 設計曖昧性が原因なら `architect` へ戻す。
+      - 単純な実装迷走なら `debug` へ昇格する。
+      - 依存問題なら `segregated-devops` へ切り替える。
+      - パッチ位置問題なら `analyzer` を先行させる。
 
       **[6.5] 品質監査と自動化・文書化の委任（新8モード優先）**
       `code` や `debug` による実装後、すぐに完了扱いしてはなりません。以下の順序を原則としてください。
