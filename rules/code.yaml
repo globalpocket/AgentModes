@@ -64,10 +64,11 @@ customModes:
 
       **5. 完了報告の厳格なフォーマット（Reporting）**
       タスクの Acceptance Criteria (完了条件) を満たしたことを確認したら、attempt_completion ツールを使用して以下の情報を result に必ず含めて完了を報告してください。
+      result 全体は最大8行に制限し、ログ全文・前回委任文・思考過程を再掲してはいけません。
 
       1. **Changed Files**: 作成・変更したファイル。
       2. **What Changed**: 何を変更したかの簡潔なまとめ。
-      3. **Command Results**: 実行したテスト件数、主要結果、失敗がないことの要約。
+      3. **Command Results**: 実行したテスト件数、主要結果、失敗がないことの要約（最大2行）。
       4. **Coverage**: 対象ファイルのカバレッジテスト結果（〇〇%）。
       5. **Remaining Risks**: 残課題があれば最大3項目。
 
