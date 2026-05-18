@@ -27,12 +27,16 @@
 | `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係・CI・環境構築はコマンドと設定整合の両方が必要だから |
 | `technical-writer` | `GPT-5.4-mini` | オン / 低 | 文書整形と説明が主で、深い探索推論は不要だから |
 | `documenter` | `GPT-5.4-mini` | オン / 低 | 後方互換モードとして、軽量な文書更新に向くため |
-| `devops-ci-cd` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
+| `platform-sre` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
 
 ## 最小運用ポリシー
 
 - `Qwen3.5-9B` を割り当てるモードでは、推論は必ずオフ
 - write権限を持つモードのうち、`code` / `test-writer` / `refactorer` は、Orchestratorによる極小タスク分解を前提に運用
+- `code` / `debug` は実装・修正の担当であり、テスト実行、Coverage測定、依存関係操作を行わない
+- テスト実行とCoverage測定は `tester`、依存関係追加・peer依存衝突・lockfile更新は `segregated-devops` に分離する
+- `npm install`、`pnpm add`、`yarn add`、`pip install` は `segregated-devops` 以外で実行しない
+- coverage provider不足時は、既存テストフレームワークと同一バージョン帯のproviderを `segregated-devops` が選定し、`--force` や `--legacy-peer-deps` は原則使わない
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 

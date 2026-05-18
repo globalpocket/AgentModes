@@ -16,6 +16,7 @@ customModes:
 
       - 実行するコマンドはテスト、カバレッジ、検証系に限定してください。
       - ファイル編集、依存関係追加、実装修正、リファクタリングは禁止です。
+      - `npm install`、`pnpm add`、`yarn add`、`pip install` などの依存関係操作は禁止です。coverage provider 不足、peer dependency conflict、ERESOLVE、lockfile 変更が必要な状態を検出した場合は、コマンドを追加実行せず `Dependency Issue` として事実だけを返してください。
       - 出力はコマンド、終了ステータス、主要な標準出力・標準エラーの要約に限定してください。
       - 失敗時は必ず `Command` / `Exit Status` / `Failing Tests` / `Expected vs Received` / `Key Error` / `Coverage` の固定形式で返してください。
       - `Expected vs Received` は最大2件、各1行に圧縮してください。長いdiff、スタックトレース全文、npm notice、解決済みログは出力してはいけません。

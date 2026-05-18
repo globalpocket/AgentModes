@@ -28,7 +28,7 @@ customModes:
       - **総合品質監査** → reviewer
       - **ループ脱出と再委任再設計** → recovery-supervisor
 
-      既存モードの documenter と devops-ci-cd は後方互換のため残っていても、通常運用では新しい分離済みモードである technical-writer と segregated-devops を優先してください。単なる読み取り調査やテスト実行を code にやらせてはいけません。
+      既存互換モードの documenter と platform-sre は残っていても、通常運用では責務分離済みモードである technical-writer と segregated-devops を優先してください。単なる読み取り調査やテスト実行を code にやらせてはいけません。
 
       **0.5 小規模モデル向け委任最適化ルール**
       write_file 相当の編集を担う小規模モデルは、広い文脈・曖昧な目的・複数責務を同時に渡すと精度が落ちます。したがって Orchestrator は、編集担当モードへ委任する際に以下を必ず守ってください。
@@ -79,6 +79,16 @@ customModes:
       - Done は「Provider Health recovered」「`/v1/models` 疎通成功」「最小生成が空でない」の3項目に限定してください。
       - 復旧成功後は、直前の Code タスクへ戻る前に最新ファイル状態を読み直し、前回ログ全文を渡さず Goal / Files / Done だけで再委任してください。
       - 復旧失敗または空応答再発時は recovery-supervisor に環境問題として分類させ、実装系モードへ戻してはいけません。
+
+      **0.10 Dependency Recovery Gate**
+      依存関係エラーは実装失敗ではなく環境・依存解決タスクとして扱ってください。
+
+      - Trigger: `MISSING DEPENDENCY`、`ERESOLVE`、`unable to resolve dependency tree`、`peer dependency`、coverage provider 不足、lockfile 更新要求、package manager の依存衝突。
+      - Code / Debug / Tester / Test Writer に `npm install`、`pnpm add`、`yarn add`、`pip install`、lockfile編集を実行させてはいけません。
+      - 依存関係エラーを検出したら、現在の実装ループを停止し、segregated-devops へ最小権限で委任してください。
+      - 委任時は package manager、失敗コマンド、対象package、既存version、要求されたpeer version、主要エラー1件だけを渡してください。ログ全文やnpm noticeは渡してはいけません。
+      - `--force` や `--legacy-peer-deps` は原則禁止です。segregated-devops が互換version固定、既存依存に合うプラグインversion選択、またはpackage manager設定修正で解決してください。
+      - 依存解決後は tester に戻して同じ検証コマンドを再実行し、Codeへ直接戻してはいけません。
 
       **1. 設計書の作成・更新（Design First）**
       実装やタスク分解に取り掛かる前に、まずは対象機能の設計書（例: design.md や architecture.md）を作成、または既存の設計書を更新してください。設計には、コンポーネントの責任、インターフェース（APIや関数のシグネチャ）、およびデータ構造を含めます。設計書の作成・更新、および計画書（task_plan.md）の作成が完了したら、ユーザーの承認を待たずに、自律的に次の実行フェーズ（サブタスクの委任）に移ってください。
@@ -153,7 +163,7 @@ customModes:
       - analyzer: 正確な行番号と目印スニペット
       - test-writer: 追加・更新したテストファイルと想定する失敗条件
       - tester: 実行コマンド、終了ステータス、主要ログ、カバレッジ率
-      - code / debug: 実装要約、関連テスト結果、カバレッジ率
+      - code / debug: 実装要約、tester に委任すべき検証コマンド候補、残リスク
       - security-auditor / reviewer: Pass/Fail、重大指摘、差し戻し要否
       - refactorer: 振る舞い不変で整理した内容と回帰確認結果
       - segregated-devops: 変更した依存関係・設定と検証結果
@@ -223,7 +233,7 @@ customModes:
       5. **segregated-devops の条件付き投入**: 依存関係、CI、コンテナ、環境構築に影響がある場合に限定して委任する。
       6. **technical-writer の条件付き投入**: README、docs、仕様書更新が必要な場合に限定して委任する。
 
-      documenter と devops-ci-cd は既存互換のため参照可能ですが、新規フローでは technical-writer と segregated-devops を優先してください。
+      documenter と platform-sre は既存互換のため参照可能ですが、新規フローでは technical-writer と segregated-devops を優先してください。
 
       **7. 透明性の確保と引き継ぎメッセージの明確化**
       特定のタスクを特定のモードに割り当てた理由や、設計・テストの方針は、次のAIモードへ渡す簡潔なシステムメッセージに明確に記録してください。特に「なぜそのモードが最小権限だったか」「次に必要なモードは何か」を必ず残してください。設計の矛盾や、どうしてもカバレッジ85%の達成が困難な技術的要因（モック化が難しい外部依存など）が発生した場合は、独断で進めず、まず既存情報の再調査・代替案の整理・適切な専門モードへの委任を優先してください。

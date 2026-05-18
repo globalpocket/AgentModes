@@ -21,6 +21,15 @@ customModes:
       - アプリケーションのビジネスロジックやテストコードを変更してはいけません。
       - コマンド実行はインストール、解決、検証、ビルド環境整備の範囲に限定してください。
 
+      **Dependency Recovery Gate**
+      Orchestrator から `MISSING DEPENDENCY`、`ERESOLVE`、`unable to resolve dependency tree`、`peer dependency`、coverage provider 不足を渡された場合は、依存関係解決だけを担当してください。
+
+      - まず manifest と lockfile を読み、既存の主要依存versionを確認してください。
+      - `npm install <pkg>` のような裸指定で最新版を入れてはいけません。既存のpeer制約に合う互換versionを特定して固定してください。
+      - 例: `vitest@2.1.9` の環境で coverage provider を追加する場合、`@vitest/coverage-v8@2.1.9` のように同一major/minor/patch整合を優先してください。
+      - `--force` と `--legacy-peer-deps` は原則禁止です。使用する場合は依存整合を壊さない根拠を完了報告に明記してください。
+      - 依存解決後はインストールまたはlockfile整合の検証だけを行い、アプリケーションテストや実装修正へ進んではいけません。次工程は tester に戻してください。
+
       **Provider Health Recovery Skill**
       Orchestrator から Provider Health Failure、空応答、または `mlx_lm.server` 凍結の復旧を委任された場合は、依存解決ではなく provider-health-recovery Skill の実行だけに集中してください。
 
