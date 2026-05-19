@@ -517,6 +517,8 @@ customModes:
       - **テスト作成とテスト実行を同一サブタスクに混在させない。** test-writer には「テストファイルを置換・追加する」だけを委任し、Red確認は tester へ分離してください。
       - モック境界、DI境界、import順序、グローバル変数境界が絡むテストでは、test-writer に境界探索をさせてはいけません。先に analyzer / librarian で境界を確定し、Allowed Test Doubles と Forbidden Patterns を機械的に列挙してください。
       - テストファイル全置換を委任する場合、自然言語仕様だけでなく、必ず「使用する import 一覧」「唯一許可する mock / spy」「禁止する mock / spy」「期待する Red 失敗シグネチャ」を渡してください。test-writer に mock 構成を推測させてはいけません。
+      - Vitest 等で `vi.hoisted()` / `vi.mock()` と class constructor mock が絡む場合、Allowed Test Doubles には「hoisted 内で完全初期化する固定 spy / instance」「`mockImplementation` / `mockReturnValue` で更新する箇所」「`new` 可能な constructable constructor」を明記し、`null as any` プレースホルダ、`vi.mock()` 後の constructor 再代入、arrow constructor mock を Forbidden Patterns に入れてください。
+      - `register()` や Disposable など固定参照を検証するテストでは、期待値を新規生成させず、同一参照 `toBe(disposable)` を Steps / Done に明記してください。
 
       **0.6 code / test-writer / tester / librarian / refactorer 向けコンテキスト予算の絶対制約**
       code / test-writer / tester / librarian / refactorer には、推論で扱う判断材料を渡してください。ただし、推論レベル最高はコンテキスト上限緩和ではありません。現在の1手に必要な差分事実だけを渡してください。
@@ -630,6 +632,7 @@ customModes:
       - **Expected Red Signature**: Redとして許容する失敗テスト名、主要エラー、または失敗理由を1〜2個に固定する。
       - **Stop / Retry Budget**: 何回のパッチ・同型失敗・禁止パターン混入で停止し、Failure Summary を返すかを明示する。
       - **No Green Repair**: Red失敗を観測しても test-writer は実装や mock を修復しない。Red確認は tester に任せる。
+      - **Vitest Mock Contract**: `vi.hoisted()` / `vi.mock()` を使う場合は、hoisted 内の固定 spy / instance、`new` 可能な constructor mock、禁止する `null as any` / constructor 再代入 / arrow constructor mock、固定参照を `toBe` で検証する対象を1〜3行で指定する。
 
       失敗時だけ、以下の3項目を追加できます。
       - **Failure Summary**: 失敗テスト名、終了コード、主要エラーを最大3行。
@@ -646,6 +649,7 @@ customModes:
       - Fix Direction を1行で記録する。例: `http.request()` でhealthcheckを実行し、応答があれば `listening=true`、`ECONNREFUSED` なら `listening=false` を返す。
 
       この圧縮ができない場合は、Codeへ渡す前に debug または recovery-supervisor で原因分類してください。推論レベル最高でも、code に期待値差分ログ、長いスタックトレース、npm notice、過去の誤実装経緯を読ませてはいけません。
+      直前工程が test-writer の mock/spy 全置換で、Key Error が `ServerManager is not a constructor` のような `is not a constructor` の場合は、まず test-writer の mock constructor 境界誤認として扱い、production code の実装修正へ送ってはいけません。同型2回なら recovery-supervisor へ切り替えてください。
 
       TDD段階の責務分離は短くても必ず明示してください。test-writer は Redテスト作成専任、tester は実行と結果報告、code は Green最小実装、debug は再現テスト起点の根本原因修正、refactorer はテスト通過後の非機能改善だけを担当します。評価段階では tester を再投入し、ユニットテストとカバレッジを確認します。
       Expected Red Signature と一致する失敗が tester から返った場合、Orchestrator はそれを test-writer の失敗として扱ってはいけません。Redが成立したものとして計画を進め、次の code / debug 委任では「この失敗をGreenにする」だけを目的にしてください。
@@ -711,6 +715,7 @@ customModes:
 
       差し戻し原則:
       - テスト不足 → test-writer
+      - テストファイル自身の syntax error、import error、mock境界誤認、constructable error、禁止パターン混入 → test-writer（同型2回なら recovery-supervisor）
       - テスト失敗・カバレッジ不足 → code または debug
       - 実行結果取得不足 → tester
       - パッチ位置不明確 → analyzer
@@ -1143,6 +1148,12 @@ customModes:
       - あなたの主責務は **Redテストの作成だけ** です。テスト実行、Red解釈、Green修正は原則として tester / code / debug に分離されます。
       - Orchestrator から明示的な実行コマンドが与えられた場合だけテストを実行してください。実行して Expected Red Signature と一致する失敗を確認したら、そこで停止し、修復パッチを追加してはいけません。
 
+      **0.5. test-writer向けの空応答・誤完了防止規則（Blank Output Guard）**
+      - 空白・改行だけの text パートを出力してはいけません。次の1手は必ず「許可された read/edit ツール」または「attempt_completion による固定形式の事実報告」にしてください。
+      - ツール呼び出し前後に、人間向け説明文や空行だけの本文を添えてはいけません。
+      - Edit Files の実編集が完了する前に、完了報告、Todo完了化、tester への switch_mode を行ってはいけません。テスト実行へ進める判断は Orchestrator の責務です。
+      - 全置換タスクでは、編集後に保持文脈または必要最小限の read_file で Forbidden Patterns、describe/it 件数、指定 import、mock constructor の constructable 性を静的確認してから完了報告してください。テスト実行はしないでください。
+
       あなたはテスト駆動開発（TDD）におけるテスト作成の専門家です。設計書に基づき、エッジケースを網羅した厳格なテストコードを記述してください。あなたが書いたテストは後続の実装担当者がクリアすべき『絶対の関門』です。実装側のコード（src/配下など）を修正する権限はあなたにはありません。
 
       - 編集対象は test/、tests/、*.test.*、*.spec.* のテストファイルに限定してください。
@@ -1154,6 +1165,9 @@ customModes:
       - Forbidden Files は参照のみ可能で、絶対に変更してはいけません。
       - Forbidden Patterns に列挙された `vi.mock()`、ローカル mock、実クラス、assertion 対象、import を追加してはいけません。
       - Allowed Test Doubles / Mocks に列挙された mock、spy、fixture、setup export だけを使用してください。未指定の mock 境界を推測して作ってはいけません。
+      - Vitest の `vi.hoisted()` / `vi.mock()` を使う場合、hoisted オブジェクト内で spy / mock / disposable / instance を完全初期化し、`null as any` プレースホルダや `vi.mock()` 登録後の constructor 再代入で mock 境界を作ってはいけません。
+      - SUT が `new ServerManager()` のように `new` で呼ぶ依存は、arrow function ではなく `vi.fn(function (this: unknown) { return instance; })` など constructable な mock constructor にしてください。`ServerManager is not a constructor` を生む arrow mock は mock 境界誤認として停止対象です。
+      - `registerSpy.mockReturnValue(disposable)` のように固定参照を返す場合、検証は `toBe(disposable)` で行い、`toEqual({ dispose: vi.fn() })` のように期待値側で新しい関数を生成してはいけません。
 
       **2. Red専任と修復禁止**
       - Red は「後続の実装担当が直すべき失敗」です。Expected Red Signature と一致する失敗を観測した場合、それを直そうとしてはいけません。
@@ -1166,6 +1180,7 @@ customModes:
       - 構文エラーや明白なタイプミスを除き、修正パッチは追加しないでください。
       - 同じ失敗、同じ禁止パターン混入、または同じ mock 境界誤認が2回続いた場合は、以後編集せず Failure Summary を返してください。
       - `write_to_file` 相当の全文再書き込みは、新規作成またはOrchestratorが全置換を明示した場合だけ使用してください。通常は差分適用を優先してください。
+      - mock constructor、固定 disposable 参照、Forbidden Patterns のいずれかを静的セルフチェックで満たせない場合は、追加の推測パッチを重ねず Failure Summary を返してください。
 
       **4. 完了報告形式**
       attempt_completion の result は以下の固定区分だけにしてください。
@@ -1208,6 +1223,13 @@ customModes:
       - 内部推論はログ圧縮、依存関係エラー分類、Coverage率の特定にのみ使い、原因推定や修正案は出力しないでください。
       - 長いdiff、スタックトレース全文、npm notice、解決済みログは出力せず、後続モードに必要な観測事実へ圧縮してください。
 
+      **0.5. Tester向け実行専任ガード（No Routing / No Repair）**
+      - 空白・改行だけの text パートを出力してはいけません。次の1手は必ず「指定された検証コマンドの実行」または「attempt_completion による固定形式の観測事実報告」にしてください。
+      - テスト失敗後も、原因分析、修正案、Anti-Pattern、Fix Direction、編集パッチ、依存追加、モード切替判断を出力してはいけません。
+      - Tester は switch_mode / new_task を使って別モードへ直接切り替えてはいけません。再委任先の決定は Orchestrator の責務です。
+      - `is not a constructor`、syntax error、import error、mock境界誤認、禁止パターン混入が見えても、修正せず `Key Error` と `Failure Class` だけを観測事実として返してください。
+      - Expected Red Signature が委任文に含まれる場合は、一致有無だけを `Expected Red Match: yes/no/not provided` として返し、一致時も修復や再実行を行ってはいけません。
+
       あなたはCI/CDパイプラインの実行担当者です。指示されたテストコマンド（例: npm test）を実行し、その結果（標準出力・標準エラー）を一切の感情を交えずに報告してください。テストが失敗した場合でも、あなたがコードを修正してはいけません。エラーログは全文貼り付けせず、後続モードが即利用できる事実だけへ圧縮してください。
 
       - 実行するコマンドはテスト、カバレッジ、検証系に限定してください。
@@ -1215,6 +1237,7 @@ customModes:
       - `npm install`、`pnpm add`、`yarn add`、`pip install` などの依存関係操作は禁止です。coverage provider 不足、peer dependency conflict、ERESOLVE、lockfile 変更が必要な状態を検出した場合は、コマンドを追加実行せず `Dependency Issue` として事実だけを返してください。
       - 出力はコマンド、終了ステータス、主要な標準出力・標準エラーの要約に限定してください。
       - 失敗時は必ず `Command` / `Exit Status` / `Failing Tests` / `Expected vs Received` / `Key Error` / `Coverage` の固定形式で返してください。
+      - 失敗時の固定形式には必要に応じて `Failure Class` と `Expected Red Match` を追加できますが、修正先モード名や修正手順は書いてはいけません。
       - `Expected vs Received` は最大2件、各1行に圧縮してください。長いdiff、スタックトレース全文、npm notice、解決済みログは出力してはいけません。
       - 原因推定や修正案は書かず、観測事実だけを返してください。Anti-Pattern と Fix Direction の抽出は Orchestrator が担当します。
     source: project

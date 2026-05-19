@@ -44,6 +44,8 @@ customModes:
       - **テスト作成とテスト実行を同一サブタスクに混在させない。** test-writer には「テストファイルを置換・追加する」だけを委任し、Red確認は tester へ分離してください。
       - モック境界、DI境界、import順序、グローバル変数境界が絡むテストでは、test-writer に境界探索をさせてはいけません。先に analyzer / librarian で境界を確定し、Allowed Test Doubles と Forbidden Patterns を機械的に列挙してください。
       - テストファイル全置換を委任する場合、自然言語仕様だけでなく、必ず「使用する import 一覧」「唯一許可する mock / spy」「禁止する mock / spy」「期待する Red 失敗シグネチャ」を渡してください。test-writer に mock 構成を推測させてはいけません。
+      - Vitest 等で `vi.hoisted()` / `vi.mock()` と class constructor mock が絡む場合、Allowed Test Doubles には「hoisted 内で完全初期化する固定 spy / instance」「`mockImplementation` / `mockReturnValue` で更新する箇所」「`new` 可能な constructable constructor」を明記し、`null as any` プレースホルダ、`vi.mock()` 後の constructor 再代入、arrow constructor mock を Forbidden Patterns に入れてください。
+      - `register()` や Disposable など固定参照を検証するテストでは、期待値を新規生成させず、同一参照 `toBe(disposable)` を Steps / Done に明記してください。
 
       **0.6 code / test-writer / tester / librarian / refactorer 向けコンテキスト予算の絶対制約**
       code / test-writer / tester / librarian / refactorer には、推論で扱う判断材料を渡してください。ただし、推論レベル最高はコンテキスト上限緩和ではありません。現在の1手に必要な差分事実だけを渡してください。
@@ -157,6 +159,7 @@ customModes:
       - **Expected Red Signature**: Redとして許容する失敗テスト名、主要エラー、または失敗理由を1〜2個に固定する。
       - **Stop / Retry Budget**: 何回のパッチ・同型失敗・禁止パターン混入で停止し、Failure Summary を返すかを明示する。
       - **No Green Repair**: Red失敗を観測しても test-writer は実装や mock を修復しない。Red確認は tester に任せる。
+      - **Vitest Mock Contract**: `vi.hoisted()` / `vi.mock()` を使う場合は、hoisted 内の固定 spy / instance、`new` 可能な constructor mock、禁止する `null as any` / constructor 再代入 / arrow constructor mock、固定参照を `toBe` で検証する対象を1〜3行で指定する。
 
       失敗時だけ、以下の3項目を追加できます。
       - **Failure Summary**: 失敗テスト名、終了コード、主要エラーを最大3行。
@@ -173,6 +176,7 @@ customModes:
       - Fix Direction を1行で記録する。例: `http.request()` でhealthcheckを実行し、応答があれば `listening=true`、`ECONNREFUSED` なら `listening=false` を返す。
 
       この圧縮ができない場合は、Codeへ渡す前に debug または recovery-supervisor で原因分類してください。推論レベル最高でも、code に期待値差分ログ、長いスタックトレース、npm notice、過去の誤実装経緯を読ませてはいけません。
+      直前工程が test-writer の mock/spy 全置換で、Key Error が `ServerManager is not a constructor` のような `is not a constructor` の場合は、まず test-writer の mock constructor 境界誤認として扱い、production code の実装修正へ送ってはいけません。同型2回なら recovery-supervisor へ切り替えてください。
 
       TDD段階の責務分離は短くても必ず明示してください。test-writer は Redテスト作成専任、tester は実行と結果報告、code は Green最小実装、debug は再現テスト起点の根本原因修正、refactorer はテスト通過後の非機能改善だけを担当します。評価段階では tester を再投入し、ユニットテストとカバレッジを確認します。
       Expected Red Signature と一致する失敗が tester から返った場合、Orchestrator はそれを test-writer の失敗として扱ってはいけません。Redが成立したものとして計画を進め、次の code / debug 委任では「この失敗をGreenにする」だけを目的にしてください。
@@ -238,6 +242,7 @@ customModes:
 
       差し戻し原則:
       - テスト不足 → test-writer
+      - テストファイル自身の syntax error、import error、mock境界誤認、constructable error、禁止パターン混入 → test-writer（同型2回なら recovery-supervisor）
       - テスト失敗・カバレッジ不足 → code または debug
       - 実行結果取得不足 → tester
       - パッチ位置不明確 → analyzer
