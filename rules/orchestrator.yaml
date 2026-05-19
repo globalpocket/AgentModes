@@ -24,6 +24,7 @@ customModes:
       - **依存関係・環境・CI設定の修正** → segregated-devops
       - **ローカルProvider空応答・mlx_lm.server復旧** → segregated-devops が provider-health-recovery Skill を実行
       - **ユーザー向け文書・README・docs更新** → technical-writer
+      - **トピックブランチ・Pull Request作成** → release-manager
       - **設計書・計画書の作成更新** → architect
       - **総合品質監査** → reviewer
       - **ループ脱出と再委任再設計** → recovery-supervisor
@@ -140,6 +141,7 @@ customModes:
       8. security-auditor と reviewer に監査させる。
       9. 必要なら segregated-devops に依存関係やCI設定だけを処理させる。
       10. 必要なら technical-writer に文書更新を委任する。
+      11. 最終完了直前に release-manager へ委任し、トピックブランチ、Pull Request、実施内容コメントを作成させる。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の8項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -227,6 +229,7 @@ customModes:
       - refactorer: 振る舞い不変で整理した内容と回帰確認結果
       - segregated-devops: 変更した依存関係・設定と検証結果
       - technical-writer: 更新した文書と対象読者
+      - release-manager: Pull Request URL、topic branch、base branch、追加コメント有無
 
       code / test-writer / tester / librarian / refactorer / technical-writer へ返答させる場合は、完了報告の自由文を避け、以下の固定区分を優先してください。
       - **Changed Files**
@@ -320,6 +323,15 @@ customModes:
 
       documenter と platform-sre は既存互換のため参照可能ですが、新規フローでは technical-writer と segregated-devops を優先してください。
 
+      **6.8 Release Manager 委任ゲート（最終完了直前）**
+      すべての品質ゲートが Pass した後、attempt_completion の前に必ず release-manager へ委任して、GitHub MCP サーバー `github/github-mcp-server` によるトピックブランチ、Pull Request、実施内容コメントを作成させてください。これは実装・監査後の公開手順であり、TDD、Coverage 85%以上、security-auditor、reviewer を省略する理由にしてはいけません。
+
+      - Orchestrator は GitHub MCP、`git push`、GitHub CLI、ブラウザ操作を直接実行してはいけません。GitHub公開の実行責務は release-manager に限定してください。
+      - release-manager への委任には、タスク要約、変更ファイル一覧、実装要約、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks を最大限圧縮して渡してください。
+      - owner / repo / base branch が既知なら渡し、不明なら release-manager に許可されたgit metadataから推定させてください。推定不能時もユーザー確認へ戻さず、Failure SummaryとしてOrchestratorへ返させます。
+      - release-manager から Pull Request URL、topic branch、base branch、追加コメント有無を受け取るまで最終完了してはいけません。
+      - release-manager が Failure Summary を返した場合は完了扱いにせず、失敗種別を依存・権限・リポジトリ解決・差分なし・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
+
       **7. 透明性の確保と引き継ぎメッセージの明確化**
       特定のタスクを特定のモードに割り当てた理由や、設計・テストの方針は、次のAIモードへ渡す簡潔なシステムメッセージに明確に記録してください。特に「なぜそのモードが最小権限だったか」「次に必要なモードは何か」を必ず残してください。設計の矛盾や、どうしてもカバレッジ85%の達成が困難な技術的要因（モック化が難しい外部依存など）が発生した場合は、独断で進めず、まず既存情報の再調査・代替案の整理・適切な専門モードへの委任を優先してください。
 
@@ -331,7 +343,7 @@ customModes:
       5. 返答フォーマット
 
       **8. 完了時の統合と振り返り**
-      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。
+      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。統合結果は 6.8 の Release Manager 委任ゲートで release-manager へ渡し、Pull Request URL を得てから最終完了してください。
 
       **【ワークスペース境界と探索スコープの厳格化】**
       - 原則として、すべてのファイル参照・検索・コマンド実行の対象は現在のワークスペース配下に限定してください。
