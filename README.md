@@ -26,7 +26,9 @@
 | `security-auditor` | `GPT-5.4` | オン / 中〜高 | 脆弱性検知と捏造ライブラリ判定の精度を優先するため |
 | `refactorer` | `Qwen3.5-9B` | オン / 最高 | 振る舞い不変性と局所リスク確認に推論を使い、新機能追加を禁止するため |
 | `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係・CI・環境構築はコマンドと設定整合の両方が必要だから |
+| `repository-synchronizer` | `Qwen3.5-9B` | オン / 最高 | メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pullだけを固定手順で実行する定型同期モードだから |
 | `release-manager` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが品質ゲート通過後の入力を固定し、GitHub MCP操作を定型順序で実行するだけに限定できるため |
+| `diagnostic-reporter` | `GPT-5.4-mini` | オン / 低〜中 | Pull Request、品質ゲート、残リスクを圧縮して診断Issueへ登録する最終レポート担当で、実装推論は不要だから |
 | `technical-writer` | `GPT-5.4-mini` | オン / 低 | 文書整形と説明が主で、深い探索推論は不要だから |
 | `documenter` | `GPT-5.4-mini` | オン / 低 | 後方互換モードとして、軽量な文書更新に向くため |
 | `platform-sre` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
@@ -41,7 +43,9 @@
 - `npm install`、`pnpm add`、`yarn add`、`pip install` は `segregated-devops` 以外で実行しない
 - coverage provider不足時は、既存テストフレームワークと同一バージョン帯のproviderを `segregated-devops` が選定し、`--force` や `--legacy-peer-deps` は原則使わない
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
-- `release-manager` は、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後にのみ投入し、Qwen担当の定型実行モードとしてGitHub MCPによる公開手順だけを担当する
+- メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
+- `release-manager` は、メインタスク開始時の `release` ブランチ準備と、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当する
+- メインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 
 ## 代替割り当て例
