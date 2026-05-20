@@ -17,6 +17,7 @@
 | `reviewer` | `GPT-5.4` | オン / 中〜高 | 品質監査、設計整合性、リスク判定を安定させるため |
 | `recovery-supervisor` | `GPT-5.5` | オン / 高 | ループ脱出、失敗分類、再委任再設計の上位監督役だから |
 | `ask` | `GPT-5.4` | オン / 中 | 設計・実装・計画の文脈説明を安全に返すため |
+| `issue-tracker` | `GPT-5.4-mini` | オン / 低 | GitHub Issue本文取得と進捗コメント登録だけを行い、実装推論を持たないため |
 | `code` | `Qwen3.5-9B` | オン / 最高 | Green実装前のスコープ・API・副作用チェックに内部推論を使い、最小差分へ責務を限定するため |
 | `debug` | `GPT-5.4-mini` | オン / 中 | 再現テスト起点の原因特定は必要だが、復旧監督ほど高コストにしないため |
 | `test-writer` | `Qwen3.5-9B` | オン / 最高 | 境界値・異常系・Red成立条件の内部検討に推論を使い、編集対象はテストに限定するため |
@@ -43,8 +44,9 @@
 - `npm install`、`pnpm add`、`yarn add`、`pip install` は `segregated-devops` 以外で実行しない
 - coverage provider不足時は、既存テストフレームワークと同一バージョン帯のproviderを `segregated-devops` が選定し、`--force` や `--legacy-peer-deps` は原則使わない
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
+- メインタスクがGitHub Issue URLだけで開始された場合は、`issue-tracker` がIssue本文を読み、開始・サブタスク移譲・ユーザー質問中断・完了の各段階でIssueへ短い進捗コメントを追加する
 - メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
-- `release-manager` は、メインタスク開始時の `release` ブランチ準備と、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当する
+- `release-manager` は、メインタスク開始時の `release` ブランチ準備と、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当し、Issue Contextがある場合はトピックブランチとPull Requestを元Issueへ紐づける
 - メインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 

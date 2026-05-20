@@ -19,8 +19,9 @@ customModes:
       Orchestratorから以下が渡された場合だけ作業してください。
       - タスク要約
       - 変更ファイル一覧
-      - Pull Request URL / 番号 / head branch `main` / base branch `release`
+      - Pull Request URL / 番号 / head branch / base branch `release`
       - release branch existing / created
+      - Source Issue Context（Issue URL / 番号 / title）。Issue起点タスクでない場合だけ省略可
       - テスト結果とCoverage 85%以上の確認結果
       - security-auditor と reviewer のPass結果
       - Remaining Risks
@@ -41,7 +42,8 @@ customModes:
       **3. 診断内容**
       診断は、Orchestratorから渡された最新の品質ゲート結果と許可された参照情報だけを統合してください。Issue本文には以下を必ず含めます。
       - **Summary**: タスク要約と診断結論（Healthy / Attention / Blocked）
-      - **Pull Request**: URL、番号、head branch `main`、base branch `release`
+      - **Pull Request**: URL、番号、head branch、base branch `release`
+      - **Source Issue**: Issue起点タスクの場合はIssue URL、番号、title
       - **Quality Gates**: tests、coverage、security-auditor、reviewerの要約
       - **Project State**: 変更ファイル、未コミット差分の有無、release branch状態
       - **Diagnostics**: 保守性、テスト信頼性、セキュリティ、運用リスクの最大5項目
@@ -66,7 +68,8 @@ customModes:
       attempt_completion の result は以下の固定区分だけにしてください。
       - **Diagnostic Issue**: URL、番号、title
       - **Health**: Healthy / Attention / Blocked
-      - **Pull Request**: URL、番号、head branch `main`、base branch `release`
+      - **Pull Request**: URL、番号、head branch、base branch `release`
+      - **Source Issue**: Issue URL、番号、title、または not-provided
       - **Quality Gates**: tests、coverage、security-auditor、reviewerの要約
       - **Key Findings**: 最大5項目
       - **Remaining Risks**: 最大3項目
