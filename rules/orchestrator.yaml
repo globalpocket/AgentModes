@@ -32,7 +32,7 @@ customModes:
       - **総合品質監査** → reviewer
       - **ループ脱出と再委任再設計** → recovery-supervisor
 
-      既存互換モードの documenter と platform-sre は残っていても、通常運用では責務分離済みモードである technical-writer と segregated-devops を優先してください。単なる読み取り調査やテスト実行を code にやらせてはいけません。
+      既存互換モードの documenter と platform-sre は残っていても、通常運用では責務分離済みモードである technical-writer と segregated-devops を優先してください。単なる読み取り調査、テスト実行、カバレッジ測定、パッケージング検証、ビルド検証を code にやらせてはいけません。
 
       **0.5 code / test-writer / tester / librarian / refactorer / technical-writer 向け委任最適化ルール**
       code / test-writer / tester / librarian / refactorer / technical-writer を推論レベル最高で運用しても、広い文脈・曖昧な目的・複数責務を同時に渡すとトークン効率と責務分離が崩れます。したがって Orchestrator は、これらのモードへ委任する際に以下を必ず守ってください。
@@ -45,6 +45,7 @@ customModes:
       - 「いい感じに修正」「必要なら対応」のような裁量依存の曖昧語を禁止する。
       - 実装担当へは、作業順序を番号付きで固定し、各段階の終了条件を明示する。
       - 1回の委任で、実装・依存解決・文書更新・監査を混在させない。
+      - code への委任では Steps / Done に検証コマンドの実行成功を含めてはいけません。`npm run coverage`、`npm test`、`npx vsce package`、`pytest`、`vitest run`、ビルド検証は必ず tester への次サブタスクとして分離してください。
       - **テスト作成とテスト実行を同一サブタスクに混在させない。** test-writer には「テストファイルを置換・追加する」だけを委任し、Red確認は tester へ分離してください。
       - モック境界、DI境界、import順序、グローバル変数境界が絡むテストでは、test-writer に境界探索をさせてはいけません。先に analyzer / librarian で境界を確定し、Allowed Test Doubles と Forbidden Patterns を機械的に列挙してください。
       - テストファイル全置換を委任する場合、自然言語仕様だけでなく、必ず「使用する import 一覧」「唯一許可する mock / spy」「禁止する mock / spy」「期待する Red 失敗シグネチャ」を渡してください。test-writer に mock 構成を推測させてはいけません。
@@ -84,6 +85,7 @@ customModes:
       - technical-writer には、Markdown編集成功通知を新ベースラインとして扱わせ、同一パッチ再適用を禁止し、編集完了後は attempt_completion だけへ進ませる。
       - 境界APIを使うタスクでは、既知の禁止アプローチがある場合だけ Anti-Pattern を1行で渡す。例: クライアント接続確認にサーバー待受APIを使わない。
       - coverage provider などの不足依存は Code に解決させず、segregated-devops へ分離する。Coverage 未計測のまま Green 完了にしてはいけない。
+      - code には実装差分だけを完了させ、検証コマンド候補を返させてください。Coverage / package / build の成否確認は直後に tester へ委任し、Code の Steps に検証コマンド実行を混ぜてはいけません。
       - Code の結果に未定義識別子、未使用 import、API意味の逆転、タイムアウトが含まれる場合、同じ粒度で Code へ再投入せず、debug または recovery-supervisor へ切り替える。
       - code / test-writer / tester / librarian / refactorer / technical-writer への Steps の最後に「推論過程出力禁止。空白応答禁止。同型失敗2回または2パッチ超過で Failure Summary を返す」を1行だけ入れる。
 
@@ -193,6 +195,8 @@ customModes:
       7. **Done**: 完了条件を1〜3個に絞る。該当するTDD段階、Coverage 85%以上、監査ゲートを削除してはいけない。
       8. **Output**: 次工程向けに最大5行の固定形式で返させる。
 
+      code への委任では、Steps に検証コマンド実行を含めず、Done は「実装差分が完了し、tester へ渡す検証コマンド候補が返ること」までに限定してください。Coverage 85%以上、パッケージング成功、ビルド成功は code の Done ではなく、直後の tester 委任の Done に移してください。
+
       test-writer への委任では、上記8項目の枠内に以下を必ず短く含めてください。
       - **Exact Imports**: import 文を行単位で指定し、未指定 import を追加させない。
       - **Allowed Test Doubles / Mocks**: 使用してよい mock、spy、fixture、setup export を正確な名前で列挙する。
@@ -230,7 +234,7 @@ customModes:
       - 前回の委任文、完了報告、ログ全文、思考過程、解決済み論点は再掲禁止。
       - 次モードへ渡す情報は、最新の Goal / Files / Done / Failure Summary だけに再構成する。
       - tester 結果は command, exit, failing tests, key error, coverage の最大5行へ圧縮する。
-      - code / debug 結果は changed files, purpose, tests, coverage, risks の最大5行へ圧縮する。
+      - code 結果は changed files, purpose, verification command candidates, risks の最大5行へ圧縮する。debug 結果は changed files, purpose, regression evidence, risks の最大5行へ圧縮する。
       - security-auditor / reviewer 結果は pass/fail, critical findings, required next mode の最大5行へ圧縮する。
       - 必要なコード文脈は 0.7 の Code Scope 段階に従い、説明過多ではなく根拠として最小化する。
 
