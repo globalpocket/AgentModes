@@ -51,6 +51,8 @@ customModes:
       - テストファイル全置換を委任する場合、自然言語仕様だけでなく、必ず「使用する import 一覧」「唯一許可する mock / spy」「禁止する mock / spy」「期待する Red 失敗シグネチャ」を渡してください。test-writer に mock 構成を推測させてはいけません。
       - Vitest 等で `vi.hoisted()` / `vi.mock()` と class constructor mock が絡む場合、Allowed Test Doubles には「hoisted 内で完全初期化する固定 spy / instance」「`mockImplementation` / `mockReturnValue` で更新する箇所」「`new` 可能な constructable constructor」を明記し、`null as any` プレースホルダ、`vi.mock()` 後の constructor 再代入、arrow constructor mock を Forbidden Patterns に入れてください。
       - `register()` や Disposable など固定参照を検証するテストでは、期待値を新規生成させず、同一参照 `toBe(disposable)` を Steps / Done に明記してください。
+      - 境界APIや登録APIの契約変更では、既存テストの期待値が旧契約を固定していないか先に確認してください。旧契約を検証するテストを Forbidden Files に入れたまま、code に Green や coverage 成功を要求してはいけません。
+      - mock は外部API契約だけを再現させ、Green化のために SUT メソッドを呼び返す mock 実装を Forbidden Patterns に明記してください。
 
       **0.6 code / test-writer / tester / librarian / refactorer / technical-writer 向けコンテキスト予算の絶対制約**
       code / test-writer / tester / librarian / refactorer / technical-writer には、推論で扱う判断材料を渡してください。ただし、推論レベル最高はコンテキスト上限緩和ではありません。現在の1手に必要な差分事実だけを渡してください。
@@ -196,6 +198,7 @@ customModes:
       8. **Output**: 次工程向けに最大5行の固定形式で返させる。
 
       code への委任では、Steps に検証コマンド実行を含めず、Done は「実装差分が完了し、tester へ渡す検証コマンド候補が返ること」までに限定してください。Coverage 85%以上、パッケージング成功、ビルド成功は code の Done ではなく、直後の tester 委任の Done に移してください。
+      契約変更で既存テストの期待値更新が必要な場合は、先に test-writer へ該当テストファイルを Edit Files として委任し、tester で結果を取得してください。該当テストを Forbidden Files に入れたまま code に Green / coverage 成功を要求してはいけません。
 
       test-writer への委任では、上記8項目の枠内に以下を必ず短く含めてください。
       - **Exact Imports**: import 文を行単位で指定し、未指定 import を追加させない。
@@ -214,11 +217,12 @@ customModes:
       - **Escalation Hint**: 同型失敗2回以上なら recovery-supervisor、構文境界不明なら analyzer、依存問題なら segregated-devops。
 
       **4.1 Tester失敗ログの原因圧縮ゲート**
-      tester から失敗結果を受け取ったら、Code / Debug へログ全文を渡してはいけません。Orchestrator が必ず次の5項目へ圧縮してから委任してください。
+      tester から失敗結果を受け取ったら、Code / Debug へログ全文を渡してはいけません。Orchestrator が必ず次の6項目へ圧縮してから委任してください。
 
       - failing test 名を1件だけ記録する。
       - expected / received の差分を1件だけ記録する。
       - 根本原因候補を1件だけ記録する。
+      - Contract Mismatch 判定を1行で記録する。失敗が Forbidden Files 内の旧期待値・旧mock前提に起因する場合、Code / Debug へ送らず test-writer または architect へ戻してください。
       - Anti-Pattern を1行で記録する。例: `net.createServer().listen(port)` はLISTEN検出ではなくポート空き確認なので使わない。
       - Fix Direction を1行で記録する。例: `http.request()` でhealthcheckを実行し、応答があれば `listening=true`、`ECONNREFUSED` なら `listening=false` を返す。
 
@@ -294,6 +298,7 @@ customModes:
       差し戻し原則:
       - テスト不足 → test-writer
       - テストファイル自身の syntax error、import error、mock境界誤認、constructable error、禁止パターン混入 → test-writer（同型2回なら recovery-supervisor）
+      - API契約変更後の旧期待値、Forbidden Files 内の更新不能なテスト期待値、またはmockでSUTメソッドを呼び返さないと通らない失敗 → test-writer または architect（code へ送らない）
       - テスト失敗・カバレッジ不足 → code または debug
       - 実行結果取得不足 → tester
       - パッチ位置不明確 → analyzer

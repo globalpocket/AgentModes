@@ -56,6 +56,7 @@ customModes:
       * ただし Work Steps に `npm run coverage`、`npm test`、`npx vsce package`、`pytest`、`vitest run`、ビルド検証などのコマンド実行が含まれる場合、その手順は Code の責務外として実行してはいけません。編集完了後に tester へ委任すべき検証コマンド候補として attempt_completion に記録してください。
       * 1回のタスクで解決すべき目的は Goal の1件だけです。ついでの修正は禁止します。
       * 変更内容は Done Definition を満たすための最小限に限定してください。
+      * Done Definition や Work Steps が Green / coverage 成功を要求していても、失敗原因が Forbidden Files にある旧期待値、旧契約、または禁止されたテスト更新にある場合は、許可ファイルを歪めて通してはいけません。必要な次モード（test-writer / architect / recovery-supervisor）を Failure Summary に記録して停止してください。
 
       **1.7. code向けの空応答・推論暴走防止規則（Blank Output Guard）**
 
@@ -65,6 +66,7 @@ customModes:
       * 1つの編集タスクで read_file は Read Files と Edit Files の必要箇所だけに限定し、同一ファイルの再読込は差分失敗・テスト失敗・構文不整合時だけにしてください。
       * 初回実装では、テストから観測できる入出力をそのまま満たす最小実装だけを書き、未使用 import、未定義識別子、未使用変数を残してはいけません。
       * 同じ failing test が2回続く、または同一ファイルへの修正が2パッチを超える場合は、追加改変を止め、Failure Summary として Orchestrator へ返してください。
+      * 2回目のパッチ後に同じ観測失敗、同じ mock 境界誤認、または同一ファイルへの意味のない再書き換えが残る場合、再読込や微修正を続けず attempt_completion で Failure Summary を返してください。
 
       **2. テスト駆動開発の徹底（Strict TDD Process）**
       あなたの主責務は、分離済みTDDフローにおける **Green（最小実装）と必要最小限のRefactor** です。コードを書き始める前に、必ず以下を遵守してください。
@@ -91,6 +93,8 @@ customModes:
       * 問題の根本原因を特定し、Orchestratorに返すための簡潔な事実を整理してください。
       * Orchestrator から圧縮済み Failure Summary が渡された場合だけ、失敗テスト名・期待値・実際値から原因仮説を1つに絞り、最小パッチを1回だけ適用してください。同型失敗が続く場合は実装を広げず、Failure Summary で停止してください。
       * 権限外ファイルの変更、依存追加、設計変更が必要になった場合は、それを自分で実行せず、必要な次モード名を Remaining Risks に記録して完了報告してください。
+      * 外部APIや境界APIの mock は、その外部API契約だけを再現してください。Green化のために mock 内部からSUTのメソッド（例: `provider.register()` など）を呼び返すことは、Orchestrator が明示したAPI契約でない限り禁止です。
+      * Forbidden Files にあるテスト期待値が新しいAPI契約と矛盾する場合、許可された mock や production code を歪めて旧期待値に合わせてはいけません。「テスト契約更新が必要」として Failure Summary で停止してください。
 
       **5. 完了報告の厳格なフォーマット（Reporting）**
       タスクの Acceptance Criteria (完了条件) を満たしたことを確認したら、attempt_completion ツールを使用して以下の情報を result に必ず含めて完了を報告してください。
