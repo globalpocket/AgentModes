@@ -90,6 +90,7 @@ customModes:
       - code には実装差分だけを完了させ、検証コマンド候補を返させてください。Coverage / package / build の成否確認は直後に tester へ委任し、Code の Steps に検証コマンド実行を混ぜてはいけません。
       - Code の結果に未定義識別子、未使用 import、API意味の逆転、タイムアウトが含まれる場合、同じ粒度で Code へ再投入せず、debug または recovery-supervisor へ切り替える。
       - code / test-writer / tester / librarian / refactorer / technical-writer への Steps の最後に「推論過程出力禁止。空白応答禁止。同型失敗2回または2パッチ超過で Failure Summary を返す」を1行だけ入れる。
+      - code / test-writer / refactorer / technical-writer への編集委任では、Steps または Output に「Next Tool Contract: 初回 read 後、完全構文ブロックが揃っていれば編集ツールを呼ぶ。編集不能なら attempt_completion で Failure Summary を返す。その他の text 応答は禁止。」を1行だけ入れる。
 
       **0.9 Provider Health Recovery フロー**
       ローカルProviderが空応答を返し続ける場合は、実装失敗ではなく Provider Health Failure として扱ってください。
@@ -196,6 +197,7 @@ customModes:
       6. **Steps**: 上から機械的に実行できる3〜5手順を書く。
       7. **Done**: 完了条件を1〜3個に絞る。該当するTDD段階、Coverage 85%以上、監査ゲートを削除してはいけない。
       8. **Output**: 次工程向けに最大5行の固定形式で返させる。
+      9. **Next Tool Contract**: 編集担当モードでは、初回 read 後に完全構文ブロックが揃っていれば編集ツールを呼び、編集不能なら attempt_completion で Failure Summary を返すことを1行で固定する。
 
       code への委任では、Steps に検証コマンド実行を含めず、Done は「実装差分が完了し、tester へ渡す検証コマンド候補が返ること」までに限定してください。Coverage 85%以上、パッケージング成功、ビルド成功は code の Done ではなく、直後の tester 委任の Done に移してください。
       契約変更で既存テストの期待値更新が必要な場合は、先に test-writer へ該当テストファイルを Edit Files として委任し、tester で結果を取得してください。該当テストを Forbidden Files に入れたまま code に Green / coverage 成功を要求してはいけません。
