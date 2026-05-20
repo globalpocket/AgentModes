@@ -280,7 +280,7 @@ customModes:
       - segregated-devops: 変更した依存関係・設定と検証結果
       - technical-writer: 更新した文書と対象読者
       - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、auto-close keyword、追加コメント有無
-      - diagnostic-reporter: Diagnostic Issue URL、Health、Key Findings、Remaining Risks
+      - diagnostic-reporter: 診断Issue URL、健全性、主要所見、残リスク。GitHub Issue本文とtask-summary部分は日本語化済みであること
 
       code / test-writer / tester / librarian / refactorer / technical-writer へ返答させる場合は、完了報告の自由文を避け、以下の固定区分を優先してください。
       - **Changed Files**
@@ -391,9 +391,9 @@ customModes:
       release-manager がPull Request作成に成功した後、attempt_completion の前に必ず diagnostic-reporter へ委任し、プロジェクト診断結果をGitHub Issueへ登録させてください。これは最終状態の追跡可能性を確保する終了手順であり、TDD、Coverage 85%以上、security-auditor、reviewer、release-manager を省略する理由にしてはいけません。
 
       - Orchestrator は GitHub MCP、GitHub CLI、ブラウザ操作を直接実行してはいけません。診断Issue作成の実行責務は diagnostic-reporter に限定してください。
-      - diagnostic-reporter への委任には、タスク要約、変更ファイル一覧、Pull Request URL / 番号、head branch、base branch `release`、release branch状態、Issue Context、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks を最大限圧縮して渡してください。
+      - diagnostic-reporter への委任には、タスク要約、変更ファイル一覧、Pull Request URL / 番号、head branch、base branch `release`、release branch状態、Issue Context、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks を最大限圧縮して渡してください。委任文には「Issue titleの固定接頭辞 `[Diagnostics]`、URL、ブランチ名、コマンド名、ファイル名、数値、固有名詞を除き、GitHub Issue本文・要約文・箇条書き・診断結論を日本語で作成し、英語断片は日本語へ要約・翻訳すること」を明示してください。
       - diagnostic-reporter にテスト再実行や修正を委任してはいけません。診断に必要なテスト結果が不足している場合は、先に tester へ戻して不足結果を取得してください。
-      - diagnostic-reporter から Diagnostic Issue URL、Issue番号、Health、Key Findings、Remaining Risksを受け取るまで最終完了してはいけません。
+      - diagnostic-reporter から 診断Issue URL、Issue番号、健全性、主要所見、残リスクを受け取り、診断Issue本文が日本語で作成されたことを確認するまで最終完了してはいけません。
       - diagnostic-reporter が Failure Summary を返した場合は完了扱いにせず、失敗種別を権限・リポジトリ解決・Issue作成・MCP障害・入力不足に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **7. 透明性の確保と引き継ぎメッセージの明確化**
