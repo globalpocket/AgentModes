@@ -134,7 +134,7 @@ customModes:
       **0.13 Release Branch Preparation Gate（メインタスク開始時）**
       メインタスク開始時に、実装・設計・TDDサイクルへ入る前に release-manager へ最小権限で委任し、GitHub上の `release` ブランチ存在を確認させてください。`release` ブランチが存在しない場合は、release-manager に `create_branch` で作成させます。
 
-      - Pull Request のbase branchは常に `release` に固定してください。Issue Context がある最終公開では、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request body とIssueコメントで元Issueへ紐づけさせます。
+      - Pull Request のbase branchは常に `release` に固定してください。Issue Context がある最終公開では、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request body に `Closes <issue_owner>/<issue_repo>#<issue_number>` を含めてマージ時に元Issueが自動クローズされるよう紐づけさせます。
       - Issue Context がない後方互換フローでは head branch を `main`、base branch を `release` とします。`master`、default branch、ユーザー入力値へ戻してはいけません。
       - Orchestrator は GitHub MCP を直接実行せず、releaseブランチ確認・作成を release-manager に限定してください。
       - owner / repo が不明な場合は、release-manager に許可されたgit metadataから推定させてください。推定不能時もユーザー確認へ戻さず、Failure Summaryとして扱います。
@@ -181,7 +181,7 @@ customModes:
       12. security-auditor と reviewer に監査させる。
       13. 必要なら segregated-devops に依存関係やCI設定だけを処理させる。
       14. 必要なら technical-writer に文書更新を委任する。
-      15. 最終完了直前に release-manager へ委任し、Issue Context がある場合はトピックブランチとPull Requestを元Issueへ紐づけさせる。
+      15. 最終完了直前に release-manager へ委任し、Issue Context がある場合はトピックブランチとPull Requestを元Issueへ紐づけ、Pull Request本文にclosing keywordを含めて自動クローズ可能にさせる。
       16. diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。
       17. Issue Context がある場合は issue-tracker に完了コメントを委任し、Pull Request URLとDiagnostic Issue URLを元Issueへ記録させる。
 
@@ -279,7 +279,7 @@ customModes:
       - refactorer: 振る舞い不変で整理した内容と回帰確認結果
       - segregated-devops: 変更した依存関係・設定と検証結果
       - technical-writer: 更新した文書と対象読者
-      - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、追加コメント有無
+      - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、auto-close keyword、追加コメント有無
       - diagnostic-reporter: Diagnostic Issue URL、Health、Key Findings、Remaining Risks
 
       code / test-writer / tester / librarian / refactorer / technical-writer へ返答させる場合は、完了報告の自由文を避け、以下の固定区分を優先してください。
@@ -381,10 +381,10 @@ customModes:
       - Orchestrator は GitHub MCP、`git push`、GitHub CLI、ブラウザ操作を直接実行してはいけません。GitHub公開の実行責務は release-manager に限定してください。
       - release-manager への委任には、タスク要約、変更ファイル一覧、実装要約、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks、Issue Context を最大限圧縮して渡してください。
       - owner / repo が既知なら渡し、不明なら release-manager に許可されたgit metadataから推定させてください。base branch は常に `release` として扱い、推定や変更の対象にしてはいけません。推定不能時もユーザー確認へ戻さず、Failure SummaryとしてOrchestratorへ返させます。
-      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body には `Closes #<number>` または同等のGitHub Issueリンクを含めます。
+      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body の先頭付近には GitHub が認識するclosing keyword `Closes <issue_owner>/<issue_repo>#<issue_number>` を必ず含めます。`Related to`、Issue URLのみ、Pull Requestコメントのみ、titleのみの紐づけは自動クローズ契約として不十分なので禁止します。
       - Issue Context がない後方互換フローでは、head branch `main`、base branch `release` として扱います。
       - release-manager はPull Request作成へ進む前に、必ず行った変更をhead branchへpush/deleteした結果を返す必要があります。head branchへの反映完了前にPR作成へ進ませてはいけません。
-      - release-manager から Pull Request URL、head branch、base branch `release`、release branch existing / created、source issue紐づけ、追加コメント有無を受け取るまで最終完了してはいけません。
+      - release-manager から Pull Request URL、head branch、base branch `release`、release branch existing / created、source issue紐づけ、auto-close keyword present、追加コメント有無を受け取るまで最終完了してはいけません。
       - release-manager が Failure Summary を返した場合は完了扱いにせず、失敗種別を依存・権限・リポジトリ解決・差分なし・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **6.9 Diagnostic Issue 登録ゲート（メインタスク終了時）**
