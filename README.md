@@ -17,21 +17,22 @@
 | `reviewer` | `GPT-5.4` | オン / 中〜高 | 品質監査、設計整合性、リスク判定を安定させるため |
 | `recovery-supervisor` | `GPT-5.5` | オン / 高 | ループ脱出、失敗分類、再委任再設計の上位監督役だから |
 | `ask` | `GPT-5.4` | オン / 中 | 設計・実装・計画の文脈説明を安全に返すため |
-| `issue-tracker` | `GPT-5.4-mini` | オン / 低 | GitHub Issue本文取得、親子Issue判定、未対応サブIssue選択、サブIssue作成、進捗コメント登録だけを行い、実装推論を持たないため |
+| `issue-tracker` | `Qwen3.5-9B` | オン / 最高 | GitHub Issue本文取得、親子Issue判定、未対応サブIssue選択、サブIssue作成、進捗コメント登録だけを固定手順で行い、実装推論を持たないため |
+| `assigned-issue-dispatcher` | `Qwen3.5-9B` | オン / 最高 | 認証済みGitHubユーザーにassignされたopen Issue探索、固定パターンによる完了済みopen Issue除外、Orchestratorまたは自己待機ポーリングへのIPCディスパッチだけを担当するため |
 | `code` | `Qwen3.5-9B` | オン / 最高 | Green実装前のスコープ・API・副作用チェックに内部推論を使い、最小差分へ責務を限定するため |
-| `debug` | `GPT-5.4-mini` | オン / 中 | 再現テスト起点の原因特定は必要だが、復旧監督ほど高コストにしないため |
+| `debug` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが再現テスト、対象ファイル、失敗シグネチャを固定して渡す前提なら、根本原因修正を局所差分へ限定できるため |
 | `test-writer` | `Qwen3.5-9B` | オン / 最高 | 境界値・異常系・Red成立条件の内部検討に推論を使い、編集対象はテストに限定するため |
 | `tester` | `Qwen3.5-9B` | オン / 最高 | ログ圧縮、失敗テスト抽出、Coverage要約に推論を使い、修正提案は行わないため |
 | `librarian` | `Qwen3.5-9B` | オン / 最高 | 探索順序と索引分類に推論を使い、全文読解や実装推測へ拡大しないため |
-| `analyzer` | `GPT-5.4-mini` | オン / 低 | パッチ位置の正確性は必要だが、長い設計推論は不要だから |
+| `analyzer` | `Qwen3.5-9B` | オン / 最高 | 正確な行番号、前後文脈、差分位置の抽出だけを行う読み取り専任であり、設計判断を持たないため |
 | `security-auditor` | `GPT-5.4` | オン / 中〜高 | 脆弱性検知と捏造ライブラリ判定の精度を優先するため |
 | `refactorer` | `Qwen3.5-9B` | オン / 最高 | 振る舞い不変性と局所リスク確認に推論を使い、新機能追加を禁止するため |
-| `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係・CI・環境構築はコマンドと設定整合の両方が必要だから |
+| `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係衝突、CI、環境構築はコマンド実行と設定整合の判断密度が高く、失敗時の復旧設計も必要だから |
 | `repository-synchronizer` | `Qwen3.5-9B` | オン / 最高 | メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pullだけを固定手順で実行する定型同期モードだから |
 | `release-manager` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが品質ゲート通過後の入力を固定し、GitHub MCP操作を定型順序で実行するだけに限定できるため |
-| `diagnostic-reporter` | `GPT-5.4-mini` | オン / 低〜中 | Pull Request、品質ゲート、残リスクを圧縮して診断Issueへ登録する最終レポート担当で、実装推論は不要だから |
-| `technical-writer` | `GPT-5.4-mini` | オン / 低 | 文書整形と説明が主で、深い探索推論は不要だから |
-| `documenter` | `GPT-5.4-mini` | オン / 低 | 後方互換モードとして、軽量な文書更新に向くため |
+| `diagnostic-reporter` | `Qwen3.5-9B` | オン / 最高 | Pull Request、品質ゲート、残リスクを固定形式へ圧縮して診断Issueへ登録する定型レポート担当で、実装推論を持たないため |
+| `technical-writer` | `Qwen3.5-9B` | オン / 最高 | 設計書と実装済み差分を基にMarkdown文書を整形する専任で、編集対象と出力形式を固定できるため |
+| `documenter` | `Qwen3.5-9B` | オン / 最高 | 後方互換モードとして、軽量なMarkdown文書更新に限定すれば定型生成で対応できるため |
 | `platform-sre` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
 
 ## 最小運用ポリシー
@@ -48,6 +49,7 @@
 - メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
 - `release-manager` は、メインタスク開始時の `release` ブランチ準備と、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当し、Issue Contextがある場合はトピックブランチとPull Requestを元Issueへ紐づける
 - メインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する
+- メインタスク終了時、`orchestrator` は `skills/roocode-recursive-dispatch.md` の Skill を使って `assigned-issue-dispatcher` を非同期起動する。`assigned-issue-dispatcher` は認証済みGitHubユーザーにassignされたopen Issueから、`done` / `completed` / `resolved` / `対応済み` / `完了` 系ラベル、PR作成済みコメント、`Pull Request URL`、`Diagnostic Issue URL`、完了コメントを持つ完了済みopen Issueを除外し、未対応IssueだけをOrchestratorへ通常メインタスクとして投入する。未対応Issueが存在しなければ任意時間待機後に自分自身を再帰呼び出しする。socket曖昧、重複fingerprint、深度上限到達時は no-op とし、TDD・Coverage 85%以上・監査・PR・診断ゲートを省略する理由にしない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 
 ## 代替割り当て例
