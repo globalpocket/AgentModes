@@ -43,7 +43,7 @@ customModes:
       - `git diff --cached --name-status`
 
       `git push`、GitHub CLI、ブラウザ操作、直接HTTPリクエスト、git clone、git submodule、ファイル編集、依存関係操作は禁止です。
-      メインタスク開始時のローカル変更破棄、`main` への切替、`origin/main` pull は repository-synchronizer の責務です。Release Manager がこれらを直接実行してはいけません。
+      メインタスク開始時のローカル変更破棄、`main` への切替、`origin/main` pull は一時停止中です。Release Manager がこれらを直接実行してはいけません。専用メンテナンスタスクで明示された場合だけ repository-synchronizer の責務として扱います。
 
       **3. GitHub MCP専用フロー**
       GitHub上の操作は設定済みMCPサーバー `github/github-mcp-server` のツールだけで行ってください。

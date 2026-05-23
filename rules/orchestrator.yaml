@@ -17,7 +17,7 @@ customModes:
       - **差分位置の特定** → analyzer
       - **Artifact初期化・保存先予約・存在確認** → artifact-manager
       - **GitHub Issue本文取得・進捗コメント** → issue-tracker
-      - **メインタスク開始時のローカルmain同期** → repository-synchronizer
+      - **明示指示時のみのローカルmain同期（現在は自動起動停止）** → repository-synchronizer
       - **Red段階のテスト記述** → test-writer
       - **テスト実行・結果取得** → tester
       - **成果物・実行Artifactの整合性判定** → consistency-checker
@@ -136,7 +136,7 @@ customModes:
       - 依存関係・Provider・CIなど環境調査が必要な場合は segregated-devops に分離し、実装・索引・監査・文書化モードへ横断探索を担当させてはいけません。
 
       **0.11A Artifact Cleanup Gate（メインタスク開始時）**
-      メインタスク開始直後、Issue取得、repository-synchronizer、release-manager、設計、TDDサイクルへ入る前に、必ず artifact-manager へ `initialize` を委任し、前回タスクの `artifacts/` を削除して今回タスク用に再作成させてください。
+      メインタスク開始直後、Issue取得、release-manager、設計、TDDサイクルへ入る前に、必ず artifact-manager へ `initialize` を委任し、前回タスクの `artifacts/` を削除して今回タスク用に再作成させてください。
 
       - 削除対象はワークスペース直下の `artifacts/` のみに固定してください。
       - `.git/`、`src/`、`tests/`、`docs/`、`plans/`、`node_modules/`、`coverage/`、`dist/`、ワークスペース外パスを削除対象にしてはいけません。
@@ -144,14 +144,13 @@ customModes:
       - 実行担当モードから返るログ本文を採用してはいけません。Command、Exit Status、Artifact Path、必要ならCoverage Artifact Pathだけを受け取り、判定はconsistency-checkerへ委任してください。
       - artifact-manager が Failure Summary を返した場合は、設計・実装・テスト・判定へ進まず、失敗種別をパス不正・削除失敗・再作成失敗・権限問題に分類してください。
 
-      **0.12 Repository Synchronization Gate（メインタスク開始時）**
-      メインタスク開始時に、設計・実装・TDDサイクル・releaseブランチ準備へ入る前に repository-synchronizer へ最小権限で委任し、ローカルリポジトリを `main` の最新状態へ同期させてください。
+      **0.12 Repository Synchronization Gate（一時停止中）**
+      中断タスクの引き継ぎを優先するため、メインタスク開始時の repository-synchronizer 自動委任は一時的に行ってはいけません。
 
-      - ローカルリポジトリ内に変更がある場合は破棄させます。
-      - ローカルブランチを必ず `main` に切り替えさせます。`master`、default branch、topic branchへ代替してはいけません。
-      - `git pull --ff-only origin main` でリモートリポジトリの `main` ブランチから最新を取得させます。
-      - Orchestrator はこれらのgit commandを直接実行せず、repository-synchronizer に限定してください。
-      - repository-synchronizer がFailure Summaryを返した場合は、設計・実装・release-manager委任へ進まず、失敗種別をブランチ不在・未クリーン・pull失敗・認証/ネットワーク問題に分類してください。
+      - 現在のワークスペース状態を再開Baselineとして採用し、ローカル変更破棄、`main` 切替、`origin/main` pull を実行しないでください。
+      - Orchestrator は `git reset --hard HEAD`、`git clean -fd`、`git checkout main`、`git pull --ff-only origin main` を直接実行せず、通常開始フローでは repository-synchronizer にも委任しないでください。
+      - repository-synchronizer を使えるのは、タスク本文または上位設計で「ローカル変更破棄とmain最新同期」が明示された専用メンテナンスタスクだけです。中断再開タスクでは使用してはいけません。
+      - 未クリーン状態やtopic branch上の作業は Resume / Rebase Gate で分類し、必要なら librarian / analyzer / tester の最小権限確認へ進めてください。
 
       **0.13 Release Branch Preparation Gate（メインタスク開始時）**
       メインタスク開始時に、実装・設計・TDDサイクルへ入る前に release-manager へ最小権限で委任し、GitHub上の `release` ブランチ存在を確認させてください。`release` ブランチが存在しない場合は、release-manager に `create_branch` で作成させます。
@@ -191,7 +190,7 @@ customModes:
       標準フローは以下です。
       1. artifact-manager に `initialize` を委任し、前回 `artifacts/` を削除して今回用ディレクトリを再作成させる。
       2. メインタスクがGitHub Issue URLだけなら issue-tracker にIssue本文取得と開始コメント追加を委任する。
-      3. repository-synchronizer にローカル変更破棄、`main` 切替、`origin/main` pullを委任する。長い実行結果はArtifact Pathへ保存させる。
+      3. repository-synchronizer 自動委任は一時停止中。現在のワークスペースを再開Baselineとして採用し、ローカル変更破棄、`main` 切替、`origin/main` pullを実行しない。
       4. release-manager に `release` ブランチの存在確認を委任し、存在しない場合は `main` から作成させる。長い実行結果はArtifact Pathへ保存させる。
       5. 各サブタスク委任直前に issue-tracker へ進捗コメント追加を委任する。
       6. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
