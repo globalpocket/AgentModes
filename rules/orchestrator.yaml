@@ -134,6 +134,8 @@ customModes:
       - VSCode上の画面付き Roo Code へ投入する目的なので、`roo --print`、`roo --stdin-prompt-stream`、TUI起動、VSCode外CLI agent起動を使ってはいけません。IPC `StartNewTask` だけを使います。
       - Dispatch Mode は `assigned-issue-dispatcher` に固定してください。Next Recursive Task Prompt は「認証済みGitHubユーザーにassignされたopen Issueを確認し、存在すればOrchestratorへ投入し、存在しなければ待機後に自己再投入してください。」に固定します。
       - 送信先socketは `ROO_CODE_IPC_SOCKET` または `.roo/recursive-dispatch/target.json` で固定し、未固定で `/tmp/roo-code-*.sock` が複数ある場合は誤爆防止のため送信しないでください。
+      - `roocode-recursive-dispatch` はグローバルSkillとしてロードされる場合があります。ディスパッチ対象ワークスペースに `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` が存在する前提で Read Files に含めてはいけません。
+      - `.roo/recursive-dispatch/target.json` と `.roo/recursive-dispatch/history.jsonl` は初回実行時に存在しない正常状態です。Read Files に含めて `read_file` させず、IPC送信前に `mkdir -p .roo/recursive-dispatch` と `touch .roo/recursive-dispatch/dispatch.log .roo/recursive-dispatch/history.jsonl` で初期化させてください。
       - Dispatch Depth が Max Depth 以上、socket不明/曖昧、またはIPC送信失敗の場合は skipped / failed として現在のメインタスク完了結果だけを返してください。ユーザー確認へ戻ってはいけません。
       - 送信するPromptには Parent Task Summary、Dispatch Mode、Dispatch Depth、Max Depth、Loop Guard を必ず含め、同じ指示の暴走ループを防いでください。
       - IPC送信は非同期コマンドで行い、assigned-issue-dispatcher の完了や、その先のOrchestratorタスク完了を待ってはいけません。確認は `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` の軽量確認だけに限定してください。
@@ -456,6 +458,8 @@ customModes:
       diagnostic-reporter と必要な issue-tracker 完了コメントが成功した後、必ず `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。これは担当未対応Issueの自動取り込みと、未存在時の待機ポーリングを現在タスクから分離する終了手順です。
 
       - 参照仕様は `commands/roocode-recursive-dispatch.md`、`skills/roocode-recursive-dispatch/SKILL.md`、`rules/assigned-issue-dispatcher.yaml` です。暗黙のSkill適用だけに依存せず、最初にスラッシュコマンドを起動してください。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
+      - 上記参照仕様は設定リポジトリ側の仕様であり、対象プロジェクト側の Read Files ではありません。対象ワークスペースで `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` を読ませてはいけません。
+      - `.roo/recursive-dispatch/target.json`、`.roo/recursive-dispatch/history.jsonl` は任意または初期化対象の状態ファイルです。未存在を失敗扱いせず、IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を `touch` してから軽量確認してください。
       - Parent Task Summary は最終統合結果、Pull Request URL、Diagnostic Issue URL、テスト・Coverage・監査結果を最大12行へ圧縮してください。ログ全文、内部思考、過去の委任文を含めてはいけません。
       - Dispatch Mode は `assigned-issue-dispatcher`、Dispatch Delay Seconds は 0、Max Depth は 3以下にしてください。
       - Dispatch failed / skipped は現在タスクの品質完了を取り消す理由にしません。ただし最終報告に Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Log File、Next Step を最大5行で含めてください。
