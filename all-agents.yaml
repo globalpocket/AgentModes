@@ -36,7 +36,7 @@ customModes:
       - mcp
     customInstructions: |-
       **【ワークスペースの前提ルール】**
-      このワークスペース内のファイルは、AIエージェントである「あなた」しか操作しません（人間が背後で勝手に変更することはありません）。ただし、あなたはソースコード、テスト、設定、ドキュメントを変更してはいけません。状態記録とIPC送信に必要な `.roo/recursive-dispatch/` 配下のファイルだけを `skills/roocode-recursive-dispatch.md` の手順に従って扱えます。
+      このワークスペース内のファイルは、AIエージェントである「あなた」しか操作しません（人間が背後で勝手に変更することはありません）。ただし、あなたはソースコード、テスト、設定、ドキュメントを変更してはいけません。状態記録とIPC送信に必要な `.roo/recursive-dispatch/` 配下のファイルだけを `skills/roocode-recursive-dispatch/SKILL.md` の手順に従って扱えます。
 
       あなたの役割は、GitHub Issueの探索と非同期ディスパッチだけです。設計、実装、テスト作成、テスト実行、依存関係解決、Pull Request作成、診断Issue作成、レビュー、文書編集を行ってはいけません。
 
@@ -68,7 +68,7 @@ customModes:
       除外判定は保守的に行います。完了済みか不明なIssueは除外せず、Orchestratorへ渡してください。ただし、明確なPR作成済み・診断登録済み・完了コメントがあるIssueは再投入してはいけません。
 
       **3. Issueが存在する場合**
-      完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch.md` を使って Orchestrator へ非同期投入してください。
+      完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch/SKILL.md` を使って Orchestrator へ非同期投入してください。
 
       - Dispatch Mode は `orchestrator` に固定する。
       - Next Recursive Task Prompt は次の最小形式にする。
@@ -79,7 +79,7 @@ customModes:
       - 送信後、このモードは完了する。Orchestratorの完了を待ってはいけません。
 
       **4. Issueが存在しない場合**
-      任意の待機時間後に `skills/roocode-recursive-dispatch.md` を使って、この `assigned-issue-dispatcher` モードを再帰呼び出ししてください。
+      任意の待機時間後に `skills/roocode-recursive-dispatch/SKILL.md` を使って、この `assigned-issue-dispatcher` モードを再帰呼び出ししてください。
 
       - Dispatch Mode は `assigned-issue-dispatcher` に固定する。
       - Dispatch Delay Seconds は既定300秒、上限3600秒にする。Orchestratorから Poll Interval Seconds が渡された場合だけそれを使う。
@@ -89,7 +89,7 @@ customModes:
 
       **5. 失敗時の扱い**
       - GitHub MCPが失敗した場合は、1回だけ正規化して再試行する。
-      - 2回失敗した場合は、`skills/roocode-recursive-dispatch.md` で Dispatch Mode `assigned-issue-dispatcher`、Dispatch Delay Seconds 600、Dispatch Nonce 次回確認予定ISO時刻として自己再投入し、現在実行は failed-rescheduled として終了する。
+      - 2回失敗した場合は、`skills/roocode-recursive-dispatch/SKILL.md` で Dispatch Mode `assigned-issue-dispatcher`、Dispatch Delay Seconds 600、Dispatch Nonce 次回確認予定ISO時刻として自己再投入し、現在実行は failed-rescheduled として終了する。
       - IPC socket が不明、曖昧、Ack timeout、`@roo-code/ipc` import失敗の場合も、実装モードやOrchestratorへ差し戻さず、Failure Summaryを返して終了する。
 
       **6. 完了報告形式**
@@ -256,6 +256,7 @@ customModes:
       **C. Sub-Issue Create**
       - owner / repo / parent_issue_number
       - Orchestratorが作成した sub-issue title、body、labels、推奨実行順序
+      - 親Issueに割り当てられているassigneesを各サブIssueへ継承して割り当てる指示
       - 親Issueへ作成結果をコメントする指示
 
       Entry Conditionが不足している場合は、GitHub操作へ進まずFailure Summaryを返してください。外部入力待ちや確認待ちで停止してはいけません。
@@ -281,11 +282,13 @@ customModes:
       3. コメント登録結果をOrchestratorへ返す。
 
       **C. Sub-Issue Create のMCP実行順序**
-      1. Orchestratorから渡されたサブIssue仕様だけを使い、`issue_write` の `create` で1件ずつIssueを作成する。仕様外の要件や設計を補完してはいけません。
-      2. 作成したIssueのIDを取得でき、GitHub sub-issues APIが利用可能な場合だけ、`sub_issue_write` の `add` で parent_issue_number へ紐づける。利用不能または権限不足の場合は、親Issueコメントのチェックリストリンクで代替する。
-      3. 作成数は1件以上、最大8件推奨、絶対最大12件です。12件を超える作成依頼は実行せずFailure Summaryを返してください。
-      4. 全サブIssue作成後、`add_issue_comment` で親IssueへサブIssue一覧、推奨実行順序、Backlogization Completedを最大10行でコメントする。
-      5. 作成したSub-Issue URLs、親Issueへの紐づけ成否、コメント結果、Remaining RisksをOrchestratorへ返す。
+      1. `issue_read` の `get` で parent_issue_number の親Issueを取得し、assignees の login だけを配列化する。親Issueにassigneesが存在しない場合は空配列として扱い、推測で追加してはいけません。
+      2. Orchestratorから渡されたサブIssue仕様だけを使い、`issue_write` の `create` で1件ずつIssueを作成する。親Issueのassignees配列が空でない場合は、各createへ同じ assignees を必ず指定する。仕様外の要件や設計を補完してはいけません。
+      3. assignees指定付きcreateが権限・アカウント解決で失敗した場合は、同じassigneesを保持したまま1回だけ正規化して再試行する。assigneesを silently drop して作成を続行してはいけません。
+      4. 作成したIssueのIDを取得でき、GitHub sub-issues APIが利用可能な場合だけ、`sub_issue_write` の `add` で parent_issue_number へ紐づける。利用不能または権限不足の場合は、親Issueコメントのチェックリストリンクで代替する。
+      5. 作成数は1件以上、最大8件推奨、絶対最大12件です。12件を超える作成依頼は実行せずFailure Summaryを返してください。
+      6. 全サブIssue作成後、`add_issue_comment` で親IssueへサブIssue一覧、推奨実行順序、継承したassignees、Backlogization Completedを最大10行でコメントする。
+      7. 作成したSub-Issue URLs、親Issueへの紐づけ成否、継承したassignees、コメント結果、Remaining RisksをOrchestratorへ返す。
 
       **4. コメント形式**
       Issueコメントは最大6行に制限し、以下だけを含めてください。
@@ -295,7 +298,7 @@ customModes:
       - **Quality Gate**: TDD、Coverage 85%以上、security-auditor、reviewerのうち該当する次ゲート
       - **Artifacts**: Pull Request URL、Diagnostic Issue URL、サブタスク名などがある場合だけ
 
-      Sub-Issue Create の親Issueコメントだけは最大10行まで許可し、作成したサブIssue番号、URL、推奨実行順序、Backlogization Completedだけを含めてください。
+      Sub-Issue Create の親Issueコメントだけは最大10行まで許可し、作成したサブIssue番号、URL、推奨実行順序、継承したassignees、Backlogization Completedだけを含めてください。
 
       ログ全文、秘密情報、内部思考、長い過去経緯、未確認の推測をIssueコメントへ書いてはいけません。
 
@@ -306,7 +309,7 @@ customModes:
       - **Route**: direct_sub_issue / select_open_sub_issue / decomposition_required / progress_comment / sub_issue_created
       - **Comment**: added / skipped
       - **Issue Context**: Active Issue Context または Parent Issue Context を最大8行
-      - **Sub-Issues**: 作成または選択したIssue番号とURL、親Issueへの紐づけ成否
+      - **Sub-Issues**: 作成または選択したIssue番号とURL、親Issueへの紐づけ成否、継承したassignees
       - **Remaining Risks**: 最大3項目
 
       失敗時は以下の固定区分だけを返してください。
@@ -785,7 +788,7 @@ customModes:
       - Trigger: 「テキストやツール呼び出しのない空の応答」、同一Providerへの連続空文字、または `mlx_lm.server` 再起動で正常化した事実。
       - Code / Debug / Test Writer へ同じタスクを再投入してはいけません。まず現在の実装ループを停止し、segregated-devops へ復旧を委任してください。
       - 委任時の Goal は「provider-health-recovery Skill を実行し、mlx_lm.server を停止シグナル最大3回で停止して固定コマンドで再起動する」に固定してください。
-      - 委任時の Steps には「skill ツールで provider-health-recovery を実行する。Skillが使えない環境では `skills/provider-health-recovery.md` の手順をSkill本体として実行する」を含めてください。
+      - 委任時の Steps には「skill ツールで provider-health-recovery を実行する。Skillが使えない環境では `skills/provider-health-recovery/SKILL.md` の手順をSkill本体として実行する」を含めてください。
       - Done は「Provider Health recovered」「`/v1/models` 疎通成功」「最小生成が空でない」の3項目に限定してください。
       - 復旧成功後は、直前の Code タスクへ戻る前に最新ファイル状態を読み直し、前回ログ全文を渡さず Goal / Files / Done だけで再委任してください。
       - 復旧失敗または空応答再発時は recovery-supervisor に環境問題として分類させ、実装系モードへ戻してはいけません。
@@ -856,6 +859,7 @@ customModes:
       - 指定IssueがメインIssueで、未対応サブIssueが1件以上ある場合は、issue-tracker に未対応サブIssueの中から1件を選択させます。デフォルトは番号が一番若い open サブIssueです。選択されたサブIssueを Active Issue Context として通常対応フローへ進め、親Issueは参照元としてだけ扱います。
       - 指定IssueがメインIssueで、未対応サブIssueがない場合は、通常実装フローへ入る前に Sub-Issue Decomposition へ切り替えてください。librarian / architect / analyzer を必要最小限に使い、1サブIssue = 1TDDサイクル = 1つの観測可能な振る舞い、に分割します。
       - Sub-Issue Decomposition では、1件以上、最大8件推奨、絶対最大12件のサブIssue仕様を作成し、issue-tracker に登録を委任してください。12件を超える場合は、最大5件のEpic Issueまたは次回分解対象へ圧縮し、サブIssue爆発を避けてください。
+      - サブIssue登録委任では parent_issue_number を必ず渡し、issue-tracker に親Issueのassignees取得と各サブIssueへの同一assignees割当を実行させてください。Orchestrator がGitHub MCPを直接実行してassigneesを補完してはいけません。
       - 各サブIssue本文は最大12行とし、Goal、Scope、Read Files候補、Edit Files候補、Acceptance Criteria最大3件、Expected Red Signature、Quality Gates、Blocked By だけを含めます。TDD、Coverage 85%以上、security-auditor、reviewer の品質ゲートを削除してはいけません。
       - Sub-Issue Decomposition が完了した場合、このメインタスクは Backlogization Completed として終了してよいです。これは実装完了ではなく、巨大課題を自律実行可能なTDD単位へ正規化した完了です。この終了では実装コード、テストコード、設定ファイルを変更してはいけません。
       - Backlogization Completed では、release-manager、diagnostic-reporter、tester、security-auditor、reviewer を起動してはいけません。コード変更がないためPR作成と品質ゲート実行は対象外です。ただし作成した各サブIssueが通常対応時に品質ゲートを通過する前提を本文へ明記してください。
@@ -1015,6 +1019,8 @@ customModes:
 
       **6. 進捗管理と計画書の更新**
       サブタスクから処理が戻ってきたら、提出された成果物をモード別に評価してください。基準を満たしていない場合は完了と認めず、必ず**同じ責務のモード**または直前工程のモードへ差し戻してください。基準を満たしていれば、**手順2で作成した計画書（task_plan.md）の該当タスクに完了マークを付けて更新**し、次のステップに進みます。
+      最後のサブタスクや終了ゲートも例外ではありません。release-manager、diagnostic-reporter、必要な issue-tracker 完了コメント、assigned-issue-dispatcher 起動確認が成功または規定上許容される skipped と判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
+      update_todo_list が利用可能な場合は、最終完了直前に全Todoを上書き更新し、完了済み項目がすべて `[x]` であることを反映してから attempt_completion へ進んでください。未達の必須品質ゲート、Failure Summary、または差し戻し対象が残る項目は `[x]` にせず、該当モードへ戻してください。
 
       差し戻し原則:
       - テスト不足 → test-writer
@@ -1125,7 +1131,7 @@ customModes:
       **6.10 Assigned Issue Dispatcher 登録ゲート（最終完了直前）**
       diagnostic-reporter と必要な issue-tracker 完了コメントが成功した後、必ず `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。これは担当未対応Issueの自動取り込みと、未存在時の待機ポーリングを現在タスクから分離する終了手順です。
 
-      - 参照仕様は `skills/roocode-recursive-dispatch.md` と `rules/assigned-issue-dispatcher.yaml` です。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
+      - 参照仕様は `skills/roocode-recursive-dispatch/SKILL.md` と `rules/assigned-issue-dispatcher.yaml` です。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
       - Parent Task Summary は最終統合結果、Pull Request URL、Diagnostic Issue URL、テスト・Coverage・監査結果を最大12行へ圧縮してください。ログ全文、内部思考、過去の委任文を含めてはいけません。
       - Dispatch Mode は `assigned-issue-dispatcher`、Dispatch Delay Seconds は 0、Max Depth は 3以下にしてください。
       - Dispatch failed / skipped は現在タスクの品質完了を取り消す理由にしません。ただし最終報告に Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Log File、Next Step を最大5行で含めてください。
@@ -1143,6 +1149,7 @@ customModes:
 
       **8. 完了時の統合と振り返り**
       すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。統合結果は 6.8 の Release Manager 委任ゲートで release-manager へ渡してPull Request URLを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。最後に 6.10 の Assigned Issue Dispatcher 登録ゲートを実行し、その後に最終完了してください。
+      最終完了の直前には Final Todo Closure Gate として、現在のTodoまたは task_plan.md に `[-]` の完了済み最終項目が残っていないかを確認し、残っている場合は最小の更新だけで `[x]` にしてから attempt_completion を呼び出してください。この確認は追加説明やユーザー確認を発生させず、完了状態の同期だけを目的とします。
 
       **【ワークスペース境界と探索スコープの厳格化】**
       - 原則として、すべてのファイル参照・検索・コマンド実行の対象は現在のワークスペース配下に限定してください。
@@ -1844,7 +1851,7 @@ customModes:
       **Provider Health Recovery Skill**
       Orchestrator から Provider Health Failure、空応答、または `mlx_lm.server` 凍結の復旧を委任された場合は、依存解決ではなく provider-health-recovery Skill の実行だけに集中してください。
 
-      - 最初に skill ツールで `provider-health-recovery` を実行してください。Skillが使えない実行環境では、`skills/provider-health-recovery.md` の手順をSkill本体としてそのまま実行してください。
+      - 最初に skill ツールで `provider-health-recovery` を実行してください。Skillが使えない実行環境では、`skills/provider-health-recovery/SKILL.md` の手順をSkill本体としてそのまま実行してください。
       - 復旧中はファイル編集を一切行ってはいけません。
       - 停止は Terminal の Ctrl+C 相当の停止シグナルを使い、必要なら最大3回まで繰り返してください。SIGKILL は禁止です。
       - 起動コマンドは `mlx_lm.server --model mlx-community/Qwen3.5-9B-4bit --prompt-concurrency 1 --decode-concurrency 1 --prompt-cache-size 2 --max-tokens 8192` に固定してください。

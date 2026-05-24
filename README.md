@@ -49,7 +49,7 @@
 - メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
 - `release-manager` は、メインタスク開始時の `release` ブランチ準備と、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当し、Issue Contextがある場合はトピックブランチとPull Requestを元Issueへ紐づける
 - メインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する
-- メインタスク終了時、`orchestrator` は `skills/roocode-recursive-dispatch.md` の Skill を使って `assigned-issue-dispatcher` を非同期起動する。`assigned-issue-dispatcher` は認証済みGitHubユーザーにassignされたopen Issueから、`done` / `completed` / `resolved` / `対応済み` / `完了` 系ラベル、PR作成済みコメント、`Pull Request URL`、`Diagnostic Issue URL`、完了コメントを持つ完了済みopen Issueを除外し、未対応IssueだけをOrchestratorへ通常メインタスクとして投入する。未対応Issueが存在しなければ任意時間待機後に自分自身を再帰呼び出しする。socket曖昧、重複fingerprint、深度上限到達時は no-op とし、TDD・Coverage 85%以上・監査・PR・診断ゲートを省略する理由にしない
+- メインタスク終了時、`orchestrator` は `skills/roocode-recursive-dispatch/SKILL.md` の Skill を使って `assigned-issue-dispatcher` を非同期起動する。`assigned-issue-dispatcher` は認証済みGitHubユーザーにassignされたopen Issueから、`done` / `completed` / `resolved` / `対応済み` / `完了` 系ラベル、PR作成済みコメント、`Pull Request URL`、`Diagnostic Issue URL`、完了コメントを持つ完了済みopen Issueを除外し、未対応IssueだけをOrchestratorへ通常メインタスクとして投入する。未対応Issueが存在しなければ任意時間待機後に自分自身を再帰呼び出しする。socket曖昧、重複fingerprint、深度上限到達時は no-op とし、TDD・Coverage 85%以上・監査・PR・診断ゲートを省略する理由にしない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 
 ## 代替割り当て例

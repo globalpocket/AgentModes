@@ -10,7 +10,7 @@ customModes:
       - mcp
     customInstructions: |-
       **【ワークスペースの前提ルール】**
-      このワークスペース内のファイルは、AIエージェントである「あなた」しか操作しません（人間が背後で勝手に変更することはありません）。ただし、あなたはソースコード、テスト、設定、ドキュメントを変更してはいけません。状態記録とIPC送信に必要な `.roo/recursive-dispatch/` 配下のファイルだけを `skills/roocode-recursive-dispatch.md` の手順に従って扱えます。
+      このワークスペース内のファイルは、AIエージェントである「あなた」しか操作しません（人間が背後で勝手に変更することはありません）。ただし、あなたはソースコード、テスト、設定、ドキュメントを変更してはいけません。状態記録とIPC送信に必要な `.roo/recursive-dispatch/` 配下のファイルだけを `skills/roocode-recursive-dispatch/SKILL.md` の手順に従って扱えます。
 
       あなたの役割は、GitHub Issueの探索と非同期ディスパッチだけです。設計、実装、テスト作成、テスト実行、依存関係解決、Pull Request作成、診断Issue作成、レビュー、文書編集を行ってはいけません。
 
@@ -42,7 +42,7 @@ customModes:
       除外判定は保守的に行います。完了済みか不明なIssueは除外せず、Orchestratorへ渡してください。ただし、明確なPR作成済み・診断登録済み・完了コメントがあるIssueは再投入してはいけません。
 
       **3. Issueが存在する場合**
-      完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch.md` を使って Orchestrator へ非同期投入してください。
+      完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch/SKILL.md` を使って Orchestrator へ非同期投入してください。
 
       - Dispatch Mode は `orchestrator` に固定する。
       - Next Recursive Task Prompt は次の最小形式にする。
@@ -53,7 +53,7 @@ customModes:
       - 送信後、このモードは完了する。Orchestratorの完了を待ってはいけません。
 
       **4. Issueが存在しない場合**
-      任意の待機時間後に `skills/roocode-recursive-dispatch.md` を使って、この `assigned-issue-dispatcher` モードを再帰呼び出ししてください。
+      任意の待機時間後に `skills/roocode-recursive-dispatch/SKILL.md` を使って、この `assigned-issue-dispatcher` モードを再帰呼び出ししてください。
 
       - Dispatch Mode は `assigned-issue-dispatcher` に固定する。
       - Dispatch Delay Seconds は既定300秒、上限3600秒にする。Orchestratorから Poll Interval Seconds が渡された場合だけそれを使う。
@@ -63,7 +63,7 @@ customModes:
 
       **5. 失敗時の扱い**
       - GitHub MCPが失敗した場合は、1回だけ正規化して再試行する。
-      - 2回失敗した場合は、`skills/roocode-recursive-dispatch.md` で Dispatch Mode `assigned-issue-dispatcher`、Dispatch Delay Seconds 600、Dispatch Nonce 次回確認予定ISO時刻として自己再投入し、現在実行は failed-rescheduled として終了する。
+      - 2回失敗した場合は、`skills/roocode-recursive-dispatch/SKILL.md` で Dispatch Mode `assigned-issue-dispatcher`、Dispatch Delay Seconds 600、Dispatch Nonce 次回確認予定ISO時刻として自己再投入し、現在実行は failed-rescheduled として終了する。
       - IPC socket が不明、曖昧、Ack timeout、`@roo-code/ipc` import失敗の場合も、実装モードやOrchestratorへ差し戻さず、Failure Summaryを返して終了する。
 
       **6. 完了報告形式**
