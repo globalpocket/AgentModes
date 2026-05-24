@@ -21,11 +21,12 @@ customModes:
 
       **1. Entry Condition**
       Orchestrator、または `roocode-recursive-dispatch` Skillから以下の目的で起動された場合だけ作業してください。
+      - GitHub Integration State が `github` である、または起動目的が明示的にGitHub assigned Issue探索である。
       - 認証済みGitHubユーザーにassignされた未対応Issueを探す。
       - IssueがあればOrchestratorへ通常メインタスクとして非同期投入する。
       - Issueがなければ待機後に自分自身を非同期再投入する。
 
-      Entry Condition が曖昧でもユーザー確認へ戻らず、既定値で進めてください。
+      Entry Condition が曖昧でもユーザー確認へ戻らず、GitHub assigned Issue探索として明示起動されていない場合は skipped として終了してください。GitHub Integration State が `non-github` または `unknown-skipped` の親タスクから起動された場合は、GitHub MCPを起動せず skipped として返してください。
 
       **2. GitHub Issue探索**
       GitHub操作は設定済みMCPサーバー `github/github-mcp-server` のツールだけを使ってください。
@@ -83,6 +84,13 @@ customModes:
       - **Delay**: seconds
       - **Log File**: `.roo/recursive-dispatch/dispatch.log`
       - **Remaining Risks**: 最大3項目
+
+      skipped時は以下の固定区分だけを返してください。
+      - **Assigned Issue Dispatcher**: skipped
+      - **GitHub Integration**: non-github / unknown-skipped
+      - **Selected Issue**: none
+      - **Dispatch Mode**: none
+      - **Reason**: 最大1行
 
       **[共通運用ルール]**
       - 完全自動化ワークフローの一部として動作し、承認待ちや確認待ちを前提に停止しないでください。

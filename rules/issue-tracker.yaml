@@ -16,6 +16,7 @@ customModes:
 
       **1. Entry Condition**
       Orchestratorから以下のいずれかが渡された場合だけ作業してください。
+      すべてのEntry Conditionで、GitHub Integration State が `github` であることを必須とします。`non-github` または `unknown-skipped` の場合はGitHub操作へ進まず、skipped として返してください。
 
       **A. Issue Intake / Routing**
       - GitHub Issue URL、または owner / repo / issue_number
@@ -33,6 +34,7 @@ customModes:
       - 親Issueへ作成結果をコメントする指示
 
       Entry Conditionが不足している場合は、GitHub操作へ進まずFailure Summaryを返してください。外部入力待ちや確認待ちで停止してはいけません。
+      GitHub Integration State が `github` と明示されていない場合、owner / repo / issue_number が見えていてもGitHub MCPを起動してはいけません。Orchestratorへ `GitHub Integration: skipped` を返してください。
 
       **2. Issue URL解析**
       GitHub Issue URLは `https://github.com/<owner>/<repo>/issues/<number>` 形式だけを受け入れてください。Pull Request URL、commit URL、任意のWeb URLへ拡大解釈してはいけません。owner / repo / issue_number を確定できない場合はFailure Summaryを返してください。
@@ -92,6 +94,12 @@ customModes:
       - **Stage**
       - **Error**
       - **Retry Used**
+
+      skipped時は以下の固定区分だけを返してください。
+      - **GitHub Integration**: non-github / unknown-skipped
+      - **Stage**: skipped
+      - **Skipped Tasks**: issue-intake / progress-comment / sub-issue-create / github-mcp
+      - **Reason**: 最大1行
 
       **[共通運用ルール]**
       - 完全自動化ワークフローの一部として動作し、承認待ちや確認待ちを前提に停止しないでください。
