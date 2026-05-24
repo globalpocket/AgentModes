@@ -804,9 +804,10 @@ customModes:
       - 依存解決後は tester に戻して同じ検証コマンドを再実行し、Codeへ直接戻してはいけません。
 
       **0.10A Assigned Issue Dispatcher Gate（メインタスク完了時）**
-      メインタスクのすべての品質ゲート、release-manager、diagnostic-reporter、必要な issue-tracker 完了コメントが成功したら、attempt_completion の直前に `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。
+      メインタスクのすべての品質ゲート、release-manager、diagnostic-reporter、必要な issue-tracker 完了コメントが成功したら、attempt_completion の直前に `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。
 
       - これは実装、テスト、監査、公開、診断を代替する手段ではありません。TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporter を省略してはいけません。
+      - `skill` ツールの自動適用や暗黙トリガーだけに依存してはいけません。必ず `commands/roocode-recursive-dispatch.md` に対応する `/roocode-recursive-dispatch` を最終完了直前の独立ゲートとして起動してください。
       - VSCode上の画面付き Roo Code へ投入する目的なので、`roo --print`、`roo --stdin-prompt-stream`、TUI起動、VSCode外CLI agent起動を使ってはいけません。IPC `StartNewTask` だけを使います。
       - Dispatch Mode は `assigned-issue-dispatcher` に固定してください。Next Recursive Task Prompt は「認証済みGitHubユーザーにassignされたopen Issueを確認し、存在すればOrchestratorへ投入し、存在しなければ待機後に自己再投入してください。」に固定します。
       - 送信先socketは `ROO_CODE_IPC_SOCKET` または `.roo/recursive-dispatch/target.json` で固定し、未固定で `/tmp/roo-code-*.sock` が複数ある場合は誤爆防止のため送信しないでください。
@@ -906,7 +907,7 @@ customModes:
       19. 最終完了直前に release-manager へ委任し、Active Issue Context がある場合はトピックブランチとPull RequestをそのIssueへ紐づけ、Pull Request本文にclosing keywordを含めて自動クローズ可能にさせる。
       20. diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。
       21. Active Issue Context がある場合は issue-tracker に完了コメントを委任し、Pull Request URLとDiagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
-      22. `roocode-recursive-dispatch` Skill で `assigned-issue-dispatcher` モードを非同期起動し、担当未対応Issueの探索・Orchestrator投入・待機ポーリングを後続モードへ分離する。実行結果は最終完了報告へ最大5行で含める。
+      22. `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。担当未対応Issueの探索・Orchestrator投入・待機ポーリングを後続モードへ分離し、実行結果は最終完了報告へ最大5行で含める。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -1129,9 +1130,9 @@ customModes:
       - diagnostic-reporter が Failure Summary を返した場合は完了扱いにせず、失敗種別を権限・リポジトリ解決・Issue作成・MCP障害・入力不足に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **6.10 Assigned Issue Dispatcher 登録ゲート（最終完了直前）**
-      diagnostic-reporter と必要な issue-tracker 完了コメントが成功した後、必ず `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。これは担当未対応Issueの自動取り込みと、未存在時の待機ポーリングを現在タスクから分離する終了手順です。
+      diagnostic-reporter と必要な issue-tracker 完了コメントが成功した後、必ず `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。これは担当未対応Issueの自動取り込みと、未存在時の待機ポーリングを現在タスクから分離する終了手順です。
 
-      - 参照仕様は `skills/roocode-recursive-dispatch/SKILL.md` と `rules/assigned-issue-dispatcher.yaml` です。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
+      - 参照仕様は `commands/roocode-recursive-dispatch.md`、`skills/roocode-recursive-dispatch/SKILL.md`、`rules/assigned-issue-dispatcher.yaml` です。暗黙のSkill適用だけに依存せず、最初にスラッシュコマンドを起動してください。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
       - Parent Task Summary は最終統合結果、Pull Request URL、Diagnostic Issue URL、テスト・Coverage・監査結果を最大12行へ圧縮してください。ログ全文、内部思考、過去の委任文を含めてはいけません。
       - Dispatch Mode は `assigned-issue-dispatcher`、Dispatch Delay Seconds は 0、Max Depth は 3以下にしてください。
       - Dispatch failed / skipped は現在タスクの品質完了を取り消す理由にしません。ただし最終報告に Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Log File、Next Step を最大5行で含めてください。
@@ -1148,7 +1149,7 @@ customModes:
       5. 返答フォーマット
 
       **8. 完了時の統合と振り返り**
-      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。統合結果は 6.8 の Release Manager 委任ゲートで release-manager へ渡してPull Request URLを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。最後に 6.10 の Assigned Issue Dispatcher 登録ゲートを実行し、その後に最終完了してください。
+      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。統合結果は 6.8 の Release Manager 委任ゲートで release-manager へ渡してPull Request URLを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。最後に 6.10 の Assigned Issue Dispatcher 登録ゲートとして `/roocode-recursive-dispatch` を明示実行し、その後に最終完了してください。
       最終完了の直前には Final Todo Closure Gate として、現在のTodoまたは task_plan.md に `[-]` の完了済み最終項目が残っていないかを確認し、残っている場合は最小の更新だけで `[x]` にしてから attempt_completion を呼び出してください。この確認は追加説明やユーザー確認を発生させず、完了状態の同期だけを目的とします。
 
       **【ワークスペース境界と探索スコープの厳格化】**
