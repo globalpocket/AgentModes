@@ -181,7 +181,7 @@ customModes:
       **0.13 Release Branch Preparation Gate（メインタスク開始時）**
       GitHub Integration State が `github` の場合だけ、メインタスク開始時に、実装・設計・TDDサイクルへ入る前に release-manager へ最小権限で委任し、GitHub上の `release` ブランチ存在を確認させてください。`release` ブランチが存在しない場合は、release-manager に `create_branch` で作成させます。GitHub Integration State が `non-github` または `unknown-skipped` の場合、このゲートは skipped とし、release-manager のブランチ準備やGitHub MCP操作を起動してはいけません。
 
-      - Pull Request のbase branchは常に `release` に固定してください。Issue Context がある最終公開では、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request body に `Closes <issue_owner>/<issue_repo>#<issue_number>` を含めてマージ時に元Issueが自動クローズされるよう紐づけさせます。
+      - Pull Request のbase branchは常に `release` に固定してください。Issue Context がある最終公開では、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request body に `Closes <issue_owner>/<issue_repo>#<issue_number>` を含めてGitHub上のリンクを成立させます。ただし、GitHubのIssue自動クローズはPRをcloseしただけでは発火せず、closing keywordを含むPRがリポジトリの既定ブランチへmergeされた場合だけ発火します。base `release` が既定ブランチでない場合は、release宛てPRのclose/mergeだけでIssueが閉じると表現してはいけません。
       - Issue Context がない後方互換フローでは head branch を `main`、base branch を `release` とします。`master`、default branch、ユーザー入力値へ戻してはいけません。
       - Orchestrator は GitHub MCP を直接実行せず、releaseブランチ確認・作成を release-manager に限定してください。
       - GitHub Integration State が `github` なのに owner / repo が不明な場合は、release-manager に許可されたgit metadataから推定させてください。推定不能時もユーザー確認へ戻さず、GitHub関連ゲートだけを `unknown-skipped` として扱います。
@@ -202,7 +202,7 @@ customModes:
       - Issue Context は以後の全サブタスク委任で Active Issue Context だけを Context Delta に最大3行で渡してください。親Issue本文全文、過去コメント全文、長い経緯、未選択サブIssue一覧を各モードへ再掲してはいけません。
       - 各サブタスクへ移譲する直前に、issue-tracker へ stage `delegation` の進捗コメントを委任してください。コメント内容は「委任先モード、1文のGoal、次に期待する結果、品質ゲート」だけに圧縮します。
       - 外部入力が不可欠で ask_followup_question を使う場合は、質問前に issue-tracker へ stage `user-question` のコメントを委任し、中断理由と回答後に再開する対応を記録させます。質問は最後の手段であり、承認待ちを通常フローにしてはいけません。
-      - 通常対応のメインタスク完了時は、release-manager と diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Pull Request URL、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
+      - 通常対応のメインタスク完了時は、release-manager と diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Pull Request URL、Diagnostic Issue URL、Auto-Close Eligibility、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
       - issue-tracker がFailure Summaryを返した場合でも、Issue操作失敗を実装修正タスクに混ぜてはいけません。失敗種別を権限・リポジトリ解決・Issue読取・親子判定・サブIssue作成・コメント追加・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **1. 設計書の作成・更新（Design First）**
@@ -240,9 +240,9 @@ customModes:
       17. security-auditor と reviewer に監査させる。長い監査結果はArtifact Pathで受け渡す。
       18. 必要なら segregated-devops に依存関係やCI設定だけを処理させ、実行結果はArtifact Pathへ保存させる。
       19. 必要なら technical-writer に文書更新を委任する。
-      20. GitHub Integration State が `github` の場合だけ、最終完了直前に release-manager へ委任し、Active Issue Context がある場合はトピックブランチとPull RequestをそのIssueへ紐づけ、Pull Request本文にclosing keywordを含めて自動クローズ可能にさせる。`non-github` / `unknown-skipped` ではPull Request作成を skipped とする。
+      20. GitHub Integration State が `github` の場合だけ、最終完了直前に release-manager へ委任し、Active Issue Context がある場合はトピックブランチとPull RequestをそのIssueへ紐づけ、Pull Request本文にclosing keywordとAuto-Close Eligibilityを含めさせる。`non-github` / `unknown-skipped` ではPull Request作成を skipped とする。
       21. GitHub Integration State が `github` かつPull Request作成済みの場合だけ、diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
-      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Pull Request URLとDiagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
+      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Pull Request URL、Diagnostic Issue URL、Auto-Close EligibilityをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
       23. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
 
       **4. new_task 実行時の最小安定フォーマット**
@@ -340,7 +340,7 @@ customModes:
       - refactorer: 振る舞い不変で整理した内容と回帰確認結果
       - segregated-devops: 変更した依存関係・設定と検証結果
       - technical-writer: 更新した文書と対象読者
-      - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、auto-close keyword、追加コメント有無
+      - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、closing keyword、Auto-Close Eligibility、追加コメント有無
       - diagnostic-reporter: 診断Issue URL、健全性、主要所見、残リスク。GitHub Issue本文とtask-summary部分は日本語化済みであること
       - assigned-issue-dispatcher / roocode-recursive-dispatch Skill: Assigned Issue Dispatcher または Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Delay、Prompt File、Log File、Next Step
 
@@ -449,10 +449,10 @@ customModes:
       - Orchestrator は GitHub MCP、`git push`、GitHub CLI、ブラウザ操作を直接実行してはいけません。GitHub公開の実行責務は release-manager に限定してください。
       - release-manager への委任には、タスク要約、変更ファイル一覧、実装要約、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks、Issue Context を最大限圧縮して渡してください。
       - owner / repo が既知なら渡し、不明なら release-manager に許可されたgit metadataから推定させてください。base branch は常に `release` として扱い、推定や変更の対象にしてはいけません。推定不能時もユーザー確認へ戻さず、GitHub関連ゲートだけを `unknown-skipped` として扱わせます。
-      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body の先頭付近には GitHub が認識するclosing keyword `Closes <issue_owner>/<issue_repo>#<issue_number>` を必ず含めます。`Related to`、Issue URLのみ、Pull Requestコメントのみ、titleのみの紐づけは自動クローズ契約として不十分なので禁止します。
+      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body の先頭付近には GitHub が認識するclosing keyword `Closes <issue_owner>/<issue_repo>#<issue_number>` を必ず含めます。`Related to`、Issue URLのみ、Pull Requestコメントのみ、titleのみの紐づけはリンク契約として不十分なので禁止します。GitHubのIssue自動クローズはPRをcloseしただけでは発火せず、closing keywordを含むPRが既定ブランチへmergeされた場合だけ発火するため、release-managerには Auto-Close Eligibility をPR本文・元Issueコメント・完了報告へ明記させてください。
       - Issue Context がない後方互換フローでは、head branch `main`、base branch `release` として扱います。
       - release-manager はPull Request作成へ進む前に、必ず行った変更をhead branchへpush/deleteした結果を返す必要があります。head branchへの反映完了前にPR作成へ進ませてはいけません。
-      - release-manager から Pull Request URL、head branch、base branch `release`、release branch existing / created、source issue紐づけ、auto-close keyword present、追加コメント有無を受け取るまで最終完了してはいけません。
+      - release-manager から Pull Request URL、head branch、base branch `release`、release branch existing / created、source issue紐づけ、closing keyword present、Auto-Close Eligibility、追加コメント有無を受け取るまで最終完了してはいけません。
       - release-manager が Failure Summary を返した場合は完了扱いにせず、失敗種別を依存・権限・リポジトリ解決・差分なし・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **6.9 Diagnostic Issue 登録ゲート（メインタスク終了時）**
