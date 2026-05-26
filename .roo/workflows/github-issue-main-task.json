@@ -1,0 +1,57 @@
+{
+  "name": "GitHub Issue Main Task Workflow",
+  "description": "GitHub Issue起点タスクをIssue Intake、TDD、診断Issue、完了コメント、次Issue探索まで固定順で処理するRoo Codeワークフロー",
+  "sequential": true,
+  "steps": [
+    {
+      "mode": "artifact-manager",
+      "description": "Operation initializeで前回artifactsを削除し、今回タスク用Artifact Rootを作る",
+      "phase": "artifact-initialize"
+    },
+    {
+      "mode": "orchestrator",
+      "description": "GitHub Integration Stateをgithub/non-github/unknown-skippedへ分類し、GitHub関連ゲート適用可否を決める",
+      "phase": "github-origin-gate"
+    },
+    {
+      "mode": "issue-tracker",
+      "description": "Issue Intake/Routingを行い、direct_sub_issue/select_open_sub_issue/decomposition_requiredを返す",
+      "phase": "issue-intake-routing"
+    },
+    {
+      "mode": "architect",
+      "description": "decomposition_requiredの場合だけ、1TDD単位のサブIssue仕様を最大8件推奨・絶対最大12件で作る",
+      "phase": "sub-issue-decomposition-conditional"
+    },
+    {
+      "mode": "issue-tracker",
+      "description": "decomposition_requiredの場合だけ、親Issueのassigneesを継承してサブIssueを作成し、Backlogization Completedをコメントする",
+      "phase": "sub-issue-create-conditional"
+    },
+    {
+      "mode": "issue-tracker",
+      "description": "通常対応の場合だけ、各サブタスク委任直前にdelegation進捗コメントを最大6行で追加する",
+      "phase": "delegation-comment-conditional"
+    },
+    {
+      "workflow": "tdd-quality-gate",
+      "description": "通常対応の場合だけ、TDD Quality Gate WorkflowでRedから監査までを完了する",
+      "phase": "tdd-quality-gate"
+    },
+    {
+      "mode": "diagnostic-reporter",
+      "description": "GitHub Integration Stateがgithubかつ品質ゲートPassの場合だけ、日本語の診断Issueを作成する",
+      "phase": "diagnostic-issue-create-conditional"
+    },
+    {
+      "mode": "issue-tracker",
+      "description": "Active IssueへDiagnostic Issue URL、テスト、Coverage、監査結果を最大6行で完了コメントする",
+      "phase": "completion-comment-conditional"
+    },
+    {
+      "workflow": "post-task-recursive-dispatch",
+      "description": "GitHub Integration Stateがgithubの場合だけ、担当未対応Issue探索を非同期起動する",
+      "phase": "assigned-issue-dispatch-conditional"
+    }
+  ]
+}

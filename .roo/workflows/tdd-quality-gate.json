@@ -1,0 +1,77 @@
+{
+  "name": "TDD Quality Gate Workflow",
+  "description": "Red作成、実行、判定、Green実装、Coverage、監査までをSoD分離で固定するRoo Codeワークフロー",
+  "sequential": true,
+  "steps": [
+    {
+      "mode": "artifact-manager",
+      "description": "Operation initializeで前回artifactsを削除し、今回タスク用のArtifact Rootを準備する",
+      "phase": "artifact-initialize"
+    },
+    {
+      "mode": "architect",
+      "description": "必要な場合だけ設計と1TDD単位の計画を作り、実装対象・品質ゲート・Coverage 85%以上を明確化する",
+      "phase": "design-plan"
+    },
+    {
+      "mode": "test-writer",
+      "description": "Red専任として指定テストファイルだけを追加・更新し、実行やRed判定は行わない",
+      "phase": "red-write"
+    },
+    {
+      "mode": "consistency-checker",
+      "description": "test-writer生成物がGoal、Exact Imports、Allowed Mocks、Forbidden Patternsに合うか判定する",
+      "phase": "red-contract-check"
+    },
+    {
+      "mode": "artifact-manager",
+      "description": "Red実行ログのArtifact Path親ディレクトリだけをprepareする",
+      "phase": "red-artifact-prepare"
+    },
+    {
+      "mode": "tester",
+      "description": "指定されたRed確認コマンドだけを実行し、stdout/stderrをArtifact Pathへ保存する",
+      "phase": "red-run"
+    },
+    {
+      "mode": "consistency-checker",
+      "description": "Red実行ArtifactがExpected Red Signatureと一致するか判定し、一致時はRed成立としてGreenへ進める",
+      "phase": "red-judge"
+    },
+    {
+      "mode": "code",
+      "description": "Green最小実装だけを行い、テスト実行・Coverage測定・依存操作は行わない",
+      "phase": "green-implement"
+    },
+    {
+      "mode": "artifact-manager",
+      "description": "Green/Coverage実行ログのArtifact Path親ディレクトリだけをprepareする",
+      "phase": "green-artifact-prepare"
+    },
+    {
+      "mode": "tester",
+      "description": "指定されたGreen/Coverageコマンドだけを実行し、結果をArtifact Pathへ保存する",
+      "phase": "green-run"
+    },
+    {
+      "mode": "consistency-checker",
+      "description": "Green成功とCoverage 85%以上をArtifactから判定する",
+      "phase": "green-coverage-judge"
+    },
+    {
+      "mode": "security-auditor",
+      "description": "変更範囲に対して秘密情報、脆弱性、捏造ライブラリを監査する",
+      "phase": "security-audit"
+    },
+    {
+      "mode": "reviewer",
+      "description": "設計整合性、テスト品質、保守性、性能懸念を最終監査する",
+      "phase": "quality-review"
+    },
+    {
+      "mode": "recovery-supervisor",
+      "description": "同型失敗、空応答、タスク粒度過大、mock境界誤認が2回続いた場合だけ失敗分類と再委任設計を行う",
+      "phase": "failure-recovery-conditional"
+    }
+  ]
+}

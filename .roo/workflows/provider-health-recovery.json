@@ -1,0 +1,22 @@
+{
+  "name": "Provider Health Recovery Workflow",
+  "description": "mlx_lm.serverの空応答または生成停止を実装失敗から分離して復旧するRoo Codeワークフロー",
+  "sequential": true,
+  "steps": [
+    {
+      "mode": "recovery-supervisor",
+      "description": "空応答、空白応答、ツール未実行がProvider Health Failureか実装失敗かを分類する",
+      "phase": "provider-failure-classification"
+    },
+    {
+      "mode": "segregated-devops",
+      "description": "provider-health-recovery Skillを実行し、SIGINT最大3回、固定コマンド再起動、/v1/models疎通、最小生成非空応答を確認する",
+      "phase": "provider-recovery"
+    },
+    {
+      "mode": "orchestrator",
+      "description": "復旧成功後に最新ファイル状態を読み直し、前回ログ全文を渡さずGoal/Files/Doneだけで直前タスクを再委任する",
+      "phase": "resume-after-recovery"
+    }
+  ]
+}

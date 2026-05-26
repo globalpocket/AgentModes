@@ -1,0 +1,22 @@
+{
+  "name": "Post Task Recursive Dispatch Workflow",
+  "description": "メインタスク完了直前にassigned-issue-dispatcherを非同期起動する終了ゲート用Roo Codeワークフロー",
+  "sequential": true,
+  "steps": [
+    {
+      "mode": "orchestrator",
+      "description": "実装、テスト、Coverage 85%以上、security-auditor、reviewer、diagnostic-reporter、必要なissue-tracker完了コメントが完了済みか確認する",
+      "phase": "completion-gate-check"
+    },
+    {
+      "command": "/roocode-recursive-dispatch",
+      "description": "roocode-recursive-dispatch Skillを明示実行し、assigned-issue-dispatcherをDispatch Modeに固定してStartNewTaskを送信する",
+      "phase": "recursive-dispatch-command"
+    },
+    {
+      "mode": "orchestrator",
+      "description": ".roo/recursive-dispatch/dispatch.logとhistory.jsonlの軽量確認だけを行い、次タスク完了は待たずにdispatched/skipped/failedを最終報告へ記録する",
+      "phase": "dispatch-verification"
+    }
+  ]
+}

@@ -44,6 +44,19 @@
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 
+## Roo Code ワークフロー
+
+固定手順として扱える品質ゲートは `.roo/workflows/` に切り出しています。
+
+| ワークフロー | 用途 |
+|---|---|
+| `.roo/workflows/tdd-quality-gate.json` | Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、security-auditor、reviewerまでをSoD分離で実行する |
+| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、TDD品質ゲート、診断Issue、完了コメント、次Issue探索までを処理する |
+| `.roo/workflows/post-task-recursive-dispatch.json` | メインタスク完了直前に `/roocode-recursive-dispatch` を明示実行し、assigned-issue-dispatcherを非同期起動する |
+| `.roo/workflows/provider-health-recovery.json` | `mlx_lm.server` の空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
+
+ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。
+
 ## 代替割り当て例
 
 コストやレイテンシを優先する場合の代替例:
