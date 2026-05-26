@@ -29,8 +29,6 @@
 | `refactorer` | `Qwen3.5-9B` | オン / 最高 | 振る舞い不変性と局所リスク確認に推論を使い、新機能追加を禁止するため |
 | `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係衝突、CI、環境構築はコマンド実行と設定整合の判断密度が高く、失敗時の復旧設計も必要だから |
 | `repository-synchronizer` | `Qwen3.5-9B` | オン / 最高 | メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pullだけを固定手順で実行する定型同期モードだから |
-| `release-manager` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが品質ゲート通過後の入力を固定し、GitHub MCPによるPull Request公開を定型順序で実行するだけに限定できるため |
-| `diagnostic-reporter` | `Qwen3.5-9B` | オン / 最高 | Pull Request、品質ゲート、残リスクを固定形式へ圧縮して診断Issueへ登録する定型レポート担当で、実装推論を持たないため |
 | `technical-writer` | `Qwen3.5-9B` | オン / 最高 | 設計書と実装済み差分を基にMarkdown文書を整形する専任で、編集対象と出力形式を固定できるため |
 | `documenter` | `Qwen3.5-9B` | オン / 最高 | 後方互換モードとして、軽量なMarkdown文書更新に限定すれば定型生成で対応できるため |
 | `platform-sre` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
@@ -47,10 +45,7 @@
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
 - メインタスクがGitHub Issue URLだけで開始された場合は、`issue-tracker` がIssue本文を読み、親子Issueを判定する。指定IssueがサブIssueなら通常対応し、指定IssueがメインIssueかつ未対応サブIssueがある場合は番号が一番若い未対応サブIssueを通常対応する。未対応サブIssueがない場合は、1TDD単位のサブIssueを1件以上、最大8件推奨、絶対最大12件で作成し、Backlogization Completedとして終了する
 - メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
-- `orchestrator` はGitHub関連ゲートの前に GitHub Origin Gate を通し、タスク入力または `release-manager` の GitHub Origin Probe で `github` / `non-github` / `unknown-skipped` を分類する。`non-github` / `unknown-skipped` ではGitHub MCP、Issue処理、Pull Request作成、診断Issue登録、assigned Issue探索をすべて skipped とし、ローカルTDD・Coverage 85%以上・security-auditor・reviewerは継続する
-- `release-manager` は、GitHub由来リポジトリでのみ、テスト、Coverage 85%以上、security-auditor、reviewer の品質ゲート通過後のGitHub MCP公開手順だけを担当し、Issue Contextがある場合はトピックブランチとPull Requestを元Issueへ紐づける。Issue Contextがない場合はタスク用トピックブランチからPull Requestを作成する
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
-- GitHub由来リポジトリでのメインタスク終了時、`orchestrator` は暗黙のSkill適用だけに依存せず、`commands/roocode-recursive-dispatch.md` に対応する `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `skills/roocode-recursive-dispatch/SKILL.md` の Skill を使って `assigned-issue-dispatcher` を非同期起動する。`roocode-recursive-dispatch` はグローバルSkillとして動作するため、対象プロジェクト側に `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` が存在することを要求しない。対象プロジェクト側では `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を初期化してから軽量確認し、`.roo/recursive-dispatch/target.json` と `history.jsonl` の初回欠落だけを失敗扱いしない。`assigned-issue-dispatcher` は認証済みGitHubユーザーにassignされたopen Issueから、`done` / `completed` / `resolved` / `対応済み` / `完了` 系ラベルやmerged PRにより完了済みと確認できるIssueを除外し、closed unmerged PRしか紐づいていないopen Issueは未対応としてOrchestratorへ通常メインタスク投入対象に残す。未対応Issueが存在しなければ任意時間待機後に自分自身を再帰呼び出しする。非GitHubリポジトリ、socket曖昧、重複fingerprint、深度上限到達時は no-op とし、TDD・Coverage 85%以上・監査を省略する理由にしない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 
 ## 代替割り当て例

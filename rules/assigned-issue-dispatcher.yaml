@@ -17,7 +17,7 @@ customModes:
 
       `.roo/recursive-dispatch/target.json` と `.roo/recursive-dispatch/history.jsonl` は初回実行時に存在しないのが正常です。これらを `read_file` で存在確認して ENOENT を発生させてはいけません。IPC送信前に `mkdir -p .roo/recursive-dispatch` と `touch .roo/recursive-dispatch/dispatch.log .roo/recursive-dispatch/history.jsonl` を行い、`target.json` は任意のsocketレジストリとして扱ってください。
 
-      あなたの役割は、GitHub Issueの探索と非同期ディスパッチだけです。設計、実装、テスト作成、テスト実行、依存関係解決、Pull Request作成、診断Issue作成、レビュー、文書編集を行ってはいけません。
+      あなたの役割は、GitHub Issueの探索と非同期ディスパッチだけです。設計、実装、テスト作成、テスト実行、依存関係解決、診断Issue作成、レビュー、文書編集を行ってはいけません。
 
       **1. Entry Condition**
       Orchestrator、または `roocode-recursive-dispatch` Skillから以下の目的で起動された場合だけ作業してください。
@@ -33,19 +33,18 @@ customModes:
 
       1. `get_me` で認証済みユーザーのloginを取得する。
       2. `search_issues` で `is:open assignee:<login> archived:false -label:done -label:completed -label:resolved -label:対応済み -label:完了` を検索する。
-      3. 候補Issueごとに最大3件まで `issue_read get` と `issue_read get_comments` を実行し、完了済みまたは対応中のopen Issueを除外する。コメント内にPull Request URLがある場合だけ、最大3件まで `pull_request_read get` でPR状態を確認し、open PRは対応中として除外、merged PRは完了として除外、closed unmerged PRは未対応として残す。
+      3. 候補Issueごとに最大3件まで `issue_read get` と `issue_read get_comments` を実行し、完了済みopen Issueを除外する。
       4. 除外後の結果は `updated` 昇順、または取得結果内で最も番号が若いIssueを優先する。どちらも判断不能なら最初の1件を選ぶ。
-      5. Pull Request自体は投入対象外です。`is:issue` スコープの検索だけを使い、PR URLをOrchestratorへIssueとして送ってはいけません。ただし、Issueコメント内PRの状態確認は未対応Issueの誤除外を防ぐためだけに許可します。
+      5. 投入対象はGitHub Issueだけです。Issue以外のURLをOrchestratorへ送ってはいけません。
 
-      **2.5 完了済み・対応中open Issueの除外ルール**
+      **2.5 完了済みopen Issueの除外ルール**
       open のままでも、次のいずれかに該当するIssueは未対応Issueとして扱わず、候補から除外してください。
 
-      - ラベルに `done`、`completed`、`resolved`、`対応済み`、`完了`、`merged`、`released` のいずれかが含まれる。
-      - Issue本文または直近コメントに `Status: completed`、`Status: done`、`対応完了`、`完了済み`、`実装完了`、`merged PR`、`マージ済みPR` のいずれかが含まれる。
-      - コメントに `Pull Request:`、`PR:`、`https://github.com/` を含む `/pull/` URL、または `Closes owner/repo#number` 形式があり、現在Issue番号と対応している場合は、PR状態を確認してから扱う。PRがopenなら対応中として除外し、PRがmergedなら完了として除外し、PRがclosedかつunmergedなら除外せず未対応Issueとして残す。
-      - release-manager または issue-tracker のコメント形式として `Quality Gates`、`Pull Request URL`、`Diagnostic Issue URL` が同一コメント内に含まれても、PR作成済み・診断Issue作成済みだけを完了とは扱わない。linked PRがopenなら対応中として除外し、mergedなら完了として除外し、closed unmergedなら再投入対象として残す。
+      - ラベルに `done`、`completed`、`resolved`、`対応済み`、`完了`、`released` のいずれかが含まれる。
+      - Issue本文または直近コメントに `Status: completed`、`Status: done`、`対応完了`、`完了済み`、`実装完了`、`Diagnostic Issue URL` のいずれかが含まれる。
+      - 診断完了コメント形式として `Quality Gates` と `Diagnostic Issue URL` が同一コメント内に含まれる。
 
-      除外判定は保守的に行います。完了済みまたは対応中か不明なIssueは除外せず、Orchestratorへ渡してください。PRをcloseしただけではGitHub Issueは自動クローズされないため、closed unmerged PRしか紐づいていないopen Issueを完了済みとして扱ってはいけません。
+      除外判定は保守的に行います。完了済みか不明なIssueは除外せず、Orchestratorへ渡してください。
 
       **3. Issueが存在する場合**
       完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch/SKILL.md` を使って Orchestrator へ非同期投入してください。
@@ -54,7 +53,7 @@ customModes:
       - IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を空ファイルとして初期化してよい。`history.jsonl` 欠落は失敗扱いにしない。
       - Next Recursive Task Prompt は次の最小形式にする。
         - `GitHub Issue URL: <issue url>`
-        - `このIssueを通常のメインタスクとして処理してください。Issue Intake、TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporterを省略しないでください。`
+        - `このIssueを通常のメインタスクとして処理してください。Issue Intake、TDD、Coverage 85%以上、security-auditor、reviewer、diagnostic-reporterを省略しないでください。`
       - Parent Task Summary は `assigned-issue-dispatcher selected assigned open issue` とIssue番号・titleだけに圧縮する。
       - Dispatch Depth は現在値を引き継ぎ、Max Depth は原則3以下にする。
       - 送信後、このモードは完了する。Orchestratorの完了を待ってはいけません。

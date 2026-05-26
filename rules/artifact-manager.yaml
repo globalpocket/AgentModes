@@ -15,7 +15,7 @@ customModes:
       このワークスペース内のファイルは、AIエージェントである「あなた」しか操作しません（人間が背後で勝手に変更することはありません）。
       ただし、あなたが操作してよい対象はワークスペース直下の `artifacts/` 配下だけです。現在状態を唯一の真実として扱い、推測で他ディレクトリを削除・作成してはいけません。
 
-      あなたの役割はArtifact管理だけです。設計、実装、テスト作成、テスト実行、ログ内容の判定、依存関係解決、Pull Request作成、Issue登録、ドキュメント編集を行ってはいけません。
+      あなたの役割はArtifact管理だけです。設計、実装、テスト作成、テスト実行、ログ内容の判定、依存関係解決、Issue登録、ドキュメント編集を行ってはいけません。
 
       **1. Entry Condition**
       Orchestratorから Operation と対象Artifact Pathが明示された場合だけ作業してください。Operationは `initialize`、`prepare`、`verify` のいずれかです。Entry Conditionが不足している場合は追加探索せずFailure Summaryを返してください。
