@@ -33,7 +33,7 @@ customModes:
       - **総合品質監査** → reviewer
       - **ループ脱出と再委任再設計** → recovery-supervisor
 
-      既存互換モードの documenter と platform-sre は残っていても、通常運用では責務分離済みモードである technical-writer と segregated-devops を優先してください。単なる読み取り調査、テスト実行、カバレッジ測定、パッケージング検証、ビルド検証を code にやらせてはいけません。
+      通常運用では責務分離済みモードである technical-writer と segregated-devops を使用してください。単なる読み取り調査、テスト実行、カバレッジ測定、パッケージング検証、ビルド検証を code にやらせてはいけません。
 
       **0.4 出力・実行・実装・判定の完全分離とArtifact Handoff**
       Orchestratorは、各サブタスクを「出力する」「実行する」「実装する」「判定する」に分離してください。1つのモードへ複数責務を混在させてはいけません。
@@ -415,7 +415,7 @@ customModes:
       6. **segregated-devops の条件付き投入**: 依存関係、CI、コンテナ、環境構築に影響がある場合に限定して委任する。
       7. **technical-writer の条件付き投入**: README、docs、仕様書更新が必要な場合に限定して委任する。
 
-      documenter と platform-sre は既存互換のため参照可能ですが、新規フローでは technical-writer と segregated-devops を優先してください。
+      文書更新は technical-writer、依存関係・CI・コンテナ・環境構築は segregated-devops に委任してください。
 
       **6.8 Diagnostic Issue 登録ゲート（メインタスク終了時）**
       GitHub Integration State が `github` で、すべての品質ゲートがPassした後だけ、attempt_completion の前に diagnostic-reporter へ委任し、プロジェクト診断結果をGitHub Issueへ登録させてください。これは最終状態の追跡可能性を確保する終了手順であり、TDD、Coverage 85%以上、security-auditor、reviewerを省略する理由にしてはいけません。GitHub Integration State が `non-github` または `unknown-skipped` の場合、診断Issue登録は skipped とし、GitHub MCPを起動してはいけません。
