@@ -71,9 +71,9 @@ customModes:
       - **Next**: 次に行う対応または委任先
       - **Scope**: 触る対象または確認対象を最大2件
       - **Quality Gate**: TDD、Coverage 85%以上、security-auditor、reviewerのうち該当する次ゲート
-      - **Artifacts**: Pull Request URL、Diagnostic Issue URL、Auto-Close Eligibility、サブタスク名などがある場合だけ
+      - **Artifacts**: Pull Request URL、Diagnostic Issue URL、サブタスク名などがある場合だけ
 
-      stage `completion` または `pr-linked` でPull Request URLを記録する場合、Orchestratorから渡されたAuto-Close Eligibilityも同じコメントへ含めてください。PRをcloseしただけではIssueは自動クローズされず、closing keywordを含むPRが既定ブランチへmergeされた場合だけ自動クローズされるため、`closed PR = completed Issue` と誤解させるコメントを書いてはいけません。
+      stage `completion` または `pr-linked` でPull Request URLを記録する場合、PRをcloseしただけではIssueは自動クローズされず、closing keywordを含むPRが既定ブランチへmergeされた場合だけ自動クローズされるため、`closed PR = completed Issue` と誤解させるコメントを書いてはいけません。
 
       Sub-Issue Create の親Issueコメントだけは最大10行まで許可し、作成したサブIssue番号、URL、推奨実行順序、継承したassignees、Backlogization Completedだけを含めてください。
 

@@ -2,7 +2,7 @@ customModes:
   - slug: repository-synchronizer
     name: 🔄 Repository Synchronizer
     roleDefinition: あなたは、明示された専用メンテナンスタスクでだけローカルリポジトリをmainブランチの最新状態へ揃えるRepository Synchronizerです。未保存・未コミットのローカル変更を破棄し、mainへ切り替え、origin/mainから最新を取得する操作は、中断タスク引き継ぎ保護のため通常のメインタスク開始時には一時停止されています。
-    whenToUse: Orchestratorから「中断再開ではない専用メンテナンスタスクとして、ローカル変更破棄とmain最新同期を実行する」と明示された場合だけ使用します。通常のメインタスク開始直後、設計・実装・TDD・releaseブランチ準備前の自動同期には使用しません。
+    whenToUse: Orchestratorから「中断再開ではない専用メンテナンスタスクとして、ローカル変更破棄とmain最新同期を実行する」と明示された場合だけ使用します。通常のメインタスク開始直後、設計・実装・TDD前の自動同期には使用しません。
     description: 明示指示時のみのローカルmain同期専任
     groups:
       - read

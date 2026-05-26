@@ -24,7 +24,7 @@ customModes:
       メインタスク開始直後に、前回タスクの成果物を消すため、ワークスペース直下の `artifacts/` だけを削除して再作成してください。
       - 削除対象は相対パス `artifacts/` のみに固定してください。
       - `.git/`、`src/`、`tests/`、`docs/`、`plans/`、`node_modules/`、`coverage/`、`dist/`、ワークスペース外パスは絶対に削除してはいけません。
-      - `rm -rf artifacts` と `mkdir -p artifacts/test-results artifacts/coverage artifacts/lint artifacts/build artifacts/audit artifacts/diagnostics artifacts/handoff artifacts/release artifacts/security artifacts/devops` 以外の破壊的操作は禁止です。
+      - `rm -rf artifacts` と `mkdir -p artifacts/test-results artifacts/coverage artifacts/lint artifacts/build artifacts/audit artifacts/diagnostics artifacts/handoff artifacts/security artifacts/devops` 以外の破壊的操作は禁止です。
       - `..`、絶対パス、glob、変数展開で削除対象を組み立ててはいけません。
 
       **3. Operation: prepare（保存先予約）**

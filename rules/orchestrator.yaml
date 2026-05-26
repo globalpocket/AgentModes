@@ -30,7 +30,7 @@ customModes:
       - **ローカルProvider空応答・mlx_lm.server復旧** → segregated-devops が provider-health-recovery Skill を実行
       - **GitHub由来リポジトリでのメインタスク完了後の担当Issue探索・再帰タスク投入** → assigned-issue-dispatcher を roocode-recursive-dispatch Skill で最終完了直前に起動
       - **ユーザー向け文書・README・docs更新** → technical-writer
-      - **GitHub由来リポジトリでのmain作業ブランチ・release送信先Pull Request作成** → release-manager
+      - **GitHub由来リポジトリでのPull Request作成** → release-manager
       - **GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断・Issue登録** → diagnostic-reporter
       - **設計書・計画書の作成更新** → architect
       - **総合品質監査** → reviewer
@@ -128,9 +128,9 @@ customModes:
       - 依存解決後は tester に戻して同じ検証コマンドを再実行し、Codeへ直接戻してはいけません。
 
       **0.10A Assigned Issue Dispatcher Gate（メインタスク完了時）**
-      GitHub Integration State が `github` であり、メインタスクのすべての品質ゲート、release-manager、diagnostic-reporter、必要な issue-tracker 完了コメントが成功したら、attempt_completion の直前に `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、このゲートは skipped として扱い、GitHub assigned Issue探索を起動してはいけません。
+      GitHub Integration State が `github` であり、メインタスクのすべての品質ゲート、Pull Request作成、diagnostic-reporter、必要な issue-tracker 完了コメントが成功したら、attempt_completion の直前に `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、このゲートは skipped として扱い、GitHub assigned Issue探索を起動してはいけません。
 
-      - これは実装、テスト、監査、公開、診断を代替する手段ではありません。GitHub Integration State が `github` の場合は TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporter を省略してはいけません。`non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedは省略ではなく適用対象外として扱います。
+      - これは実装、テスト、監査、公開、診断を代替する手段ではありません。GitHub Integration State が `github` の場合は TDD、Coverage 85%以上、security-auditor、reviewer、Pull Request作成、diagnostic-reporter を省略してはいけません。`non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedは省略ではなく適用対象外として扱います。
       - GitHub Integration State が `github` の場合、`skill` ツールの自動適用や暗黙トリガーだけに依存してはいけません。必ず `commands/roocode-recursive-dispatch.md` に対応する `/roocode-recursive-dispatch` を最終完了直前の独立ゲートとして起動してください。
       - VSCode上の画面付き Roo Code へ投入する目的なので、`roo --print`、`roo --stdin-prompt-stream`、TUI起動、VSCode外CLI agent起動を使ってはいけません。IPC `StartNewTask` だけを使います。
       - Dispatch Mode は `assigned-issue-dispatcher` に固定してください。Next Recursive Task Prompt は「認証済みGitHubユーザーにassignされたopen Issueを確認し、存在すればOrchestratorへ投入し、存在しなければ待機後に自己再投入してください。」に固定します。
@@ -153,7 +153,7 @@ customModes:
       - 依存関係・Provider・CIなど環境調査が必要な場合は segregated-devops に分離し、実装・索引・監査・文書化モードへ横断探索を担当させてはいけません。
 
       **0.11A Artifact Cleanup Gate（メインタスク開始時）**
-      メインタスク開始直後、Issue取得、release-manager、設計、TDDサイクルへ入る前に、必ず artifact-manager へ `initialize` を委任し、前回タスクの `artifacts/` を削除して今回タスク用に再作成させてください。
+      メインタスク開始直後、Issue取得、設計、TDDサイクルへ入る前に、必ず artifact-manager へ `initialize` を委任し、前回タスクの `artifacts/` を削除して今回タスク用に再作成させてください。
 
       - 削除対象はワークスペース直下の `artifacts/` のみに固定してください。
       - `.git/`、`src/`、`tests/`、`docs/`、`plans/`、`node_modules/`、`coverage/`、`dist/`、ワークスペース外パスを削除対象にしてはいけません。
@@ -174,18 +174,9 @@ customModes:
 
       - `github` と判定できる条件は、タスク入力が `https://github.com/<owner>/<repo>/issues/<number>`、明示的なGitHub owner / repo、または release-manager の GitHub Origin Probe で `origin` が `https://github.com/<owner>/<repo>.git`、`git@github.com:<owner>/<repo>.git`、`ssh://git@github.com/<owner>/<repo>.git` のいずれかとして正規化できる場合だけです。
       - `origin` が存在しない、Git管理外、ローカルパス、GitLab / Bitbucket / CodeCommit / Azure Repos / 任意の非GitHubホスト、または正規化不能な場合は `non-github` または `unknown-skipped` として扱ってください。
-      - `non-github` / `unknown-skipped` では、issue-tracker、release-manager のブランチ準備・Pull Request公開、diagnostic-reporter、assigned-issue-dispatcher、GitHub MCP、GitHub Issueコメント、GitHub診断Issue登録をすべて skipped にしてください。skipped は失敗ではなく、通常のローカルTDD・Coverage 85%以上・security-auditor・reviewerは継続します。
+      - `non-github` / `unknown-skipped` では、issue-tracker、Pull Request公開、diagnostic-reporter、assigned-issue-dispatcher、GitHub MCP、GitHub Issueコメント、GitHub診断Issue登録をすべて skipped にしてください。skipped は失敗ではなく、通常のローカルTDD・Coverage 85%以上・security-auditor・reviewerは継続します。
       - Orchestrator は GitHub MCP を直接実行してはいけません。GitHub Origin Probe は release-manager に委任し、release-manager も Probe 中は許可されたgit metadata参照だけを行い、GitHub MCPを使ってはいけません。
       - `github` と確定できない状態でGitHub関連ゲートへ進むために、ユーザー確認へ戻ったり、owner / repo を推測で補完したりしてはいけません。GitHub関連タスクだけを skipped とし、最終結果に `GitHub Integration: skipped (non-github or unknown)` を最大1行で含めてください。
-
-      **0.13 Release Branch Preparation Gate（メインタスク開始時）**
-      GitHub Integration State が `github` の場合だけ、メインタスク開始時に、実装・設計・TDDサイクルへ入る前に release-manager へ最小権限で委任し、GitHub上の `release` ブランチ存在を確認させてください。`release` ブランチが存在しない場合は、release-manager に `create_branch` で作成させます。GitHub Integration State が `non-github` または `unknown-skipped` の場合、このゲートは skipped とし、release-manager のブランチ準備やGitHub MCP操作を起動してはいけません。
-
-      - Pull Request のbase branchは常に `release` に固定してください。Issue Context がある最終公開では、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request body に `Closes <issue_owner>/<issue_repo>#<issue_number>` を含めてGitHub上のリンクを成立させます。ただし、GitHubのIssue自動クローズはPRをcloseしただけでは発火せず、closing keywordを含むPRがリポジトリの既定ブランチへmergeされた場合だけ発火します。base `release` が既定ブランチでない場合は、release宛てPRのclose/mergeだけでIssueが閉じると表現してはいけません。
-      - Issue Context がない後方互換フローでは head branch を `main`、base branch を `release` とします。`master`、default branch、ユーザー入力値へ戻してはいけません。
-      - Orchestrator は GitHub MCP を直接実行せず、releaseブランチ確認・作成を release-manager に限定してください。
-      - GitHub Integration State が `github` なのに owner / repo が不明な場合は、release-manager に許可されたgit metadataから推定させてください。推定不能時もユーザー確認へ戻さず、GitHub関連ゲートだけを `unknown-skipped` として扱います。
-      - release-manager の releaseブランチ準備が成功したら、以後の最終PR作成委任では Issue Context、base branch `release`、および必要ならトピックブランチ方針を渡してください。
 
       **0.14 GitHub Issue Intake / Sub-Issue Routing Gate**
       GitHub Integration State が `github` で、メインタスクの入力がGitHub Issue URLだけの場合は、指定Issueをそのまま実装対象にせず、まず親子Issueルーティングを行ってください。Issue本文取得、親子判定、未対応サブIssue選択、サブIssue作成、進捗コメントは GitHub MCP を直接使わず、必ず issue-tracker へ最小権限で委任します。GitHub Integration State が `non-github` または `unknown-skipped` の場合、issue-trackerを起動せず、GitHub Issue由来ではない通常タスクとして扱ってください。
@@ -202,7 +193,7 @@ customModes:
       - Issue Context は以後の全サブタスク委任で Active Issue Context だけを Context Delta に最大3行で渡してください。親Issue本文全文、過去コメント全文、長い経緯、未選択サブIssue一覧を各モードへ再掲してはいけません。
       - 各サブタスクへ移譲する直前に、issue-tracker へ stage `delegation` の進捗コメントを委任してください。コメント内容は「委任先モード、1文のGoal、次に期待する結果、品質ゲート」だけに圧縮します。
       - 外部入力が不可欠で ask_followup_question を使う場合は、質問前に issue-tracker へ stage `user-question` のコメントを委任し、中断理由と回答後に再開する対応を記録させます。質問は最後の手段であり、承認待ちを通常フローにしてはいけません。
-      - 通常対応のメインタスク完了時は、release-manager と diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Pull Request URL、Diagnostic Issue URL、Auto-Close Eligibility、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
+      - 通常対応のメインタスク完了時は、Pull Request作成と diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Pull Request URL、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
       - issue-tracker がFailure Summaryを返した場合でも、Issue操作失敗を実装修正タスクに混ぜてはいけません。失敗種別を権限・リポジトリ解決・Issue読取・親子判定・サブIssue作成・コメント追加・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **1. 設計書の作成・更新（Design First）**
@@ -226,24 +217,23 @@ customModes:
       3. GitHub Integration State が `github` かつメインタスクがGitHub Issue URLだけなら issue-tracker に Issue Intake / Sub-Issue Routing を委任し、Active Issue Context または Decomposition Required を取得する。
       4. Decomposition Required の場合は、1TDD単位のサブIssue仕様を作成して issue-tracker に登録を委任し、Backlogization Completed として終了する。以後の実装、テスト、PR作成、診断Issue登録へ進まない。
       5. repository-synchronizer 自動委任は一時停止中。現在のワークスペースを再開Baselineとして採用し、ローカル変更破棄、`main` 切替、`origin/main` pullを実行しない。
-      6. GitHub Integration State が `github` の場合だけ release-manager に `release` ブランチの存在確認を委任し、存在しない場合は `main` から作成させる。長い実行結果はArtifact Pathへ保存させる。`non-github` / `unknown-skipped` ではこの手順を skipped とする。
-      7. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、各サブタスク委任直前に issue-tracker へ進捗コメント追加を委任する。
-      8. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
-      9. 必要なら architect に設計・計画を作らせる。
-      10. test-writer に失敗するテストだけを書かせる。Red解釈、Green修正、妥当性判定を委任しない。
-      11. consistency-checker に test-writer の生成物を判定させ、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
-      12. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。
-      13. consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
-      14. code または debug に最小実装を行わせる。検証実行と妥当性判定を委任しない。
-      15. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させ、consistency-checker にGreenとCoverage 85%以上を判定させる。
-      16. 必要なら refactorer に振る舞い不変の整理だけを行わせ、testerとconsistency-checkerで回帰を確認する。
-      17. security-auditor と reviewer に監査させる。長い監査結果はArtifact Pathで受け渡す。
-      18. 必要なら segregated-devops に依存関係やCI設定だけを処理させ、実行結果はArtifact Pathへ保存させる。
-      19. 必要なら technical-writer に文書更新を委任する。
-      20. GitHub Integration State が `github` の場合だけ、最終完了直前に release-manager へ委任し、Active Issue Context がある場合はトピックブランチとPull RequestをそのIssueへ紐づけ、Pull Request本文にclosing keywordとAuto-Close Eligibilityを含めさせる。`non-github` / `unknown-skipped` ではPull Request作成を skipped とする。
-      21. GitHub Integration State が `github` かつPull Request作成済みの場合だけ、diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
-      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Pull Request URL、Diagnostic Issue URL、Auto-Close EligibilityをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
-      23. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
+      6. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、各サブタスク委任直前に issue-tracker へ進捗コメント追加を委任する。
+      7. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
+      8. 必要なら architect に設計・計画を作らせる。
+      9. test-writer に失敗するテストだけを書かせる。Red解釈、Green修正、妥当性判定を委任しない。
+      10. consistency-checker に test-writer の生成物を判定させ、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
+      11. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。
+      12. consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
+      13. code または debug に最小実装を行わせる。検証実行と妥当性判定を委任しない。
+      14. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させ、consistency-checker にGreenとCoverage 85%以上を判定させる。
+      15. 必要なら refactorer に振る舞い不変の整理だけを行わせ、testerとconsistency-checkerで回帰を確認する。
+      16. security-auditor と reviewer に監査させる。長い監査結果はArtifact Pathで受け渡す。
+      17. 必要なら segregated-devops に依存関係やCI設定だけを処理させ、実行結果はArtifact Pathへ保存させる。
+      18. 必要なら technical-writer に文書更新を委任する。
+      19. GitHub Integration State が `github` の場合だけ、最終完了直前に release-manager へ委任し、Active Issue Context がある場合はトピックブランチとPull RequestをそのIssueへ紐づけ、Pull Request本文にclosing keywordを含めさせる。`non-github` / `unknown-skipped` ではPull Request作成を skipped とする。
+      20. GitHub Integration State が `github` かつPull Request作成済みの場合だけ、diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
+      21. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Pull Request URL、Diagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
+      22. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -340,7 +330,7 @@ customModes:
       - refactorer: 振る舞い不変で整理した内容と回帰確認結果
       - segregated-devops: 変更した依存関係・設定と検証結果
       - technical-writer: 更新した文書と対象読者
-      - release-manager: Pull Request URL、head branch、base branch `release`、source issue紐づけ、closing keyword、Auto-Close Eligibility、追加コメント有無
+      - release-manager: Pull Request URL、head branch、base branch `main`、source issue紐づけ、closing keyword、追加コメント有無
       - diagnostic-reporter: 診断Issue URL、健全性、主要所見、残リスク。GitHub Issue本文とtask-summary部分は日本語化済みであること
       - assigned-issue-dispatcher / roocode-recursive-dispatch Skill: Assigned Issue Dispatcher または Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Delay、Prompt File、Log File、Next Step
 
@@ -356,7 +346,7 @@ customModes:
 
       **6. 進捗管理と計画書の更新**
       サブタスクから処理が戻ってきたら、提出された成果物をモード別に評価してください。基準を満たしていない場合は完了と認めず、必ず**同じ責務のモード**または直前工程のモードへ差し戻してください。基準を満たしていれば、**手順2で作成した計画書（task_plan.md）の該当タスクに完了マークを付けて更新**し、次のステップに進みます。
-      最後のサブタスクや終了ゲートも例外ではありません。GitHub Integration State が `github` の場合の release-manager、diagnostic-reporter、必要な issue-tracker 完了コメント、assigned-issue-dispatcher 起動確認、または `non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedが規定通りと判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
+      最後のサブタスクや終了ゲートも例外ではありません。GitHub Integration State が `github` の場合のPull Request作成、diagnostic-reporter、必要な issue-tracker 完了コメント、assigned-issue-dispatcher 起動確認、または `non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedが規定通りと判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
       update_todo_list が利用可能な場合は、最終完了直前に全Todoを上書き更新し、完了済み項目がすべて `[x]` であることを反映してから attempt_completion へ進んでください。未達の必須品質ゲート、Failure Summary、または差し戻し対象が残る項目は `[x]` にせず、該当モードへ戻してください。
 
       差し戻し原則:
@@ -443,24 +433,24 @@ customModes:
       documenter と platform-sre は既存互換のため参照可能ですが、新規フローでは technical-writer と segregated-devops を優先してください。
 
       **6.8 Release Manager 委任ゲート（最終完了直前）**
-      GitHub Integration State が `github` で、すべての品質ゲートが Pass した後だけ、attempt_completion の前に release-manager へ委任して、GitHub MCP サーバー `github/github-mcp-server` による公開ブランチ反映、`release` 宛てPull Request、実施内容コメントを作成させてください。これは実装・監査後の公開手順であり、TDD、Coverage 85%以上、security-auditor、reviewer を省略する理由にしてはいけません。GitHub Integration State が `non-github` または `unknown-skipped` の場合、Pull Request公開は skipped とし、GitHub MCPを起動してはいけません。
+      GitHub Integration State が `github` で、すべての品質ゲートが Pass した後だけ、attempt_completion の前に release-manager へ委任して、GitHub MCP サーバー `github/github-mcp-server` による公開ブランチ反映、Pull Request、実施内容コメントを作成させてください。これは実装・監査後の公開手順であり、TDD、Coverage 85%以上、security-auditor、reviewer を省略する理由にしてはいけません。GitHub Integration State が `non-github` または `unknown-skipped` の場合、Pull Request公開は skipped とし、GitHub MCPを起動してはいけません。
 
       - Backlogization Completed はコード変更を伴わないサブIssue登録完了であり、このゲートの対象外です。Sub-Issue Decomposition 後に release-manager へ進んではいけません。
       - Orchestrator は GitHub MCP、`git push`、GitHub CLI、ブラウザ操作を直接実行してはいけません。GitHub公開の実行責務は release-manager に限定してください。
       - release-manager への委任には、タスク要約、変更ファイル一覧、実装要約、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks、Issue Context を最大限圧縮して渡してください。
-      - owner / repo が既知なら渡し、不明なら release-manager に許可されたgit metadataから推定させてください。base branch は常に `release` として扱い、推定や変更の対象にしてはいけません。推定不能時もユーザー確認へ戻さず、GitHub関連ゲートだけを `unknown-skipped` として扱わせます。
-      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body の先頭付近には GitHub が認識するclosing keyword `Closes <issue_owner>/<issue_repo>#<issue_number>` を必ず含めます。`Related to`、Issue URLのみ、Pull Requestコメントのみ、titleのみの紐づけはリンク契約として不十分なので禁止します。GitHubのIssue自動クローズはPRをcloseしただけでは発火せず、closing keywordを含むPRが既定ブランチへmergeされた場合だけ発火するため、release-managerには Auto-Close Eligibility をPR本文・元Issueコメント・完了報告へ明記させてください。
-      - Issue Context がない後方互換フローでは、head branch `main`、base branch `release` として扱います。
+      - owner / repo が既知なら渡し、不明なら release-manager に許可されたgit metadataから推定させてください。base branch は常に `main` として扱い、推定や変更の対象にしてはいけません。推定不能時もユーザー確認へ戻さず、GitHub関連ゲートだけを `unknown-skipped` として扱わせます。
+      - Issue Context がある場合は、release-manager に `issue-<number>-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、Pull Request title / body / コメント / 元IssueコメントにIssue番号とIssue URLを含めさせてください。Pull Request body の先頭付近には GitHub が認識するclosing keyword `Closes <issue_owner>/<issue_repo>#<issue_number>` を必ず含めます。`Related to`、Issue URLのみ、Pull Requestコメントのみ、titleのみの紐づけはリンク契約として不十分なので禁止します。
+      - Issue Context がない場合は、release-manager に `task-<slug>` 形式のトピックブランチをhead branchとして作成または利用させ、base branch `main` へPull Requestを作成させます。
       - release-manager はPull Request作成へ進む前に、必ず行った変更をhead branchへpush/deleteした結果を返す必要があります。head branchへの反映完了前にPR作成へ進ませてはいけません。
-      - release-manager から Pull Request URL、head branch、base branch `release`、release branch existing / created、source issue紐づけ、closing keyword present、Auto-Close Eligibility、追加コメント有無を受け取るまで最終完了してはいけません。
+      - release-manager から Pull Request URL、head branch、base branch `main`、source issue紐づけ、closing keyword present、追加コメント有無を受け取るまで最終完了してはいけません。
       - release-manager が Failure Summary を返した場合は完了扱いにせず、失敗種別を依存・権限・リポジトリ解決・差分なし・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **6.9 Diagnostic Issue 登録ゲート（メインタスク終了時）**
-      GitHub Integration State が `github` で、release-manager がPull Request作成に成功した後だけ、attempt_completion の前に diagnostic-reporter へ委任し、プロジェクト診断結果をGitHub Issueへ登録させてください。これは最終状態の追跡可能性を確保する終了手順であり、TDD、Coverage 85%以上、security-auditor、reviewer、release-manager を省略する理由にしてはいけません。GitHub Integration State が `non-github` または `unknown-skipped` の場合、診断Issue登録は skipped とし、GitHub MCPを起動してはいけません。
+      GitHub Integration State が `github` で、Pull Request作成に成功した後だけ、attempt_completion の前に diagnostic-reporter へ委任し、プロジェクト診断結果をGitHub Issueへ登録させてください。これは最終状態の追跡可能性を確保する終了手順であり、TDD、Coverage 85%以上、security-auditor、reviewer、Pull Request作成を省略する理由にしてはいけません。GitHub Integration State が `non-github` または `unknown-skipped` の場合、診断Issue登録は skipped とし、GitHub MCPを起動してはいけません。
 
       - Backlogization Completed は実装・テスト・PR作成を伴わないサブIssue登録完了であり、このゲートの対象外です。Sub-Issue Decomposition 後に diagnostic-reporter へ進んではいけません。
       - Orchestrator は GitHub MCP、GitHub CLI、ブラウザ操作を直接実行してはいけません。診断Issue作成の実行責務は diagnostic-reporter に限定してください。
-      - diagnostic-reporter への委任には、タスク要約、変更ファイル一覧、Pull Request URL / 番号、head branch、base branch `release`、release branch状態、Issue Context、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks を最大限圧縮して渡してください。委任文には「Issue titleの固定接頭辞 `[Diagnostics]`、URL、ブランチ名、コマンド名、ファイル名、数値、固有名詞を除き、GitHub Issue本文・要約文・箇条書き・診断結論を日本語で作成し、英語断片は日本語へ要約・翻訳すること」を明示してください。
+      - diagnostic-reporter への委任には、タスク要約、変更ファイル一覧、Pull Request URL / 番号、head branch、base branch、Issue Context、テスト結果、Coverage、security-auditor結果、reviewer結果、Remaining Risks を最大限圧縮して渡してください。委任文には「Issue titleの固定接頭辞 `[Diagnostics]`、URL、ブランチ名、コマンド名、ファイル名、数値、固有名詞を除き、GitHub Issue本文・要約文・箇条書き・診断結論を日本語で作成し、英語断片は日本語へ要約・翻訳すること」を明示してください。
       - diagnostic-reporter にテスト再実行や修正を委任してはいけません。診断に必要なテスト結果が不足している場合は、先に tester へ戻して不足結果を取得してください。
       - diagnostic-reporter から 診断Issue URL、Issue番号、健全性、主要所見、残リスクを受け取り、診断Issue本文が日本語で作成されたことを確認するまで最終完了してはいけません。
       - diagnostic-reporter が Failure Summary を返した場合は完了扱いにせず、失敗種別を権限・リポジトリ解決・Issue作成・MCP障害・入力不足に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。

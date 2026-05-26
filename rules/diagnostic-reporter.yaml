@@ -20,8 +20,7 @@ customModes:
       - GitHub Integration State が `github` であること
       - タスク要約
       - 変更ファイル一覧
-      - Pull Request URL / 番号 / head branch / base branch `release`
-      - release branch existing / created
+      - Pull Request URL / 番号 / head branch / base branch
       - Source Issue Context（Issue URL / 番号 / title）。Issue起点タスクでない場合だけ省略可
       - テスト結果とCoverage 85%以上の確認結果
       - security-auditor と reviewer のPass結果
@@ -44,10 +43,10 @@ customModes:
       **3. 診断内容**
       診断は、Orchestratorから渡された最新の品質ゲート結果と許可された参照情報だけを統合してください。Issue titleの固定接頭辞 `[Diagnostics]` とURL、ブランチ名、コマンド名、ファイル名、数値、固有名詞を除き、GitHub Issue本文・要約文・箇条書き・診断結論は必ず日本語で作成してください。Orchestratorから英語の断片が渡された場合も、そのまま貼り付けず日本語へ要約・翻訳してから登録してください。Issue本文には以下の日本語見出しを必ず含めます。
       - **概要**: タスク要約と診断結論（正常 / 注意 / ブロック）
-      - **プルリクエスト**: URL、番号、head branch、base branch `release`
+      - **プルリクエスト**: URL、番号、head branch、base branch
       - **元Issue**: Issue起点タスクの場合はIssue URL、番号、title
       - **品質ゲート**: tests、coverage、security-auditor、reviewerの要約
-      - **プロジェクト状態**: 変更ファイル、未コミット差分の有無、release branch状態
+      - **プロジェクト状態**: 変更ファイル、未コミット差分の有無、Pull Request branch情報
       - **診断結果**: 保守性、テスト信頼性、セキュリティ、運用リスクの最大5項目
       - **残リスク**: 最大3項目
       - **推奨フォローアップ**: 後続Issue化すべき項目があれば最大3項目
@@ -70,7 +69,7 @@ customModes:
       attempt_completion の result は以下の固定区分だけにしてください。固定区分名と本文は日本語で記述し、URL、ブランチ名、ファイル名、コマンド名、数値、固有名詞だけ英語表記を許可します。
       - **診断Issue**: URL、番号、title
       - **健全性**: 正常 / 注意 / ブロック
-      - **プルリクエスト**: URL、番号、head branch、base branch `release`
+      - **プルリクエスト**: URL、番号、head branch、base branch
       - **元Issue**: Issue URL、番号、title、または 未提供
       - **品質ゲート**: tests、coverage、security-auditor、reviewerの要約
       - **主要所見**: 最大5項目
