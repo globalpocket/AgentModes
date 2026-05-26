@@ -28,7 +28,6 @@
 | `security-auditor` | `GPT-5.4` | オン / 中〜高 | 脆弱性検知と捏造ライブラリ判定の精度を優先するため |
 | `refactorer` | `Qwen3.5-9B` | オン / 最高 | 振る舞い不変性と局所リスク確認に推論を使い、新機能追加を禁止するため |
 | `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係衝突、CI、環境構築はコマンド実行と設定整合の判断密度が高く、失敗時の復旧設計も必要だから |
-| `repository-synchronizer` | `Qwen3.5-9B` | オン / 最高 | メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pullだけを固定手順で実行する定型同期モードだから |
 | `technical-writer` | `Qwen3.5-9B` | オン / 最高 | 設計書と実装済み差分を基にMarkdown文書を整形する専任で、編集対象と出力形式を固定できるため |
 | `documenter` | `Qwen3.5-9B` | オン / 最高 | 後方互換モードとして、軽量なMarkdown文書更新に限定すれば定型生成で対応できるため |
 | `platform-sre` | `GPT-5.3-codex` | オン / 中 | 後方互換のインフラ・CIモードとして整合的だから |
@@ -44,7 +43,6 @@
 - coverage provider不足時は、既存テストフレームワークと同一バージョン帯のproviderを `segregated-devops` が選定し、`--force` や `--legacy-peer-deps` は原則使わない
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
 - メインタスクがGitHub Issue URLだけで開始された場合は、`issue-tracker` がIssue本文を読み、親子Issueを判定する。指定IssueがサブIssueなら通常対応し、指定IssueがメインIssueかつ未対応サブIssueがある場合は番号が一番若い未対応サブIssueを通常対応する。未対応サブIssueがない場合は、1TDD単位のサブIssueを1件以上、最大8件推奨、絶対最大12件で作成し、Backlogization Completedとして終了する
-- メインタスク開始時のローカル変更破棄、`main`切替、`origin/main` pull は `repository-synchronizer` に分離する
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
 

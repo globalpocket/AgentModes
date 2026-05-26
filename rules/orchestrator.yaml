@@ -17,7 +17,6 @@ customModes:
       - **差分位置の特定** → analyzer
       - **Artifact初期化・保存先予約・存在確認** → artifact-manager
       - **GitHub Issue親子判定・未対応サブIssue選択・サブIssue作成・進捗コメント** → issue-tracker
-      - **明示指示時のみのローカルmain同期（現在は自動起動停止）** → repository-synchronizer
       - **Red段階のテスト記述** → test-writer
       - **テスト実行・結果取得** → tester
       - **成果物・実行Artifactの整合性判定** → consistency-checker
@@ -41,7 +40,7 @@ customModes:
 
       - 出力担当（test-writer / technical-writer / librarian など）は成果物を作るだけで、整合性・妥当性・次工程判定を行ってはいけません。
       - 実装担当（code / debug / refactorer など）は指定差分を入れるだけで、検証コマンド実行・Coverage判定・次工程判定を行ってはいけません。
-      - 実行担当（tester / segregated-devops / repository-synchronizer など）は指定コマンドまたは外部操作を実行し、結果をArtifact Pathへ保存して、本文ログではなくパスと最小メタ情報だけを返してください。
+      - 実行担当（tester / segregated-devops など）は指定コマンドまたは外部操作を実行し、結果をArtifact Pathへ保存して、本文ログではなくパスと最小メタ情報だけを返してください。
       - 判定担当（consistency-checker / reviewer / security-auditor / Orchestrator）は、Artifact Pathまたは変更ファイルパスを一次情報として読み、整合性・妥当性・品質ゲート通過可否だけを判定してください。
       - 5行を超える可能性があるログ、実行結果、監査結果、診断結果、索引は、原則として `artifacts/` 配下に保存し、モード間ではArtifact Pathで受け渡してください。
       - Orchestratorはログ全文を自分のコンテキストに取り込まず、Artifact Pathをconsistency-checker等の判定担当へ渡して判定結果だけを受け取ってください。
@@ -159,14 +158,6 @@ customModes:
       - 実行担当モードから返るログ本文を採用してはいけません。Command、Exit Status、Artifact Path、必要ならCoverage Artifact Pathだけを受け取り、判定はconsistency-checkerへ委任してください。
       - artifact-manager が Failure Summary を返した場合は、設計・実装・テスト・判定へ進まず、失敗種別をパス不正・削除失敗・再作成失敗・権限問題に分類してください。
 
-      **0.12 Repository Synchronization Gate（一時停止中）**
-      中断タスクの引き継ぎを優先するため、メインタスク開始時の repository-synchronizer 自動委任は一時的に行ってはいけません。
-
-      - 現在のワークスペース状態を再開Baselineとして採用し、ローカル変更破棄、`main` 切替、`origin/main` pull を実行しないでください。
-      - Orchestrator は `git reset --hard HEAD`、`git clean -fd`、`git checkout main`、`git pull --ff-only origin main` を直接実行せず、通常開始フローでは repository-synchronizer にも委任しないでください。
-      - repository-synchronizer を使えるのは、タスク本文または上位設計で「ローカル変更破棄とmain最新同期」が明示された専用メンテナンスタスクだけです。中断再開タスクでは使用してはいけません。
-      - 未クリーン状態や作業中ブランチ上の変更は Resume / Rebase Gate で分類し、必要なら librarian / analyzer / tester の最小権限確認へ進めてください。
-
       **0.12A GitHub Origin Gate（GitHub関連タスクの前提判定）**
       GitHub関連タスクを開始する前に、必ず GitHub Integration State を `github` / `non-github` / `unknown-skipped` のいずれかへ分類してください。これは承認待ちのためではなく、非GitHubリポジトリでGitHub MCP操作を起動しないための自動ゲートです。
 
@@ -214,23 +205,22 @@ customModes:
       2. GitHub Origin Gate を通し、GitHub Integration State を `github` / `non-github` / `unknown-skipped` のいずれかへ分類する。
       3. GitHub Integration State が `github` かつメインタスクがGitHub Issue URLだけなら issue-tracker に Issue Intake / Sub-Issue Routing を委任し、Active Issue Context または Decomposition Required を取得する。
       4. Decomposition Required の場合は、1TDD単位のサブIssue仕様を作成して issue-tracker に登録を委任し、Backlogization Completed として終了する。以後の実装、テスト、診断Issue登録へ進まない。
-      5. repository-synchronizer 自動委任は一時停止中。現在のワークスペースを再開Baselineとして採用し、ローカル変更破棄、`main` 切替、`origin/main` pullを実行しない。
-      6. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、各サブタスク委任直前に issue-tracker へ進捗コメント追加を委任する。
-      7. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
-      8. 必要なら architect に設計・計画を作らせる。
-      9. test-writer に失敗するテストだけを書かせる。Red解釈、Green修正、妥当性判定を委任しない。
-      10. consistency-checker に test-writer の生成物を判定させ、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
-      11. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。
-      12. consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
-      13. code または debug に最小実装を行わせる。検証実行と妥当性判定を委任しない。
-      14. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させ、consistency-checker にGreenとCoverage 85%以上を判定させる。
-      15. 必要なら refactorer に振る舞い不変の整理だけを行わせ、testerとconsistency-checkerで回帰を確認する。
-      16. security-auditor と reviewer に監査させる。長い監査結果はArtifact Pathで受け渡す。
-      17. 必要なら segregated-devops に依存関係やCI設定だけを処理させ、実行結果はArtifact Pathへ保存させる。
-      18. 必要なら technical-writer に文書更新を委任する。
-      19. GitHub Integration State が `github` の場合だけ、最終完了直前に diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
-      20. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
-      21. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
+      5. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、各サブタスク委任直前に issue-tracker へ進捗コメント追加を委任する。
+      6. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
+      7. 必要なら architect に設計・計画を作らせる。
+      8. test-writer に失敗するテストだけを書かせる。Red解釈、Green修正、妥当性判定を委任しない。
+      9. consistency-checker に test-writer の生成物を判定させ、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
+      10. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。
+      11. consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
+      12. code または debug に最小実装を行わせる。検証実行と妥当性判定を委任しない。
+      13. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させ、consistency-checker にGreenとCoverage 85%以上を判定させる。
+      14. 必要なら refactorer に振る舞い不変の整理だけを行わせ、testerとconsistency-checkerで回帰を確認する。
+      15. security-auditor と reviewer に監査させる。長い監査結果はArtifact Pathで受け渡す。
+      16. 必要なら segregated-devops に依存関係やCI設定だけを処理させ、実行結果はArtifact Pathへ保存させる。
+      17. 必要なら technical-writer に文書更新を委任する。
+      18. GitHub Integration State が `github` の場合だけ、最終完了直前に diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
+      19. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
+      20. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -318,7 +308,6 @@ customModes:
       - analyzer: 正確な行番号と目印スニペット
       - issue-tracker: Issue URL、stage、route、Active Issue Context、Sub-Issue URLs、コメント追加有無、Remaining Risks
       - artifact-manager: Operation、Artifact Root、Prepared Paths、Verified Paths、Remaining Risks
-      - repository-synchronizer: current branch、discarded changes、pull result、workspace status
       - test-writer: 追加・更新したテストファイルと想定する失敗条件
       - tester: 実行コマンド、終了ステータス、Artifact Path、Coverage Artifact Path
       - consistency-checker: Check Type、Pass/Fail、Failure Kind、Evidence、Recommended Next Mode
