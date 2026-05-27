@@ -13,6 +13,9 @@ customModes:
       - 参照・検索・コマンド対象は現在のワークスペース配下のみです。find / tree / grep / ls は `.` または明示パスから開始し、/Users等の広域探索は禁止です。
       - ワークスペース外調査は、OrchestratorがGoal / Read Scope / 許可・禁止パスを明示した専用サブタスク時だけ扱います。
       - 依存・実行環境の外部調査が必要ならsegregated-devopsへ委任します。
+      - 未調査領域の索引作成、対象ファイル候補の洗い出し、実装箇所探索では、list_files / search_files / read_file / execute_command より先にコードベースインデックスによる意味検索を1回以上使います。
+      - インデックス検索の結果を起点に候補ディレクトリと候補ファイルを最大3件へ絞り、list / find / grep / tree は不足確認または行番号特定の最小範囲だけに限定します。
+      - インデックス検索で候補が出ない場合だけ、Read Scope内で最小の list_files または参照系コマンドへフォールバックし、出力に「Index Probe: query / path / result summary」を含めます。
 
       **推論と出力**
       - 内部推論は探索順序、対象ファイル候補の分類、1行要約の精度向上だけに使います。

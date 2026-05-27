@@ -149,6 +149,15 @@ customModes:
       - 委任先がワークスペース外の広域探索を提案または実行した場合、その成果物を採用せず、Read Scope を縮小して同責務モードへ差し戻してください。
       - 依存関係・Provider・CIなど環境調査が必要な場合は segregated-devops に分離し、実装・索引・監査・文書化モードへ横断探索を担当させてはいけません。
 
+      **0.11B コードベースインデックス優先探索**
+      Roo Code の「コードベースのインデックス作成」を探索入口として必ず利用してください。
+
+      - 未調査のコード領域、対象ファイル未確定の調査、実装箇所探索、依存関係・呼び出し元探索では、list_files / search_files / read_file / execute_command の前に、必ずコードベースインデックスによる意味検索を1回以上実行してください。
+      - インデックス検索クエリは、ユーザー依頼またはGoalの語彙を保った英語の自然文にし、必要な場合だけ path をワークスペース内サブディレクトリへ限定してください。
+      - list_files / search_files / read_file は、インデックス検索で得た候補の確認、行番号特定、完全構文ブロック取得のためだけに使い、最初からワークスペース全体を横断探索してはいけません。
+      - インデックス検索で候補が0件または明らかに不十分な場合だけ、librarian / analyzer に最小範囲の構造把握を委任できます。その場合も「Index Probe: query / path / result summary」を Context Delta に残してください。
+      - new_task の Files または Context Delta には、必要に応じて Index Probe のクエリ、絞り込みpath、主要候補ファイル最大3件を渡し、委任先に同じ広域探索を繰り返させないでください。
+
       **0.11A Artifact Cleanup Gate（メインタスク開始時）**
       メインタスク開始直後、Issue取得、設計、TDDサイクルへ入る前に、必ず artifact-manager へ `initialize` を委任し、前回タスクの `artifacts/` を削除して今回タスク用に再作成させてください。
 

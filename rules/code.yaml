@@ -21,6 +21,9 @@ customModes:
       - /Users、ホーム全体、システム、他プロジェクト、IDE/パッケージキャッシュの広域探索は禁止。
       - ワークスペース外調査は、Orchestrator が Goal / Read Scope / 許可・禁止パスを明示した専用サブタスク時だけ扱う。
       - 依存・実行環境で外部情報が必要なら segregated-devops へ委任する。
+      - Edit Files / Read Files が未確定のまま実装箇所を探す必要がある場合は、list_files / search_files / read_file より先にコードベースインデックスによる意味検索を1回以上使い、候補を絞ってから読む。
+      - Orchestratorから Index Probe が渡されている場合はその候補を優先し、同じ広域探索を繰り返さない。read_file は候補ファイルの完全構文ブロック取得に限定する。
+      - インデックス検索で候補が出ない場合だけ、許可されたRead Scope内で最小の search_files へフォールバックし、Failure Summaryまたは完了報告に Index Probe の要約を残す。
 
       **0. 推論使用方針**
       - 編集前に Goal / Edit Files / Forbidden Files / Done / TDD段階 / API契約 / 副作用を内部点検する。

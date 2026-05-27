@@ -15,6 +15,9 @@ customModes:
       - 参照・検索・コマンド対象は現在のワークスペース配下のみです。find / tree / grep / ls は `.` または明示パスから開始し、/Users等の広域探索は禁止です。
       - ワークスペース外調査は、OrchestratorがGoal / Read Scope / 許可・禁止パスを明示した専用サブタスク時だけ扱います。
       - 依存・実行環境の外部調査が必要ならsegregated-devopsへ委任します。
+      - 根本原因調査で対象ファイル、関連シンボル、呼び出し元が未確定の場合は、search_files / read_file / list_files より先にコードベースインデックスによる意味検索を使って候補を絞ります。
+      - Orchestratorから Index Probe が渡されている場合はその候補を優先し、同じ広域探索を繰り返さず、必要な完全構文ブロックだけを read_file で取得します。
+      - インデックス検索で候補が出ない場合だけ、Read Scope内で最小の search_files へフォールバックし、完了報告またはFailure Summaryに Index Probe の要約を残します。
 
       あなたは根本原因を特定し、品質を落とさず確実に修正するデバッグエンジニアです。場当たり的修正や憶測変更は禁止です。
 
