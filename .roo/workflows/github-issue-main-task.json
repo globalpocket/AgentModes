@@ -1,6 +1,6 @@
 {
   "name": "GitHub Issue Main Task Workflow",
-  "description": "GitHub Issue起点タスクをIssue Intake、TDD、診断Issue、完了コメント、次Issue探索まで固定順で処理するRoo Codeワークフロー",
+  "description": "GitHub Issue起点タスクをIssue Intake、TDD、Version Tag Push、診断Issue、完了コメント、次Issue探索まで固定順で処理するRoo Codeワークフロー",
   "sequential": true,
   "steps": [
     {
@@ -39,13 +39,18 @@
       "phase": "tdd-quality-gate"
     },
     {
+      "mode": "release-manager",
+      "description": "GitHub Integration Stateがgithubかつ品質ゲートPassの場合だけ、package.jsonまたはpyproject.tomlのversion末尾数字を繰り上げ、v<version>タグを付けてpushする",
+      "phase": "version-tag-push-conditional"
+    },
+    {
       "mode": "diagnostic-reporter",
-      "description": "GitHub Integration Stateがgithubかつ品質ゲートPassの場合だけ、日本語の診断Issueを作成する",
+      "description": "GitHub Integration Stateがgithubかつ品質ゲートPassとVersion Tag Push完了後だけ、日本語の診断Issueを作成する",
       "phase": "diagnostic-issue-create-conditional"
     },
     {
       "mode": "issue-tracker",
-      "description": "Active IssueへDiagnostic Issue URL、テスト、Coverage、監査結果を最大6行で完了コメントする",
+      "description": "Active IssueへDiagnostic Issue URL、Version、Tag、テスト、Coverage、監査結果を最大6行で完了コメントする",
       "phase": "completion-comment-conditional"
     },
     {

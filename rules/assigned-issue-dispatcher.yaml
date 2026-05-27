@@ -53,7 +53,7 @@ customModes:
       - IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を空ファイルとして初期化してよい。`history.jsonl` 欠落は失敗扱いにしない。
       - Next Recursive Task Prompt は次の最小形式にする。
         - `GitHub Issue URL: <issue url>`
-        - `このIssueを通常のメインタスクとして処理してください。Issue Intake、TDD、Coverage 85%以上、security-auditor、reviewer、diagnostic-reporterを省略しないでください。`
+        - `このIssueを通常のメインタスクとして処理してください。Issue Intake、TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporterを省略しないでください。`
       - Parent Task Summary は `assigned-issue-dispatcher selected assigned open issue` とIssue番号・titleだけに圧縮する。
       - Dispatch Depth は現在値を引き継ぎ、Max Depth は原則3以下にする。
       - 送信後、このモードは完了する。Orchestratorの完了を待ってはいけません。

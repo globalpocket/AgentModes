@@ -5,7 +5,7 @@
   "steps": [
     {
       "mode": "orchestrator",
-      "description": "実装、テスト、Coverage 85%以上、security-auditor、reviewer、diagnostic-reporter、必要なissue-tracker完了コメントが完了済みか確認する",
+      "description": "実装、テスト、Coverage 85%以上、security-auditor、reviewer、release-managerのVersion Tag Push、diagnostic-reporter、必要なissue-tracker完了コメントが完了済みか確認する",
       "phase": "completion-gate-check"
     },
     {
