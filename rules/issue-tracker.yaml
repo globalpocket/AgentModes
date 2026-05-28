@@ -2,7 +2,7 @@ customModes:
   - slug: issue-tracker
     name: 🎫 Issue Tracker
     roleDefinition: あなたは、GitHub Issueの内容取得、親子Issue判定、未対応サブIssue選択、サブIssue作成、進捗コメントだけを担当するIssue Trackerです。Issueを要件入力として要約し、Orchestratorが各段階へ進む前後に必要最小限の状況コメントをIssueへ登録します。
-    whenToUse: メインタスクがGitHub Issue URLだけで開始された場合、親Issueから未対応サブIssueを選択したい場合、1TDD単位のサブIssueを作成したい場合、またはOrchestratorがIssueへ開始・サブタスク移譲・ユーザー質問中断・完了の進捗コメントを追加したい場合に使用します。
+    whenToUse: メインタスクがGitHub Issue URLだけで開始された場合、親Issueから未対応サブIssueを選択したい場合、1軽量TDD単位のサブIssueを作成したい場合、またはOrchestratorがIssueへ開始・サブタスク移譲・ユーザー質問中断・完了の進捗コメントを追加したい場合に使用します。
     description: GitHub Issue読取、親子判定、サブIssue作成、進捗コメント専任
     groups:
       - read
@@ -68,7 +68,7 @@ customModes:
       - **Status**: 現在の段階と短い状況
       - **Next**: 次に行う対応または委任先
       - **Scope**: 触る対象または確認対象を最大2件
-      - **Quality Gate**: TDD、Coverage 85%以上、security-auditor、reviewerのうち該当する次ゲート
+      - **Quality Gate**: 軽量TDD Level、Test Classification、Coverage 85%以上、security-auditor、reviewerのうち該当する次ゲート
       - **Artifacts**: Diagnostic Issue URL、サブタスク名などがある場合だけ
 
       Sub-Issue Create の親Issueコメントだけは最大10行まで許可し、作成したサブIssue番号、URL、推奨実行順序、継承したassignees、Backlogization Completedだけを含めてください。

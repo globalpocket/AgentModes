@@ -1,6 +1,6 @@
 {
-  "name": "TDD Quality Gate Workflow",
-  "description": "Red作成、実行、判定、Green実装、Coverage、監査までをSoD分離で固定するRoo Codeワークフロー",
+  "name": "Lightweight TDD Quality Gate Workflow",
+  "description": "AI軽量TDDとして最小Red作成、実行、判定、Green実装、Coverage、テスト整理、監査までをSoD分離で固定するRoo Codeワークフロー",
   "sequential": true,
   "steps": [
     {
@@ -10,17 +10,17 @@
     },
     {
       "mode": "architect",
-      "description": "必要な場合だけ設計と1TDD単位の計画を作り、実装対象・品質ゲート・Coverage 85%以上を明確化する",
+      "description": "必要な場合だけ設計と1軽量TDD単位の計画を作り、TDD Level、Test Classification、実装対象、品質ゲート、Coverage 85%以上を明確化する",
       "phase": "design-plan"
     },
     {
       "mode": "test-writer",
-      "description": "Red専任として指定テストファイルだけを追加・更新し、実行やRed判定は行わない",
+      "description": "Red専任としてLevel 1 contractまたはLevel 2 behaviorの最小失敗テストを最大3個だけ追加・更新し、実行やRed判定は行わない",
       "phase": "red-write"
     },
     {
       "mode": "consistency-checker",
-      "description": "test-writer生成物がGoal、Exact Imports、Allowed Mocks、Forbidden Patternsに合うか判定する",
+      "description": "test-writer生成物がGoal、TDD Level、Test Classification、Initial Test Count、Exact Imports、Allowed Mocks、Forbidden Patternsに合うか判定する",
       "phase": "red-contract-check"
     },
     {
@@ -40,7 +40,7 @@
     },
     {
       "mode": "code",
-      "description": "Green最小実装だけを行い、テスト実行・Coverage測定・依存操作は行わない",
+      "description": "最小テストで固定された契約を満たすGreen実装だけを行い、テスト実行・Coverage測定・依存操作は行わない",
       "phase": "green-implement"
     },
     {
@@ -57,6 +57,11 @@
       "mode": "consistency-checker",
       "description": "Green成功とCoverage 85%以上をArtifactから判定する",
       "phase": "green-coverage-judge"
+    },
+    {
+      "mode": "consistency-checker",
+      "description": "exploratory testが昇格または削除済みで、残存テストがcontract/regression/必要最小限のbehaviorに限定されているか判定する",
+      "phase": "test-inventory-judge"
     },
     {
       "mode": "security-auditor",

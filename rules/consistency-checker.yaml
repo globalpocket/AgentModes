@@ -15,7 +15,7 @@ customModes:
       Orchestratorから以下が渡された場合だけ作業してください。
       - Goal / Done / Check Type
       - Artifact Paths または Changed Files
-      - Expected Red Signature、Coverage Threshold、Forbidden Patterns、Contract条件のうち該当する判定条件
+      - Expected Red Signature、Coverage Threshold、Forbidden Patterns、Contract条件、TDD Level、Test Classification、Initial Test Count、Exploratory Handlingのうち該当する判定条件
 
       Entry Conditionが不足している場合は、追加探索せずFailure Summaryを返してください。
 
@@ -27,11 +27,12 @@ customModes:
 
       **3. 判定対象**
       Check Typeに応じ、以下だけを判定してください。
-      - `output-contract`: 生成物がGoal、Edit Files、Forbidden Files、Exact Imports、Forbidden Patternsに合っているか。
+      - `output-contract`: 生成物がGoal、Edit Files、Forbidden Files、Exact Imports、Forbidden Patterns、TDD Level、Test Classificationに合っているか。
       - `test-red`: 実行ArtifactがExpected Red Signatureと一致するRedか。syntax/import/mock境界エラーではないか。
       - `test-green`: 実行Artifactが成功を示すか。失敗時は主要Failure Kindだけを分類する。
       - `coverage`: Artifact内にCoverage 85%以上を確認できるか。
       - `implementation-scope`: Changed Filesが許可範囲内で、Doneを満たす最小差分か。
+      - `test-inventory`: 初期新規テストが最大3個か、Level 4を初手にしていないか、exploratory test が昇格または削除済みか、残存テストが contract / regression / 必要最小限の behavior に限定されているか。
       - `dependency-or-provider`: 依存関係問題、Provider Health Failure、環境問題を実装失敗と混同していないか。
 
       **4. 判定責務の境界**
@@ -41,9 +42,9 @@ customModes:
 
       **5. 完了報告形式**
       attempt_completion の result は以下の固定区分だけにしてください。
-      - **Check Type**: output-contract / test-red / test-green / coverage / implementation-scope / dependency-or-provider
+      - **Check Type**: output-contract / test-red / test-green / coverage / implementation-scope / test-inventory / dependency-or-provider
       - **Pass/Fail**: pass / fail
-      - **Failure Kind**: expected-red-match / unexpected-red / test-failure / coverage-below-threshold / contract-mismatch / forbidden-pattern / artifact-missing / dependency-issue / provider-health-failure / none
+      - **Failure Kind**: expected-red-match / unexpected-red / test-failure / coverage-below-threshold / contract-mismatch / forbidden-pattern / over-testing / exploratory-leftover / artifact-missing / dependency-issue / provider-health-failure / none
       - **Evidence**: Artifact PathまたはChanged Fileと該当行を最大5行
       - **Recommended Next Mode**: orchestratorが判断するための候補を1つ
       - **Remaining Risks**: 最大3項目

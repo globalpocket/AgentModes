@@ -1,6 +1,6 @@
 {
   "name": "GitHub Issue Main Task Workflow",
-  "description": "GitHub Issue起点タスクをIssue Intake、TDD、Version Tag Push、診断Issue、完了コメントまで固定順で処理するRoo Codeワークフロー",
+  "description": "GitHub Issue起点タスクをIssue Intake、AI軽量TDD、Version Tag Push、診断Issue、完了コメントまで固定順で処理するRoo Codeワークフロー",
   "sequential": true,
   "steps": [
     {
@@ -20,7 +20,7 @@
     },
     {
       "mode": "architect",
-      "description": "decomposition_requiredの場合だけ、1TDD単位のサブIssue仕様を最大8件推奨・絶対最大12件で作る",
+      "description": "decomposition_requiredの場合だけ、1軽量TDD単位のサブIssue仕様を最大8件推奨・絶対最大12件で作り、TDD LevelとTest Classificationを含める",
       "phase": "sub-issue-decomposition-conditional"
     },
     {
@@ -35,7 +35,7 @@
     },
     {
       "workflow": "tdd-quality-gate",
-      "description": "通常対応の場合だけ、TDD Quality Gate WorkflowでRedから監査までを完了する",
+      "description": "通常対応の場合だけ、Lightweight TDD Quality Gate Workflowで最小Redからテスト整理・監査までを完了する",
       "phase": "tdd-quality-gate"
     },
     {

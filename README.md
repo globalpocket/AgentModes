@@ -37,6 +37,11 @@
 - write権限を持つモードのうち、`code` / `test-writer` / `refactorer` は、Orchestratorによる極小タスク分解を前提に運用
 - `code` / `debug` は実装・修正の担当であり、テスト実行、Coverage測定、依存関係操作を行わない
 - テスト実行とCoverage測定は `tester`、依存関係追加・peer依存衝突・lockfile更新は `segregated-devops` に分離する
+- AIエージェント向け軽量TDDを標準とし、通常タスクはLevel 1 Contract TestまたはLevel 2 Behavior Testから開始する。Level 4 Full TDDを初手にしない
+- テスト分類は `contract` / `behavior` / `regression` / `exploratory` に限定し、タスク開始時の新規テストは最大3個までにする
+- 追加テストはバグ発見、契約変更、回帰防止、外部I/O境界追加の場合だけ許可し、安全性を理由に無限にテストを増やさない
+- `exploratory` test は完了時に正式テストへ昇格するか削除し、最終的には contract、regression、必要最小限の behavior test だけを残す
+- テスト対象は内部実装より schema、protocol、event、state transition、routing、external I/O の契約を優先し、UI文言、仮実装、表示整形、設計未確定部分を過剰テストしない
 - `npm install`、`pnpm add`、`yarn add`、`pip install` は `segregated-devops` 以外で実行しない
 - coverage provider不足時は、既存テストフレームワークと同一バージョン帯のproviderを `segregated-devops` が選定し、`--force` や `--legacy-peer-deps` は原則使わない
 - `recovery-supervisor` は、通常の差し戻しで収束しない場合のみ投入し、常用しない
@@ -51,8 +56,8 @@
 
 | ワークフロー | 用途 |
 |---|---|
-| `.roo/workflows/tdd-quality-gate.json` | Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、security-auditor、reviewerまでをSoD分離で実行する |
-| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、TDD品質ゲート、Version Tag Push、診断Issue、完了コメントまでを処理する |
+| `.roo/workflows/tdd-quality-gate.json` | AI軽量TDDとして最小Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、test-inventory判定、security-auditor、reviewerまでをSoD分離で実行する |
+| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、軽量TDD品質ゲート、Version Tag Push、診断Issue、完了コメントまでを処理する |
 | `.roo/workflows/provider-health-recovery.json` | `mlx_lm.server` の空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
 
 ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。

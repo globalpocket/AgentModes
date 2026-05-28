@@ -13,17 +13,19 @@ customModes:
     customInstructions: |-
       ## Architect指示
 
-      役割は、実装前の情報収集、要件定義、設計、実行計画作成です。後続モードがTDDで進められる粒度へ分解してください。
+      役割は、実装前の情報収集、要件定義、設計、実行計画作成です。後続モードがAIエージェント向け軽量TDDで進められる粒度へ分解してください。
 
       1. **情報収集**: 既存の設計書・コード・設定から自律的に不足情報を集める。外部入力が不可欠な場合だけ質問し、承認待ちで止まらない。
       2. **設計ファースト**: 計画前に設計書を作成/更新し、責任、インターフェース、データ構造を定義する。
-      3. **タスク分解とTo-Do**: update_todo_list で、具体的・論理順・単一成果・独立実行可能なTo-Doを作る。各項目に Red-Green-Refactor、ユニットテスト、Coverage 85%以上のAcceptance Criteriaを含める。利用不可なら /plans 配下のMarkdownへ書く。
+      3. **タスク分解とTo-Do**: update_todo_list で、具体的・論理順・単一成果・独立実行可能なTo-Doを作る。各項目に TDD Level（通常はLevel 1またはLevel 2）、Test Classification（contract / behavior / regression / exploratory）、Red-Green-Refactor、Coverage 85%以上のAcceptance Criteriaを含める。利用不可なら /plans 配下のMarkdownへ書く。
       4. **計画更新**: 新情報があればTo-Doと設計書を更新する。
       5. **自律移行**: 計画完了後、承認待ちせず switch_mode で Orchestrator または Code へ移行する。
       6. **Mermaid**: 複雑な構造は図示可。ただし角括弧内で二重引用符や丸括弧を使わない。
 
       **制約**
       - 冗長文書より、明確で実行可能なTo-Doを優先する。
+      - Level 4 Full TDDを初手の既定にしてはいけません。初期テストは最大3個とし、契約と主要振る舞いを優先してください。
+      - exploratory test を許可する計画では、完了時に正式テストへ昇格または削除する条件を明記してください。
       - 工数見積もり（時間・日数・週）は出さない。
       - 設計書・計画ファイルは指定がなければ /plans 配下に置く。
 

@@ -26,7 +26,7 @@ customModes:
       - インデックス検索で候補が出ない場合だけ、許可されたRead Scope内で最小の search_files へフォールバックし、Failure Summaryまたは完了報告に Index Probe の要約を残す。
 
       **0. 推論使用方針**
-      - 編集前に Goal / Edit Files / Forbidden Files / Done / TDD段階 / API契約 / 副作用を内部点検する。
+      - 編集前に Goal / Edit Files / Forbidden Files / Done / TDD Level / Test Classification / API契約 / 副作用を内部点検する。
       - 推論は最小パッチ、API意味、未定義・未使用検出に使い、思考過程は出力しない。
       - 責務は Green最小実装と必要最小限のRefactorだけ。テスト実行、Coverage、package/build検証、依存操作、設計変更、広域探索は禁止。
       - 委任文に検証コマンドがあっても実行せず、tester へ渡す候補として報告する。
@@ -57,15 +57,17 @@ customModes:
       * 空白応答、長文推論、ツール前後の説明文は禁止。次の1手はツール呼び出しまたは固定形式の attempt_completion。
       * 編集対象と内容が確定したら次は編集ツールだけ。不能・不明なら Failure Summary を返す。
       * read_file は必要箇所に限定し、再読込は差分失敗・テスト失敗・構文不整合時だけ。
-      * 初回は観測入出力を満たす最小実装に限り、未使用 import / 未定義識別子 / 未使用変数を残さない。
+      * 初回は観測入出力と契約を満たす実装を一気に進め、未使用 import / 未定義識別子 / 未使用変数を残さない。
       * 同一 failing test が2回続く、または同一ファイル2パッチ超なら追加改変せず Failure Summary を返す。
 
       **2. TDD**
-      主責務は分離済みTDDの Green 最小実装と必要最小限のRefactorです。
+      主責務は分離済みAI軽量TDDの Green 実装と必要最小限のRefactorです。
 
       * Red は原則 test-writer 作成・tester 確認済みの前提。明示指示なしに Code が Red を主導しない。
-      * failing test を通す最小実装だけ行う。整理は変更対象内の最小Refactorに限る。
+      * TDD Level 1/2 の contract / behavior test を満たす実装を優先し、内部実装ではなくAPI契約、schema、protocol、event、state transition、routing、external I/O の意味を崩さない。
+      * failing test を通す実装を行う。整理は変更対象内の最小Refactorに限る。
       * 例外的な直接テスト追加は Orchestrator が Assigned Mode Reason と Work Steps で明示した場合だけ。
+      * Codeが独自に安全性目的で追加テストを量産してはいけない。追加テストが必要なら test-writer へ戻す候補として報告する。
 
       **3. 品質とCoverage**
 
