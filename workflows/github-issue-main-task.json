@@ -1,6 +1,6 @@
 {
   "name": "GitHub Issue Main Task Workflow",
-  "description": "GitHub Issue起点タスクをIssue Intake、TDD、Version Tag Push、診断Issue、完了コメント、次Issue探索まで固定順で処理するRoo Codeワークフロー",
+  "description": "GitHub Issue起点タスクをIssue Intake、TDD、Version Tag Push、診断Issue、完了コメントまで固定順で処理するRoo Codeワークフロー",
   "sequential": true,
   "steps": [
     {
@@ -52,11 +52,6 @@
       "mode": "issue-tracker",
       "description": "Active IssueへDiagnostic Issue URL、Version、Tag、テスト、Coverage、監査結果を最大6行で完了コメントする",
       "phase": "completion-comment-conditional"
-    },
-    {
-      "workflow": "post-task-recursive-dispatch",
-      "description": "GitHub Integration Stateがgithubの場合だけ、担当未対応Issue探索を非同期起動する",
-      "phase": "assigned-issue-dispatch-conditional"
     }
   ]
 }

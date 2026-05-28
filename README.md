@@ -18,7 +18,6 @@
 | `recovery-supervisor` | `GPT-5.5` | オン / 高 | ループ脱出、失敗分類、再委任再設計の上位監督役だから |
 | `ask` | `GPT-5.4` | オン / 中 | 設計・実装・計画の文脈説明を安全に返すため |
 | `issue-tracker` | `Qwen3.5-9B` | オン / 最高 | GitHub Issue本文取得、親子Issue判定、未対応サブIssue選択、サブIssue作成、進捗コメント登録だけを固定手順で行い、実装推論を持たないため |
-| `assigned-issue-dispatcher` | `Qwen3.5-9B` | オン / 最高 | 認証済みGitHubユーザーにassignされたopen Issue探索、固定パターンによる完了済みopen Issue除外、Orchestratorまたは自己待機ポーリングへのIPCディスパッチだけを担当するため |
 | `release-manager` | `GPT-5.3-codex` | オン / 中 | package.jsonまたはpyproject.tomlのversion繰り上げ、タグ作成、pushはgit操作と公開整合の判断が必要だから |
 | `code` | `Qwen3.5-9B` | オン / 最高 | Green実装前のスコープ・API・副作用チェックに内部推論を使い、最小差分へ責務を限定するため |
 | `debug` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが再現テスト、対象ファイル、失敗シグネチャを固定して渡す前提なら、根本原因修正を局所差分へ限定できるため |
@@ -53,8 +52,7 @@
 | ワークフロー | 用途 |
 |---|---|
 | `.roo/workflows/tdd-quality-gate.json` | Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、security-auditor、reviewerまでをSoD分離で実行する |
-| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、TDD品質ゲート、Version Tag Push、診断Issue、完了コメント、次Issue探索までを処理する |
-| `.roo/workflows/post-task-recursive-dispatch.json` | メインタスク完了直前に `/roocode-recursive-dispatch` を明示実行し、assigned-issue-dispatcherを非同期起動する |
+| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、TDD品質ゲート、Version Tag Push、診断Issue、完了コメントまでを処理する |
 | `.roo/workflows/provider-health-recovery.json` | `mlx_lm.server` の空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
 
 ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。

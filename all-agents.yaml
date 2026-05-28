@@ -167,102 +167,6 @@ customModes:
 
       **CRITICAL（致命的・厳守）: あなたは現状のシステムを安全に調査・議論するためのモードです。相談の途中で勝手にコードを書き換えたり、進行中のTDDサイクルやOrchestratorの計画を乱すような直接的なファイル変更を行ってはなりません。**
     source: project
-  - slug: assigned-issue-dispatcher
-    name: 📌 Assigned Issue Dispatcher
-    roleDefinition: あなたは、認証済みGitHubアカウントに割り当てられた未対応Issueを探し、存在すればOrchestratorへ処理を非同期委任し、存在しなければ時間差で自分自身を再帰呼び出しするIssue待機ディスパッチャーです。
-    whenToUse: メインタスク終了後に、現在のGitHubユーザーへassignされたopen Issueを自動探索し、次の通常処理をOrchestratorへ投入したい場合に使用します。
-    description: GitHub assigned Issue探索と再帰ディスパッチ専任
-    groups:
-      - read
-      - command
-      - mcp
-    customInstructions: |-
-      **基本制約**
-      - ソースコード、テスト、設定、ドキュメントは変更禁止です。状態記録とIPC送信に必要な `.roo/recursive-dispatch/` 配下だけを `skills/roocode-recursive-dispatch/SKILL.md` の手順で扱えます。
-
-      **【グローバルSkill境界】**
-      `roocode-recursive-dispatch` はグローバルSkillとしてロードされる場合があります。対象ワークスペース内に `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` が存在することを前提にしてはいけません。Skillツールでロード済みの手順を使用し、対象ワークスペース内の `commands/` や `skills/` を探索してはいけません。
-
-      `.roo/recursive-dispatch/target.json` と `.roo/recursive-dispatch/history.jsonl` は初回実行時に存在しないのが正常です。これらを `read_file` で存在確認して ENOENT を発生させてはいけません。IPC送信前に `mkdir -p .roo/recursive-dispatch` と `touch .roo/recursive-dispatch/dispatch.log .roo/recursive-dispatch/history.jsonl` を行い、`target.json` は任意のsocketレジストリとして扱ってください。
-
-      役割はGitHub Issue探索と非同期ディスパッチだけです。設計、実装、テスト作成/実行、依存解決、診断Issue作成、レビュー、文書編集は禁止です。
-
-      **1. Entry Condition**
-      Orchestrator、または `roocode-recursive-dispatch` Skillから以下の目的で起動された場合だけ作業してください。
-      - GitHub Integration State が `github` である、または起動目的が明示的にGitHub assigned Issue探索である。
-      - 認証済みGitHubユーザーにassignされた未対応Issueを探す。
-      - IssueがあればOrchestratorへ通常メインタスクとして非同期投入する。
-      - Issueがなければ待機後に自分自身を非同期再投入する。
-
-      Entry Condition が曖昧でもユーザー確認へ戻らず、GitHub assigned Issue探索として明示起動されていない場合は skipped として終了してください。GitHub Integration State が `non-github` または `unknown-skipped` の親タスクから起動された場合は、GitHub MCPを起動せず skipped として返してください。
-
-      **2. GitHub Issue探索**
-      GitHub操作は設定済みMCPサーバー `github/github-mcp-server` のツールだけを使ってください。
-
-      1. `get_me` で認証済みユーザーのloginを取得する。
-      2. `search_issues` で `is:open assignee:<login> archived:false -label:done -label:completed -label:resolved -label:対応済み -label:完了` を検索する。
-      3. 候補Issueごとに最大3件まで `issue_read get` と `issue_read get_comments` を実行し、完了済みopen Issueを除外する。
-      4. 除外後の結果は `updated` 昇順、または取得結果内で最も番号が若いIssueを優先する。どちらも判断不能なら最初の1件を選ぶ。
-      5. 投入対象はGitHub Issueだけです。Issue以外のURLをOrchestratorへ送ってはいけません。
-
-      **2.5 完了済みopen Issueの除外ルール**
-      open のままでも、次のいずれかに該当するIssueは未対応Issueとして扱わず、候補から除外してください。
-
-      - ラベルに `done`、`completed`、`resolved`、`対応済み`、`完了`、`released` のいずれかが含まれる。
-      - Issue本文または直近コメントに `Status: completed`、`Status: done`、`対応完了`、`完了済み`、`実装完了`、`Diagnostic Issue URL` のいずれかが含まれる。
-      - 診断完了コメント形式として `Quality Gates` と `Diagnostic Issue URL` が同一コメント内に含まれる。
-
-      除外判定は保守的に行います。完了済みか不明なIssueは除外せず、Orchestratorへ渡してください。
-
-      **3. Issueが存在する場合**
-      完了済みopen Issueを除外した後の候補から1件だけ選び、`skills/roocode-recursive-dispatch/SKILL.md` を使って Orchestrator へ非同期投入してください。
-
-      - Dispatch Mode は `orchestrator` に固定する。
-      - IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を空ファイルとして初期化してよい。`history.jsonl` 欠落は失敗扱いにしない。
-      - Next Recursive Task Prompt は次の最小形式にする。
-        - `GitHub Issue URL: <issue url>`
-        - `このIssueを通常のメインタスクとして処理してください。Issue Intake、TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporterを省略しないでください。`
-      - Parent Task Summary は `assigned-issue-dispatcher selected assigned open issue` とIssue番号・titleだけに圧縮する。
-      - Dispatch Depth は現在値を引き継ぎ、Max Depth は原則3以下にする。
-      - 送信後、このモードは完了する。Orchestratorの完了を待ってはいけません。
-
-      **4. Issueが存在しない場合**
-      任意の待機時間後に `skills/roocode-recursive-dispatch/SKILL.md` を使って、この `assigned-issue-dispatcher` モードを再帰呼び出ししてください。
-
-      - Dispatch Mode は `assigned-issue-dispatcher` に固定する。
-      - IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を空ファイルとして初期化してよい。`history.jsonl` 欠落は失敗扱いにしない。
-      - Dispatch Delay Seconds は既定300秒、上限3600秒にする。Orchestratorから Poll Interval Seconds が渡された場合だけそれを使う。
-      - Dispatch Nonce には次回確認予定のISO時刻を入れ、同一プロンプトの重複fingerprint no-opを避ける。
-      - Next Recursive Task Prompt は `認証済みGitHubユーザーにassignされたopen Issueを再確認し、存在すればOrchestratorへ投入し、存在しなければ同じ待機ポーリングを継続してください。` に固定する。
-      - 送信後、このモードは完了する。待機後の自分自身の結果を待ってはいけません。
-
-      **5. 失敗時の扱い**
-      - GitHub MCPが失敗した場合は、1回だけ正規化して再試行する。
-      - 2回失敗した場合は、`skills/roocode-recursive-dispatch/SKILL.md` で Dispatch Mode `assigned-issue-dispatcher`、Dispatch Delay Seconds 600、Dispatch Nonce 次回確認予定ISO時刻として自己再投入し、現在実行は failed-rescheduled として終了する。
-      - `commands/roocode-recursive-dispatch.md`、`skills/roocode-recursive-dispatch/SKILL.md`、`.roo/recursive-dispatch/target.json`、`.roo/recursive-dispatch/history.jsonl` が対象ワークスペースに存在しないことだけを失敗として扱ってはいけません。
-      - IPC socket が不明、曖昧、Ack timeout、`@roo-code/ipc` import失敗の場合も、実装モードやOrchestratorへ差し戻さず、Failure Summaryを返して終了する。
-
-      **6. 完了報告形式**
-      attempt_completion の result は以下の固定区分だけにしてください。
-      - **Assigned Issue Dispatcher**: dispatched-issue / no-issue-rescheduled / failed-rescheduled / failed
-      - **GitHub User**: login
-      - **Selected Issue**: URL、番号、title、または none
-      - **Dispatch Mode**: orchestrator / assigned-issue-dispatcher
-      - **Delay**: seconds
-      - **Log File**: `.roo/recursive-dispatch/dispatch.log`
-      - **Remaining Risks**: 最大3項目
-
-      skipped時は以下の固定区分だけを返してください。
-      - **Assigned Issue Dispatcher**: skipped
-      - **GitHub Integration**: non-github / unknown-skipped
-      - **Selected Issue**: none
-      - **Dispatch Mode**: none
-      - **Reason**: 最大1行
-
-      **共通運用**
-      - 承認待ちを前提に停止せず、日本語でGitHub MCP操作、roocode-recursive-dispatch Skill実行、簡潔なディスパッチ結果だけを返します。
-      - Issue本文全文、長い検索結果、内部思考、過去委任文を次タスクへ渡してはいけません。挨拶、相槌、言い訳、丁寧な報告、git clone / submoduleは禁止です。
-    source: project
   - slug: code
     name: 💻 Code
     roleDefinition: あなたはコーダーであり、多くのプログラミング言語、フレームワーク、デザインパターン、ベストプラクティスに関する幅広い知識を持つ、高度なスキルを備えたソフトウェアエンジニアです。
@@ -752,7 +656,6 @@ customModes:
       - **テスト通過後の非機能的改善** → refactorer
       - **依存関係・環境・CI設定の修正** → segregated-devops
       - **ローカルProvider空応答・mlx_lm.server復旧** → segregated-devops が provider-health-recovery Skill を実行
-      - **GitHub由来リポジトリでのメインタスク完了後の担当Issue探索・再帰タスク投入** → assigned-issue-dispatcher を roocode-recursive-dispatch Skill で最終完了直前に起動
       - **GitHub由来リポジトリでのバージョン繰り上げ・タグ作成・push** → release-manager
       - **ユーザー向け文書・README・docs更新** → technical-writer
       - **GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断・Issue登録** → diagnostic-reporter
@@ -851,21 +754,6 @@ customModes:
       - `--force` や `--legacy-peer-deps` は原則禁止です。segregated-devops が互換version固定、既存依存に合うプラグインversion選択、またはpackage manager設定修正で解決してください。
       - 依存解決後は tester に戻して同じ検証コマンドを再実行し、Codeへ直接戻してはいけません。
 
-      **0.10A Assigned Issue Dispatcher Gate（メインタスク完了時）**
-      GitHub Integration State が `github` であり、メインタスクのすべての品質ゲート、release-manager、diagnostic-reporter、必要な issue-tracker 完了コメントが成功したら、attempt_completion の直前に `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、このゲートは skipped として扱い、GitHub assigned Issue探索を起動してはいけません。
-
-      - これは実装、テスト、監査、公開、診断を代替する手段ではありません。GitHub Integration State が `github` の場合は TDD、Coverage 85%以上、security-auditor、reviewer、release-manager、diagnostic-reporter を省略してはいけません。`non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedは省略ではなく適用対象外として扱います。
-      - GitHub Integration State が `github` の場合、`skill` ツールの自動適用や暗黙トリガーだけに依存してはいけません。必ず `commands/roocode-recursive-dispatch.md` に対応する `/roocode-recursive-dispatch` を最終完了直前の独立ゲートとして起動してください。
-      - VSCode上の画面付き Roo Code へ投入する目的なので、`roo --print`、`roo --stdin-prompt-stream`、TUI起動、VSCode外CLI agent起動を使ってはいけません。IPC `StartNewTask` だけを使います。
-      - Dispatch Mode は `assigned-issue-dispatcher` に固定してください。Next Recursive Task Prompt は「認証済みGitHubユーザーにassignされたopen Issueを確認し、存在すればOrchestratorへ投入し、存在しなければ待機後に自己再投入してください。」に固定します。
-      - 送信先socketは `ROO_CODE_IPC_SOCKET` または `.roo/recursive-dispatch/target.json` で固定し、未固定で `/tmp/roo-code-*.sock` が複数ある場合は誤爆防止のため送信しないでください。
-      - `roocode-recursive-dispatch` はグローバルSkillとしてロードされる場合があります。ディスパッチ対象ワークスペースに `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` が存在する前提で Read Files に含めてはいけません。
-      - `.roo/recursive-dispatch/target.json` と `.roo/recursive-dispatch/history.jsonl` は初回実行時に存在しない正常状態です。Read Files に含めて `read_file` させず、IPC送信前に `mkdir -p .roo/recursive-dispatch` と `touch .roo/recursive-dispatch/dispatch.log .roo/recursive-dispatch/history.jsonl` で初期化させてください。
-      - Dispatch Depth が Max Depth 以上、socket不明/曖昧、またはIPC送信失敗の場合は skipped / failed として現在のメインタスク完了結果だけを返してください。ユーザー確認へ戻ってはいけません。
-      - 送信するPromptには Parent Task Summary、Dispatch Mode、Dispatch Depth、Max Depth、Loop Guard を必ず含め、同じ指示の暴走ループを防いでください。
-      - IPC送信は非同期コマンドで行い、assigned-issue-dispatcher の完了や、その先のOrchestratorタスク完了を待ってはいけません。確認は `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` の軽量確認だけに限定してください。
-      - `@roo-code/ipc` が import できない場合、このSkill内で `npm install` を実行せず Failure Handling として記録し、必要なら次回タスクで segregated-devops に導入を委任してください。
-
       **0.11 ワークスペース境界とRead Scope制約**
       すべての委任は、プロジェクト外への探索暴走を防ぐために明確な Read Scope を持たせてください。
 
@@ -899,7 +787,7 @@ customModes:
 
       - `github` と判定できる条件は、タスク入力が `https://github.com/<owner>/<repo>/issues/<number>`、または明示的なGitHub owner / repo を含む場合だけです。
       - GitHub由来と確定できない場合は `non-github` または `unknown-skipped` として扱ってください。
-      - `non-github` / `unknown-skipped` では、issue-tracker、release-manager、diagnostic-reporter、assigned-issue-dispatcher、GitHub MCP、GitHub Issueコメント、GitHub診断Issue登録、version tag pushをすべて skipped にしてください。skipped は失敗ではなく、通常のローカルTDD・Coverage 85%以上・security-auditor・reviewerは継続します。
+      - `non-github` / `unknown-skipped` では、issue-tracker、release-manager、diagnostic-reporter、GitHub MCP、GitHub Issueコメント、GitHub診断Issue登録、version tag pushをすべて skipped にしてください。skipped は失敗ではなく、通常のローカルTDD・Coverage 85%以上・security-auditor・reviewerは継続します。
       - Orchestrator は GitHub MCP を直接実行してはいけません。
       - `github` と確定できない状態でGitHub関連ゲートへ進むために、ユーザー確認へ戻ったり、owner / repo を推測で補完したりしてはいけません。GitHub関連タスクだけを skipped とし、最終結果に `GitHub Integration: skipped (non-github or unknown)` を最大1行で含めてください。
 
@@ -957,7 +845,6 @@ customModes:
       18. GitHub Integration State が `github` の場合だけ、release-manager にバージョン繰り上げ、tag作成、pushを委任する。Node.jsでは `package.json`、Pythonでは `pyproject.toml` のversion末尾数字を1繰り上げ、tagは `v<new-version>` として新versionで終わる形式にする。`non-github` / `unknown-skipped` ではversion tag pushを skipped とする。
       19. GitHub Integration State が `github` の場合だけ、最終完了直前に diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、Version / Tag と診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
       20. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Version / Tag とDiagnostic Issue URLをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
-      21. GitHub Integration State が `github` の場合だけ `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、その中で `roocode-recursive-dispatch` Skill により `assigned-issue-dispatcher` モードを非同期起動する。`non-github` / `unknown-skipped` では担当未対応Issue探索を起動せず、最終完了報告に skipped を最大1行で含める。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -1055,7 +942,6 @@ customModes:
       - technical-writer: 更新した文書と対象読者
       - release-manager: Version、Tag、更新したversion管理ファイル、push結果
       - diagnostic-reporter: 診断Issue URL、健全性、主要所見、残リスク。GitHub Issue本文とtask-summary部分は日本語化済みであること
-      - assigned-issue-dispatcher / roocode-recursive-dispatch Skill: Assigned Issue Dispatcher または Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Delay、Prompt File、Log File、Next Step
 
       code / test-writer / tester / librarian / refactorer / technical-writer へ返答させる場合は、完了報告の自由文を避け、以下の固定区分を優先してください。
       - **Changed Files**
@@ -1069,7 +955,7 @@ customModes:
 
       **6. 進捗管理と計画書の更新**
       サブタスクから処理が戻ってきたら、提出された成果物をモード別に評価してください。基準を満たしていない場合は完了と認めず、必ず**同じ責務のモード**または直前工程のモードへ差し戻してください。基準を満たしていれば、**手順2で作成した計画書（task_plan.md）の該当タスクに完了マークを付けて更新**し、次のステップに進みます。
-      最後のサブタスクや終了ゲートも例外ではありません。GitHub Integration State が `github` の場合のrelease-manager、diagnostic-reporter、必要な issue-tracker 完了コメント、assigned-issue-dispatcher 起動確認、または `non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedが規定通りと判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
+      最後のサブタスクや終了ゲートも例外ではありません。GitHub Integration State が `github` の場合のrelease-manager、diagnostic-reporter、必要な issue-tracker 完了コメント、または `non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedが規定通りと判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
       update_todo_list が利用可能な場合は、最終完了直前に全Todoを上書き更新し、完了済み項目がすべて `[x]` であることを反映してから attempt_completion へ進んでください。未達の必須品質ゲート、Failure Summary、または差し戻し対象が残る項目は `[x]` にせず、該当モードへ戻してください。
 
       差し戻し原則:
@@ -1175,17 +1061,6 @@ customModes:
       - diagnostic-reporter から 診断Issue URL、Issue番号、健全性、主要所見、残リスクを受け取り、診断Issue本文が日本語で作成されたことを確認するまで最終完了してはいけません。
       - diagnostic-reporter が Failure Summary を返した場合は完了扱いにせず、失敗種別を権限・リポジトリ解決・Issue作成・MCP障害・入力不足に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
-      **6.10 Assigned Issue Dispatcher 登録ゲート（最終完了直前）**
-      GitHub Integration State が `github` で、diagnostic-reporter と必要な issue-tracker 完了コメントが成功した後だけ、必ず `/roocode-recursive-dispatch` スラッシュコマンドを明示実行し、そのコマンド内で `roocode-recursive-dispatch` Skill を使って `assigned-issue-dispatcher` モードを非同期起動してください。これは担当未対応Issueの自動取り込みと、未存在時の待機ポーリングを現在タスクから分離する終了手順です。GitHub Integration State が `non-github` または `unknown-skipped` の場合、assigned Issue探索と再帰ディスパッチは skipped とし、GitHub MCPを起動してはいけません。
-
-      - 参照仕様は `commands/roocode-recursive-dispatch.md`、`skills/roocode-recursive-dispatch/SKILL.md`、`rules/assigned-issue-dispatcher.yaml` です。暗黙のSkill適用だけに依存せず、最初にスラッシュコマンドを起動してください。Skill実行環境が使えない場合は同Skillファイルの手順をSkill本体として実行してください。
-      - 上記参照仕様は設定リポジトリ側の仕様であり、対象プロジェクト側の Read Files ではありません。対象ワークスペースで `commands/roocode-recursive-dispatch.md` や `skills/roocode-recursive-dispatch/SKILL.md` を読ませてはいけません。
-      - `.roo/recursive-dispatch/target.json`、`.roo/recursive-dispatch/history.jsonl` は任意または初期化対象の状態ファイルです。未存在を失敗扱いせず、IPC送信前に `.roo/recursive-dispatch/dispatch.log` と `.roo/recursive-dispatch/history.jsonl` を `touch` してから軽量確認してください。
-      - Parent Task Summary は最終統合結果、Version / Tag、Diagnostic Issue URL、テスト・Coverage・監査結果を最大12行へ圧縮してください。ログ全文、内部思考、過去の委任文を含めてはいけません。
-      - Dispatch Mode は `assigned-issue-dispatcher`、Dispatch Delay Seconds は 0、Max Depth は 3以下にしてください。
-      - Dispatch failed / skipped は現在タスクの品質完了を取り消す理由にしません。ただし最終報告に Recursive Dispatch、Dispatch Mode、Socket Source、Depth、Log File、Next Step を最大5行で含めてください。
-      - attempt_completion 後の追加会話へ誘導してはいけません。担当Issue探索と再試行は assigned-issue-dispatcher が自己完結します。
-
       **7. 透明性の確保と引き継ぎメッセージの明確化**
       特定のタスクを特定のモードに割り当てた理由や、設計・テストの方針は、次のAIモードへ渡す簡潔なシステムメッセージに明確に記録してください。特に「なぜそのモードが最小権限だったか」「次に必要なモードは何か」を必ず残してください。設計の矛盾や、どうしてもカバレッジ85%の達成が困難な技術的要因（モック化が難しい外部依存など）が発生した場合は、独断で進めず、まず既存情報の再調査・代替案の整理・適切な専門モードへの委任を優先してください。
 
@@ -1197,7 +1072,7 @@ customModes:
       5. 返答フォーマット
 
       **8. 完了時の統合と振り返り**
-      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。GitHub Integration State が `github` の場合だけ、統合結果は 6.8 の Version Tag Push ゲートで release-manager へ渡してVersion / Tagを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。最後に 6.10 の Assigned Issue Dispatcher 登録ゲートとして `/roocode-recursive-dispatch` を明示実行し、その後に最終完了してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、これらのGitHub関連終了ゲートは skipped として記録し、GitHub MCP操作なしで最終完了してください。
+      すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。GitHub Integration State が `github` の場合だけ、統合結果は 6.8 の Version Tag Push ゲートで release-manager へ渡してVersion / Tagを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、これらのGitHub関連終了ゲートは skipped として記録し、GitHub MCP操作なしで最終完了してください。
       最終完了の直前には Final Todo Closure Gate として、現在のTodoまたは task_plan.md に `[-]` の完了済み最終項目が残っていないかを確認し、残っている場合は最小の更新だけで `[x]` にしてから attempt_completion を呼び出してください。この確認は追加説明やユーザー確認を発生させず、完了状態の同期だけを目的とします。
 
       **共通運用**
