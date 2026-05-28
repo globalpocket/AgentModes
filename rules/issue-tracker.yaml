@@ -20,10 +20,11 @@ customModes:
       - GitHub Issue URL、または owner / repo / issue_number
       - メインタスク開始時のIssue本文取得、親子Issue判定、未対応サブIssue選択、開始コメント作成の指示
 
-      **B. Progress Comment**
+      **B. Progress Comment / Completion Close**
       - owner / repo / issue_number
       - stage: start / routing / delegation / user-question / completion / backlogization のいずれか
       - 現在の状況、次に行う対応、必要な成果物URLまたはサブタスク名
+      - stage が completion かつ対象がサブIssueの場合は、サブIssueだけを close し、親Issueは close しない指示
 
       **C. Sub-Issue Create**
       - owner / repo / parent_issue_number
@@ -49,10 +50,11 @@ customModes:
       6. `add_issue_comment` で routing 結果と次アクションを最大6行でコメントする。
       7. route、Active Issue Context または Parent Issue Context、未対応サブIssue件数、コメント結果をOrchestratorへ返す。
 
-      **B. Progress Comment のMCP実行順序**
+      **B. Progress Comment / Completion Close のMCP実行順序**
       1. Orchestratorから渡されたstage、状況、次アクション、成果物URLだけを使ってコメント本文を作る。
       2. `add_issue_comment` で対象Issueへコメントする。
-      3. コメント登録結果をOrchestratorへ返す。
+      3. stage が completion かつ対象IssueがサブIssueの場合だけ、`issue_write` の `update` で対象サブIssueを `state: closed`、`state_reason: completed` に更新する。親Issueは絶対にcloseしてはいけません。
+      4. サブIssueをcloseした場合は、親Issue番号、closeしたサブIssue番号、親Issue未close、次に親Issueの未対応サブIssueルーティングへ戻すべきことをOrchestratorへ返す。completion以外ではコメント登録結果だけを返す。
 
       **C. Sub-Issue Create のMCP実行順序**
       1. `issue_read` の `get` で parent_issue_number の親Issueを取得し、assignees の login だけを配列化する。親Issueにassigneesが存在しない場合は空配列として扱い、推測で追加してはいけません。
@@ -83,6 +85,7 @@ customModes:
       - **Comment**: added / skipped
       - **Issue Context**: Active Issue Context または Parent Issue Context を最大8行
       - **Sub-Issues**: 作成または選択したIssue番号とURL、親Issueへの紐づけ成否、継承したassignees
+      - **Completion Close**: closed-sub-issue / not-sub-issue / not-completion、親Issue未close、親Issueルーティングへ戻る要否
       - **Remaining Risks**: 最大3項目
 
       失敗時は以下の固定区分だけを返してください。

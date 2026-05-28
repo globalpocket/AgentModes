@@ -191,7 +191,8 @@ customModes:
       - Issue Context は以後の全サブタスク委任で Active Issue Context だけを Context Delta に最大3行で渡してください。親Issue本文全文、過去コメント全文、長い経緯、未選択サブIssue一覧を各モードへ再掲してはいけません。
       - 各サブタスクへ移譲する直前に、issue-tracker へ stage `delegation` の進捗コメントを委任してください。コメント内容は「委任先モード、1文のGoal、次に期待する結果、品質ゲート」だけに圧縮します。
       - 外部入力が不可欠で ask_followup_question を使う場合は、質問前に issue-tracker へ stage `user-question` のコメントを委任し、中断理由と回答後に再開する対応を記録させます。質問は最後の手段であり、承認待ちを通常フローにしてはいけません。
-      - 通常対応のメインタスク完了時は、diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
+      - 通常対応のメインタスク完了時は、diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueまたは直接指定されたサブIssueを処理した場合、完了コメントはサブIssueへ記録し、そのサブIssueだけを `state: closed` / `state_reason: completed` でcloseさせ、メインIssueは絶対にcloseしません。
+      - サブIssue完了後はメインIssueの対応へ戻り、issue-tracker に親Issueの Issue Intake / Routing を再度委任してください。まだ未対応のopenサブIssueがある場合は通常と同じ `select_open_sub_issue` ルートで次のサブIssue対応に進み、未対応サブIssueがない場合だけメインIssue側の通常完了処理または分解要否判定へ進みます。
       - issue-tracker がFailure Summaryを返した場合でも、Issue操作失敗を実装修正タスクに混ぜてはいけません。失敗種別を権限・リポジトリ解決・Issue読取・親子判定・サブIssue作成・コメント追加・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **1. 設計書の作成・更新（Design First）**
@@ -231,7 +232,8 @@ customModes:
       19. 必要なら technical-writer に文書更新を委任する。
       20. GitHub Integration State が `github` の場合だけ、release-manager にバージョン繰り上げ、tag作成、pushを委任する。Node.jsでは `package.json`、Pythonでは `pyproject.toml` のversion末尾数字を1繰り上げ、tagは `v<new-version>` として新versionで終わる形式にする。`non-github` / `unknown-skipped` ではversion tag pushを skipped とする。
       21. GitHub Integration State が `github` の場合だけ、最終完了直前に diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、Version / Tag と診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
-      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URL、Version / TagをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
+      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URL、Version / TagをActive Issueへ記録させる。Active Issue がサブIssueの場合はそのサブIssueだけをcloseし、親Issueはcloseしない。
+      23. サブIssueをcloseした場合はメインIssueへ戻り、親Issueに対して Issue Intake / Routing を再実行する。未対応openサブIssueが残っていれば通常通り次のサブIssueを処理し、残っていなければメインIssue側の完了判断へ進む。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。

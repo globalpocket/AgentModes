@@ -50,8 +50,13 @@
     },
     {
       "mode": "issue-tracker",
-      "description": "Active IssueへDiagnostic Issue URL、Version、Tag、テスト、Coverage、監査結果を最大6行で完了コメントする",
+      "description": "Active IssueへDiagnostic Issue URL、Version、Tag、テスト、Coverage、監査結果を最大6行で完了コメントし、Active IssueがサブIssueならサブIssueだけcloseしてメインIssueはcloseしない",
       "phase": "completion-comment-conditional"
+    },
+    {
+      "mode": "issue-tracker",
+      "description": "サブIssueをcloseした場合だけ親Issueへ戻ってIssue Intake/Routingを再実行し、未対応openサブIssueがあれば通常どおり次のサブIssue対応へ進む",
+      "phase": "return-to-parent-routing-conditional"
     }
   ]
 }
