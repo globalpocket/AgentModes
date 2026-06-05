@@ -534,10 +534,11 @@ customModes:
       - GitHub Issue URL、または owner / repo / issue_number
       - メインタスク開始時のIssue本文取得、親子Issue判定、未対応サブIssue選択、開始コメント作成の指示
 
-      **B. Progress Comment**
+      **B. Progress Comment / Completion Close**
       - owner / repo / issue_number
       - stage: start / routing / delegation / user-question / completion / backlogization のいずれか
       - 現在の状況、次に行う対応、必要な成果物URLまたはサブタスク名
+      - stage が completion かつ対象がサブIssueの場合は、サブIssueだけを close し、親Issueは close しない指示
 
       **C. Sub-Issue Create**
       - owner / repo / parent_issue_number
@@ -563,10 +564,11 @@ customModes:
       6. `add_issue_comment` で routing 結果と次アクションを最大6行でコメントする。
       7. route、Active Issue Context または Parent Issue Context、未対応サブIssue件数、コメント結果をOrchestratorへ返す。
 
-      **B. Progress Comment のMCP実行順序**
+      **B. Progress Comment / Completion Close のMCP実行順序**
       1. Orchestratorから渡されたstage、状況、次アクション、成果物URLだけを使ってコメント本文を作る。
       2. `add_issue_comment` で対象Issueへコメントする。
-      3. コメント登録結果をOrchestratorへ返す。
+      3. stage が completion かつ対象IssueがサブIssueの場合だけ、`issue_write` の `update` で対象サブIssueを `state: closed`、`state_reason: completed` に更新する。親Issueは絶対にcloseしてはいけません。
+      4. サブIssueをcloseした場合は、親Issue番号、closeしたサブIssue番号、親Issue未close、次に親Issueの未対応サブIssueルーティングへ戻すべきことをOrchestratorへ返す。completion以外ではコメント登録結果だけを返す。
 
       **C. Sub-Issue Create のMCP実行順序**
       1. `issue_read` の `get` で parent_issue_number の親Issueを取得し、assignees の login だけを配列化する。親Issueにassigneesが存在しない場合は空配列として扱い、推測で追加してはいけません。
@@ -597,6 +599,7 @@ customModes:
       - **Comment**: added / skipped
       - **Issue Context**: Active Issue Context または Parent Issue Context を最大8行
       - **Sub-Issues**: 作成または選択したIssue番号とURL、親Issueへの紐づけ成否、継承したassignees
+      - **Completion Close**: closed-sub-issue / not-sub-issue / not-completion、親Issue未close、親Issueルーティングへ戻る要否
       - **Remaining Risks**: 最大3項目
 
       失敗時は以下の固定区分だけを返してください。
@@ -704,6 +707,19 @@ customModes:
       - 判定担当（consistency-checker / reviewer / security-auditor / Orchestrator）は、Artifact Pathまたは変更ファイルパスを一次情報として読み、整合性・妥当性・品質ゲート通過可否だけを判定してください。
       - 5行を超える可能性があるログ、実行結果、監査結果、診断結果、索引は、原則として `artifacts/` 配下に保存し、モード間ではArtifact Pathで受け渡してください。
       - Orchestratorはログ全文を自分のコンテキストに取り込まず、Artifact Pathをconsistency-checker等の判定担当へ渡して判定結果だけを受け取ってください。
+
+      **0.4A External Waiting State / Context Overflow 防止**
+      Orchestrator は長時間処理を監視してはいけません。LLMは待機せず意思決定だけを担当し、Runtimeまたは外部実行基盤が待機を担当します。
+
+      - TaskState は `PENDING`、`RUNNING`、`WAITING_EXTERNAL`、`COMPLETED`、`FAILED` だけを使用してください。
+      - `execute_command`、tester、segregated-devops、release-manager、diagnostic-reporter、MCP操作、ブラウザ自動化、Docker、SSH、Playwright、Vitest、Jest、Pytest、Coverage、Build、Remote worker などが「Command is still running」「still running」「実行中」「完了待ち」を返した場合、直ちに `RUNNING` から `WAITING_EXTERNAL` へ遷移してください。
+      - `WAITING_EXTERNAL` へ遷移したら、現在状態を保存し、タスクを停止し、コンテキストを圧縮し、完了通知待ちにしてください。完了通知を受信した場合だけ `WAITING_EXTERNAL` から `RUNNING` へ復帰できます。
+      - `WAITING_EXTERNAL` 中は、同じ `execute_command` の再実行、状態確認ポーリング、`tail`、`grep`、`cat`、`ps`、`pgrep`、同一Subtask再投入、Artifact内容確認、consistency-checker投入をすべて禁止します。
+      - `WAITING_EXTERNAL` 移行時に保持してよい情報は Task ID、Goal、Current Step、Artifact Paths、Expected Output、Relevant Decisions だけです。全会話履歴、全Subtask履歴、実行ログ全文、古い診断結果を保持してはいけません。
+      - Active Context は50%以内を目標にし、70%でWarning、80%でCompression、90%でEmergency Summarizationを実行してください。100%到達は禁止です。
+      - サブタスク完了時に保持する形式は `Task Summary: What Changed / Artifacts / Remaining Risks / Next Action` だけです。全文ログ、完了報告全文、過去委任文、古い診断結果を保持してはいけません。
+      - Same Tool + Same Parameters + Same Result が2回連続した場合は `Failure Type: Potential Monitoring Loop` として停止し、同じ確認や監視を続けてはいけません。
+      - Coverage取得は必ず `RUNNING` から `WAITING_EXTERNAL` の対象です。Coverage実行中は結果確認コマンドを発行せず、完了通知のみ待ってください。
 
       **0.5 code / test-writer / tester / librarian / refactorer / technical-writer 向け委任最適化ルール**
       code / test-writer / tester / librarian / refactorer / technical-writer を推論レベル最高で運用しても、広い文脈・曖昧な目的・複数責務を同時に渡すとトークン効率と責務分離が崩れます。したがって Orchestrator は、これらのモードへ委任する際に以下を必ず守ってください。
@@ -838,7 +854,8 @@ customModes:
       - Issue Context は以後の全サブタスク委任で Active Issue Context だけを Context Delta に最大3行で渡してください。親Issue本文全文、過去コメント全文、長い経緯、未選択サブIssue一覧を各モードへ再掲してはいけません。
       - 各サブタスクへ移譲する直前に、issue-tracker へ stage `delegation` の進捗コメントを委任してください。コメント内容は「委任先モード、1文のGoal、次に期待する結果、品質ゲート」だけに圧縮します。
       - 外部入力が不可欠で ask_followup_question を使う場合は、質問前に issue-tracker へ stage `user-question` のコメントを委任し、中断理由と回答後に再開する対応を記録させます。質問は最後の手段であり、承認待ちを通常フローにしてはいけません。
-      - 通常対応のメインタスク完了時は、diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueを処理した場合、完了コメントはサブIssueへ記録し、親Issueへは必要最小限の進捗リンクだけを記録します。
+      - 通常対応のメインタスク完了時は、diagnostic-reporter の結果を受け取った後、attempt_completion の前に issue-tracker へ stage `completion` のコメントを委任し、Diagnostic Issue URL、テスト・Coverage・監査結果を最大6行で記録させます。親Issueから選択したサブIssueまたは直接指定されたサブIssueを処理した場合、完了コメントはサブIssueへ記録し、そのサブIssueだけを `state: closed` / `state_reason: completed` でcloseさせ、メインIssueは絶対にcloseしません。
+      - サブIssue完了後はメインIssueの対応へ戻り、issue-tracker に親Issueの Issue Intake / Routing を再度委任してください。まだ未対応のopenサブIssueがある場合は通常と同じ `select_open_sub_issue` ルートで次のサブIssue対応に進み、未対応サブIssueがない場合だけメインIssue側の通常完了処理または分解要否判定へ進みます。
       - issue-tracker がFailure Summaryを返した場合でも、Issue操作失敗を実装修正タスクに混ぜてはいけません。失敗種別を権限・リポジトリ解決・Issue読取・親子判定・サブIssue作成・コメント追加・MCP障害に分類し、同型失敗ルールに従って recovery-supervisor または segregated-devops へ切り替えてください。
 
       **1. 設計書の作成・更新（Design First）**
@@ -866,10 +883,10 @@ customModes:
       7. 必要なら architect に設計・計画を作らせる。
       8. test-writer に TDD Level 1/2 の最小 contract / behavior test（最大3個）だけを書かせる。Red解釈、Green修正、妥当性判定、網羅的テスト生成を委任しない。
       9. consistency-checker に test-writer の生成物を判定させ、TDD Level、Test Classification、Initial Test Count、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
-      10. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。
-      11. consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
+      10. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。テストが実行中の場合は `WAITING_EXTERNAL` へ遷移し、完了通知まで確認コマンドや同一Subtask再投入を行わない。
+      11. tester の完了通知を受けた場合だけ、consistency-checker にArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ進める。
       12. code または debug に、最小テストで固定された契約を満たす実装を一気に進めさせる。検証実行と妥当性判定を委任しない。
-      13. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させ、consistency-checker にGreenとCoverage 85%以上を判定させる。
+      13. artifact-manager にGreen/Coverage用Artifact Pathを `prepare` させ、tester に再実行させる。Green/Coverageが実行中の場合は `WAITING_EXTERNAL` へ遷移し、完了通知を受けた場合だけ consistency-checker にGreenとCoverage 85%以上を判定させる。
       14. バグ発見、契約変更、回帰防止、外部I/O境界追加がある場合だけ追加テストを test-writer へ委任し、それ以外は追加テストを禁止する。
       15. 最後に consistency-checker または reviewer で、exploratory test が正式テストへ昇格または削除され、contract / regression / 必要最小限の behavior test だけが残っていることを確認する。
       16. 必要なら refactorer に振る舞い不変の整理だけを行わせ、testerとconsistency-checkerで回帰を確認する。
@@ -878,7 +895,8 @@ customModes:
       19. 必要なら technical-writer に文書更新を委任する。
       20. GitHub Integration State が `github` の場合だけ、release-manager にバージョン繰り上げ、tag作成、pushを委任する。Node.jsでは `package.json`、Pythonでは `pyproject.toml` のversion末尾数字を1繰り上げ、tagは `v<new-version>` として新versionで終わる形式にする。`non-github` / `unknown-skipped` ではversion tag pushを skipped とする。
       21. GitHub Integration State が `github` の場合だけ、最終完了直前に diagnostic-reporter にプロジェクト診断とGitHub Issue登録を委任し、Version / Tag と診断Issue URLを取得する。`non-github` / `unknown-skipped` では診断Issue登録を skipped とする。
-      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URL、Version / TagをActive Issueへ記録させる。親Issueから選択したサブIssueを処理した場合、親IssueへはサブIssue完了リンクだけを記録する。
+      22. GitHub Integration State が `github` かつActive Issue Context がある場合だけ、issue-tracker に完了コメントを委任し、Diagnostic Issue URL、Version / TagをActive Issueへ記録させる。Active Issue がサブIssueの場合はそのサブIssueだけをcloseし、親Issueはcloseしない。
+      23. サブIssueをcloseした場合はメインIssueへ戻り、親Issueに対して Issue Intake / Routing を再実行する。未対応openサブIssueが残っていれば通常通り次のサブIssueを処理し、残っていなければメインIssue側の完了判断へ進む。
 
       **4. new_task 実行時の最小安定フォーマット**
       各サブタスクの message は以下の10項目だけを原則とし、現在の1手に不要な過去情報を載せてはいけません。
@@ -919,6 +937,7 @@ customModes:
       **4.1 Artifact判定ゲート**
       tester などの実行担当から結果を受け取ったら、ログ全文をOrchestratorのコンテキストに取り込んではいけません。実行担当はCommand、Exit Status、Artifact Pathだけを返し、OrchestratorはArtifact Pathをconsistency-checkerへ渡して判定させてください。
 
+      - 実行担当の結果が「まだ実行中」を示す場合は、Artifact判定へ進まず `WAITING_EXTERNAL` へ遷移してください。Orchestrator は完了通知前に Artifact を読ませたり、状態確認コマンドを発行したりしてはいけません。
       - tester に Expected Red Signature の一致判定、Failure Class、原因推定、修正案を返させてはいけません。
       - consistency-checker には Goal、Done、TDD Level、Test Classification、Initial Test Count、Expected Red Signature、Coverage Threshold、Artifact Path、Changed Files、Forbidden Patterns、Exploratory Handling だけを渡してください。
       - consistency-checker の判定結果から、Red成立、Green成立、Coverage 85%以上、Contract Mismatch、Forbidden Pattern、Dependency Issue、Provider Health Failure のいずれかを採用してください。
@@ -1012,6 +1031,7 @@ customModes:
       **6.2 ループ検知と上位エスカレーション**
       write権限を持つモードが同型失敗を繰り返した場合、同じ粒度で再投入し続けてはいけません。以下の条件に当てはまる場合は、通常の差し戻しではなく recovery-supervisor を投入してください。
 
+      - Same Tool + Same Parameters + Same Result が2回連続した場合は `Potential Monitoring Loop` として即停止し、tail / grep / cat / ps / pgrep / execute_command再実行 / 同一Subtask再投入で監視を継続しない。
       - 同一 Goal に対して code が **2回連続** で同型失敗した場合
       - test-writer が **2回連続** で禁止パターン混入、mock境界誤認、またはRed/Green混同を起こした場合
       - debug が **2回連続** で根本原因修正に失敗した場合
