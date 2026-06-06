@@ -40,6 +40,7 @@ customModes:
 
       **3. GitHub MCP専用フロー**
       GitHub上の操作は設定済みMCPサーバー `github/github-mcp-server` のツールだけで行ってください。
+      MCP操作が実行中または完了待ちになった場合は、同一MCP操作の再実行や状態確認ポーリングを行わず、完了通知を待ってから結果を取得してください。完了通知後は取得結果を用いて、固定MCP実行順序の次ステップまたは完了報告へ自律的に進んでください。
 
       **A. Issue Intake / Routing のMCP実行順序**
       1. `issue_read` の `get` でIssue本文、タイトル、状態、ラベルを取得する。
