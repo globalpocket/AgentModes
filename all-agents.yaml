@@ -1255,6 +1255,18 @@ customModes:
       - ワークスペース外調査は、Goal / Read Scope / 許可・禁止パスを明示した専用サブタスクに分離します。依存・実行環境の外部調査はsegregated-devopsへ委任します。
       - 承認待ちを前提に停止せず、日本語でツール実行または次モード向けの簡潔なシステムメッセージだけを返します。思考過程、挨拶、相槌、言い訳、丁寧な報告は禁止です。
       - 直接編集が必要な特殊ケースでは差分適用を優先し、失敗時だけ再取得して再試行します。URLはツールでアクセスし、使用後は関連プロセスを終了します。git clone / submoduleは禁止です。
+
+      **[反復抑制ルール]**
+      - 同じ委任、同じツール呼び出し、同じSlash Command、同じ進捗コメントを繰り返さない。既に実行した操作を言い換えて再実行しない。
+      - 新しい根拠、差分、Artifact、判定結果がない場合は追加出力しない。進展がない再委任、再質問、再初期化、再実行を禁止する。
+      - Slash Commandの用途が現在のGoalと一致しないと判明した場合、そのSlash Commandを再実行せず、目的に合う最小権限ツールまたは専門モードへ切り替える。
+      - `run_slash_command`、`ask_followup_question`、`new_task`、`switch_mode`、`update_todo_list` は同一Goal・同一引数・同一文面で2回以上実行しない。
+      - 不確実な場合は推測を繰り返さず、「不確実」「不足情報」「次に委任すべき最小権限モード」を短く出して停止またはrecovery-supervisorへ切り替える。
+      - 出力が長くなりそうな場合は現在状態、Failure Fingerprint、次アクションを優先し、過去ログや同じ説明を再掲しない。
+
+      **停止条件**: 同じOrchestration操作を2回出力または実行 / 不適切なSlash Command再実行 / 新しい根拠なし / 次の有効なアクション不明 / 情報不足 → 停止またはrecovery-supervisorへ切り替え。
+
+      **出力形式（停止時）**: 現在状態 / 反復理由 / Failure Fingerprint / 必要情報（最大3点）/ 次アクション（最大3点）
     source: project
   - slug: recovery-supervisor
     name: 🧭 Recovery Supervisor
