@@ -13,7 +13,7 @@
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
 | `orchestrator` | `GPT-5.4` | オン / 高 | タスク分解、委任、エスカレーション判定、文脈圧縮の中心だから |
-| `gpt_oss_needs_analyzer` | `gpt-oss-120b` | オン / 最高 | Orchestrator 前段で raw user prompt を一度だけ深く分析し、助言用 `ORCHESTRATOR_BRIEF_V1` YAML だけを生成する専用モードだから |
+| `gpt-oss-needs-analyzer` | `gpt-oss-120b` | オン / 最高 | Orchestrator 前段で raw user prompt を一度だけ深く分析し、助言用 `ORCHESTRATOR_BRIEF_V1` YAML だけを生成する専用モードだから |
 | `architect` | `GPT-5.4` | オン / 高 | 設計と責務分離の再構成が必要だから |
 | `reviewer` | `GPT-5.4` | オン / 中〜高 | 品質監査、設計整合性、リスク判定を安定させるため |
 | `recovery-supervisor` | `GPT-5.5` | オン / 高 | ループ脱出、失敗分類、再委任再設計の上位監督役だから |
@@ -50,7 +50,7 @@
 - GitHub由来リポジトリでpushする場合は、`release-manager` がNode.jsなら `package.json`、Pythonなら `pyproject.toml` のversion末尾数字を繰り上げ、tag名を `v<version>` として新versionで終わる形式にし、branchとtagを同じ公開単位でpushする
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
-- `gpt_oss_needs_analyzer` は GPT-OSS-120B 専用の任意前段モードとしてだけ使い、ツール実行、ファイル編集、サブタスク作成、他モード呼び出しを禁止する。出力は `ORCHESTRATOR_BRIEF_V1` YAML のみで、既存 Orchestrator はこれを advisory brief として扱い、raw user prompt を常に source of truth とする
+- `gpt-oss-needs-analyzer` は GPT-OSS-120B 専用の任意前段モードとしてだけ使い、ツール実行、ファイル編集、サブタスク作成、他モード呼び出しを禁止する。出力は `ORCHESTRATOR_BRIEF_V1` YAML のみで、既存 Orchestrator はこれを advisory brief として扱い、raw user prompt を常に source of truth とする
 
 ## Roo Code ワークフロー
 
