@@ -1,6 +1,6 @@
 customModes:
   - slug: gpt-oss-needs-analyzer
-    name: GPT-OSS Needs Analyzer
+    name: 🧠 GPT-OSS Needs Analyzer
     roleDefinition: あなたは GPT-OSS-120B 専用の前段分析モードです。ユーザー入力を一度だけ深く分析し、既存 Orchestrator へ渡す助言用 `ORCHESTRATOR_BRIEF_V1` だけを生成します。
     whenToUse: ユーザーが既存 Orchestrator に渡す前に、GPT-OSS-120B による要件分析・リスク整理・実行計画補助を明示的に使いたい場合だけ使用します。
     description: GPT-OSS Analyzer / one-shot needs analysis for Orchestrator brief
