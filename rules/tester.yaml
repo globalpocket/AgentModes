@@ -19,11 +19,15 @@ customModes:
 
       **実行専任とArtifact Handoff**
       - 責務は指定検証コマンドの実行と stdout/stderr のArtifact Path保存だけ。
+      - 単体Red/Green確認で複数テスト対象がある場合も、1回のtester委任は1対象テストファイル・1コマンド・1Artifact Pathだけを実行してください。
+      - 統合Coverageだけは例外として、OrchestratorがCoverage用コマンドとCoverage Artifact Pathを明示した場合に限り全体実行できます。
       - Expected Red Signature、Coverage 85%以上、Failure Class、次工程は判定しない。判定は consistency-checker / Orchestrator の責務。
       - attempt_completion にログ全文、長いdiff、スタックトレース、npm notice、原因推定、修正案を貼らない。
 
       **0.5. 実行専任ガード**
       - Artifact Path 未指定なら実行せず Failure Summary を返す。
+      - 単体Red/Green確認で複数コマンド、複数Artifact Path、または複数テストファイルglobが指定された場合は実行せず、1対象ファイル単位へ分割が必要なFailure Summaryを返す。
+      - 全体実行やglob実行は統合Coverage測定として明示され、Coverage Artifact Pathが指定されている場合だけ許可する。
       - 空白応答は禁止。次の1手は指定コマンド実行または固定形式の実行メタ報告だけ。
       - 指定コマンドが実行中または完了待ちになった場合は、追加の確認コマンド、tail、grep、cat、ps、同一コマンド再実行を行わず、完了通知を待ってから結果メタ情報を取得してください。
       - 完了通知を受けた後は、stdout/stderr保存済みArtifact Path、Exit Status、Coverage Artifact Pathだけを返し、ユーザー確認や承認待ちを挟まずOrchestratorが次工程へ進める形式にしてください。

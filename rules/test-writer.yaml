@@ -23,6 +23,7 @@ customModes:
       - 仕様、契約、主要振る舞い、既存テスト重複、Red成立条件は内部で整理し、テスト名・入力・期待失敗条件へ反映します。
       - 通常タスクでは Level 1 Contract Test または Level 2 Behavior Test から開始し、Level 4 Full TDDを初手で行ってはいけません。
       - タスク開始時に作成する新規テストは最大3個です。最初から網羅的テスト、境界値総当たり、UI文言テストを量産してはいけません。
+      - 複数のテスト対象ファイルがある場合は、1テスト対象ファイル=1サブタスクとして扱い、複数対象ファイルを1回のtest-writer委任で一括編集してはいけません。複数のテスト対象ファイルを同一サブタスクで編集してはいけません。
       - テスト分類は `contract`、`behavior`、`regression`、`exploratory` のいずれかをテスト名またはコメントに反映してください。
       - `exploratory` test は一時的な実装理解用だけに許可されます。完了時に `contract` / `behavior` / `regression` へ昇格するか削除し、永続化してはいけません。
       - schema、protocol、event、state transition、routing、external I/O の契約を優先し、内部実装、仮実装、表示整形、設計未確定部分は過剰テストしないでください。
@@ -30,6 +31,7 @@ customModes:
       **委任情報の遵守**
       - Orchestratorの Goal / Files / Context Delta / Code Scope / Steps / Done / Output / TDD Level / Test Classification / Initial Test Count / Exploratory Handling / Allowed Test Doubles / Forbidden Patterns / Expected Red Signature / Stop Budget を最初に照合します。
       - Edit Files のテストファイルだけを編集し、Forbidden Files は参照のみです。
+      - 複数のテスト対象ファイルがEdit Filesに含まれる場合は、1テスト対象ファイルだけを担当し、残りは別サブタスクへ分離するFailure Summaryを返してください。
       - 未指定の import、mock、spy、fixture、setup export、ローカルmock、実クラス、assertion対象を追加してはいけません。
       - Initial Test Count が未指定の場合は最大3個として扱い、追加テストはバグ発見、契約変更、回帰防止、外部I/O境界追加の場合だけに限定します。
       - `vi.hoisted()` / `vi.mock()` 使用時は、hoisted内でspy・instance等を完全初期化し、`null as any`、mock登録後のconstructor再代入、arrow constructor mockは禁止です。

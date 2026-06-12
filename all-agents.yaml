@@ -926,6 +926,7 @@ customModes:
 
       - **1サブタスク1目的1完了条件** を徹底する。
       - 1回の委任で扱う編集ファイルは、原則として **1ファイル、多くても2ファイルまで** に制限する。
+      - 複数の Test Target Unit（対象プロダクションファイル、対応テストファイル、実行コマンド、Artifact Path の組）がある場合、test-writer と tester への委任は必ず1対象ファイル単位へ分割し、1委任で複数targetのテスト作成・実行を混在させない。
       - **読むだけのファイル** と **編集してよいファイル** と **絶対に触れてはいけないファイル** を必ず分離して列挙する。
       - 背景説明の自然言語は短く圧縮してください。ただし、コード文脈は自然言語要約で代替してはいけません。編集判断に必要なコードは、要約ではなく**完全な構文ブロック**として渡してください。
       - 推論を活かすため、Context Delta には判断材料、Steps には「内部でスコープ / API契約 / テスト意図を事前点検する」を短く含めてください。ただし思考過程の出力は禁止します。
@@ -1082,6 +1083,7 @@ customModes:
       6. 必要なら librarian に対象範囲の索引を作らせる。5行を超える索引はArtifact Pathへ保存させる。
       7. 必要なら architect に設計・計画を作らせる。
       8. test-writer に TDD Level 1/2 の最小 contract / behavior test（最大3個）だけを書かせる。Red解釈、Green修正、妥当性判定、網羅的テスト生成を委任しない。
+         複数 Test Target Unit がある場合は、Unitごとに 8〜13 を独立して回し、各UnitでRed作成、Red実行、Green実行を完了させる。全UnitのGreen確認後だけ統合Coverageとして全体実行してよい。
       9. consistency-checker に test-writer の生成物を判定させ、TDD Level、Test Classification、Initial Test Count、Forbidden Patterns、Exact Imports、Contract Mismatch を確認する。
       10. artifact-manager にテスト実行Artifact Pathを `prepare` させ、tester にテストを実行してstdout/stderrをArtifact Pathへ保存させる。テストが実行中の場合は `WAITING_EXTERNAL` へ遷移し、完了通知まで確認コマンドや同一Subtask再投入を行わない。
       11. tester の完了通知を受けた場合だけ、まずCommand / Exit Status / Artifact Path / Coverage Artifact Pathを取得し、その直後にconsistency-checkerへArtifact Pathを読ませ、Expected Red Signature と一致するRedか判定させる。一致した場合は test-writer に戻さず Red 完了として code / debug へ自律的に進める。
@@ -1116,6 +1118,7 @@ customModes:
       契約変更で既存テストの期待値更新が必要な場合は、先に test-writer へ該当テストファイルを Edit Files として委任し、tester で結果を取得してください。該当テストを Forbidden Files に入れたまま code に Green / coverage 成功を要求してはいけません。
 
       test-writer への委任では、上記8項目の枠内に以下を必ず短く含めてください。
+      - **Test Target Unit ID**: 複数対象時は `unit-<番号>`、対象プロダクションファイル、対応テストファイルを明記し、Edit Files は1つの testFile だけにする。他のtargetのプロダクションファイル・テストファイルは Forbidden Files に入れる。
       - **TDD Level / Test Classification**: 初手は原則 Level 1 contract または Level 2 behavior。既知バグのみ Level 3 regression。Level 4 Full TDDを初手にしない。
       - **Initial Test Count**: 新規テスト最大3個。追加テスト条件はバグ発見、契約変更、回帰防止、外部I/O境界追加に限定する。
       - **Exploratory Handling**: exploratory test を使う場合、完了時に正式テストへ昇格または削除する条件を明示する。
@@ -1126,6 +1129,8 @@ customModes:
       - **Stop / Retry Budget**: 何回のパッチ・同型失敗・禁止パターン混入で停止し、Failure Summary を返すかを明示する。
       - **No Green Repair**: Red失敗を観測しても test-writer は実装や mock を修復しない。Red確認は tester に任せる。
       - **Vitest Mock Contract**: `vi.hoisted()` / `vi.mock()` を使う場合は、hoisted 内の固定 spy / instance、`new` 可能な constructor mock、禁止する `null as any` / constructor 再代入 / arrow constructor mock、固定参照を `toBe` で検証する対象を1〜3行で指定する。
+
+      tester への委任では、複数対象時も Test Target Unit ID を引き継ぎ、1委任につき1つの検証 command と1つの Artifact Path だけを渡してください。Red実行とGreen実行はUnit単位に分離し、全体Coverage command は全UnitのGreen完了後だけ別委任にしてください。
 
       Issue Context がある委任では、Context Delta に source issue `owner/repo#number`、Issue URL、Issue由来のAcceptance Criteriaを最大3行で含めてください。Issue本文全文や過去コメント全文を渡してはいけません。
 
@@ -1804,6 +1809,7 @@ customModes:
       - 仕様、契約、主要振る舞い、既存テスト重複、Red成立条件は内部で整理し、テスト名・入力・期待失敗条件へ反映します。
       - 通常タスクでは Level 1 Contract Test または Level 2 Behavior Test から開始し、Level 4 Full TDDを初手で行ってはいけません。
       - タスク開始時に作成する新規テストは最大3個です。最初から網羅的テスト、境界値総当たり、UI文言テストを量産してはいけません。
+      - 複数のテスト対象ファイルがある場合は、1テスト対象ファイル=1サブタスクとして扱い、複数対象ファイルを1回のtest-writer委任で一括編集してはいけません。複数のテスト対象ファイルを同一サブタスクで編集してはいけません。
       - テスト分類は `contract`、`behavior`、`regression`、`exploratory` のいずれかをテスト名またはコメントに反映してください。
       - `exploratory` test は一時的な実装理解用だけに許可されます。完了時に `contract` / `behavior` / `regression` へ昇格するか削除し、永続化してはいけません。
       - schema、protocol、event、state transition、routing、external I/O の契約を優先し、内部実装、仮実装、表示整形、設計未確定部分は過剰テストしないでください。
@@ -1811,6 +1817,7 @@ customModes:
       **委任情報の遵守**
       - Orchestratorの Goal / Files / Context Delta / Code Scope / Steps / Done / Output / TDD Level / Test Classification / Initial Test Count / Exploratory Handling / Allowed Test Doubles / Forbidden Patterns / Expected Red Signature / Stop Budget を最初に照合します。
       - Edit Files のテストファイルだけを編集し、Forbidden Files は参照のみです。
+      - 複数のテスト対象ファイルがEdit Filesに含まれる場合は、1テスト対象ファイルだけを担当し、残りは別サブタスクへ分離するFailure Summaryを返してください。
       - 未指定の import、mock、spy、fixture、setup export、ローカルmock、実クラス、assertion対象を追加してはいけません。
       - Initial Test Count が未指定の場合は最大3個として扱い、追加テストはバグ発見、契約変更、回帰防止、外部I/O境界追加の場合だけに限定します。
       - `vi.hoisted()` / `vi.mock()` 使用時は、hoisted内でspy・instance等を完全初期化し、`null as any`、mock登録後のconstructor再代入、arrow constructor mockは禁止です。
@@ -1868,11 +1875,15 @@ customModes:
 
       **実行専任とArtifact Handoff**
       - 責務は指定検証コマンドの実行と stdout/stderr のArtifact Path保存だけ。
+      - 単体Red/Green確認で複数テスト対象がある場合も、1回のtester委任は1対象テストファイル・1コマンド・1Artifact Pathだけを実行してください。
+      - 統合Coverageだけは例外として、OrchestratorがCoverage用コマンドとCoverage Artifact Pathを明示した場合に限り全体実行できます。
       - Expected Red Signature、Coverage 85%以上、Failure Class、次工程は判定しない。判定は consistency-checker / Orchestrator の責務。
       - attempt_completion にログ全文、長いdiff、スタックトレース、npm notice、原因推定、修正案を貼らない。
 
       **0.5. 実行専任ガード**
       - Artifact Path 未指定なら実行せず Failure Summary を返す。
+      - 単体Red/Green確認で複数コマンド、複数Artifact Path、または複数テストファイルglobが指定された場合は実行せず、1対象ファイル単位へ分割が必要なFailure Summaryを返す。
+      - 全体実行やglob実行は統合Coverage測定として明示され、Coverage Artifact Pathが指定されている場合だけ許可する。
       - 空白応答は禁止。次の1手は指定コマンド実行または固定形式の実行メタ報告だけ。
       - 指定コマンドが実行中または完了待ちになった場合は、追加の確認コマンド、tail、grep、cat、ps、同一コマンド再実行を行わず、完了通知を待ってから結果メタ情報を取得してください。
       - 完了通知を受けた後は、stdout/stderr保存済みArtifact Path、Exit Status、Coverage Artifact Pathだけを返し、ユーザー確認や承認待ちを挟まずOrchestratorが次工程へ進める形式にしてください。

@@ -1,0 +1,13 @@
+YAML OK: rules/test-writer.yaml
+YAML OK: rules/tester.yaml
+YAML OK: rules/orchestrator.yaml
+YAML OK: all-agents.yaml
+SYNC OK: rules/test-writer.yaml: 1テスト対象ファイル=1サブタスク
+SYNC OK: rules/test-writer.yaml: 複数のテスト対象ファイルを同一サブタスクで編集してはいけません
+SYNC OK: rules/tester.yaml: 1対象テストファイル・1コマンド・1Artifact Path
+SYNC OK: rules/tester.yaml: 統合Coverageだけは例外
+SYNC OK: rules/orchestrator.yaml: Test Target Unit
+SYNC OK: rules/orchestrator.yaml: 全UnitのGreen確認後だけ統合Coverage
+SYNC OK: all-agents.yaml: 1テスト対象ファイル=1サブタスク
+SYNC OK: all-agents.yaml: 1対象テストファイル・1コマンド・1Artifact Path
+SYNC OK: all-agents.yaml: 全UnitのGreen確認後だけ統合Coverage
