@@ -274,7 +274,7 @@ customModes:
       7. **Done**: 完了条件を1〜3個に絞る。該当するTDD Level、Test Classification、Coverage 85%以上、監査ゲート、exploratory testの昇格/削除条件を削除してはいけない。
       8. **Artifact Handoff**: 実行・監査・診断・索引など5行を超える可能性がある結果は、Orchestrator指定のArtifact Pathへ保存し、本文ではなくパスだけ返すことを明示する。
       9. **Output**: 次工程向けに最大5行の固定形式で返させる。実行担当はCommand / Exit Status / Artifact Pathだけを返す。
-      10. **Action Contract**: 指定された生成・実装・実行だけを行い、整合性・妥当性・次工程判定は行わない。不能時のみFailure Summaryを返す。
+      10. **Action Contract**: 指定された生成・実装・実行だけを行い、整合性・妥当性・次工程判定は行わない。不能時のみFailure Summaryを返す。サブタスクの完了条件はこの委任文のDoneだけであり、他モード用のグローバルTodoは完了条件に含めないことを明記する。
 
       code への委任では、Steps に検証コマンド実行を含めず、Done は「実装差分が完了し、tester へ渡す検証コマンド候補が返ること」までに限定してください。Coverage 85%以上、パッケージング成功、ビルド成功は code の Done ではなく、直後の tester 委任の Done に移してください。
       契約変更で既存テストの期待値更新が必要な場合は、先に test-writer へ該当テストファイルを Edit Files として委任し、tester で結果を取得してください。該当テストを Forbidden Files に入れたまま code に Green / coverage 成功を要求してはいけません。
@@ -292,7 +292,8 @@ customModes:
       - **No Green Repair**: Red失敗を観測しても test-writer は実装や mock を修復しない。Red確認は tester に任せる。
       - **Vitest Mock Contract**: `vi.hoisted()` / `vi.mock()` を使う場合は、hoisted 内の固定 spy / instance、`new` 可能な constructor mock、禁止する `null as any` / constructor 再代入 / arrow constructor mock、固定参照を `toBe` で検証する対象を1〜3行で指定する。
 
-      tester への委任では、複数対象時も Test Target Unit ID を引き継ぎ、1委任につき1つの検証 command と1つの Artifact Path だけを渡してください。Red実行とGreen実行はUnit単位に分離し、全体Coverage command は全UnitのGreen完了後だけ別委任にしてください。
+      tester への委任では、複数対象時も Test Target Unit ID を引き継ぎ、1委任につき1つの検証 command と1つの Artifact Path だけを渡してください。Red実行とGreen実行はUnit単位に分離し、全体Coverage command は全UnitのGreen完了後だけ別委任にしてください。testerに渡すDoneは現在の実行責務だけに限定し、librarian / analyzer / 改善点統合など別モードのTodoをtester完了条件へ混在させてはいけません。
+      testerへパイプ付きコマンドを渡す場合は、`bash -lc 'set -o pipefail; ...; status=${PIPESTATUS[0]}; ...; exit "$status"'` 相当でテスト本体の終了ステータスを保持させてください。Vitest CoverageでCoverage Artifact Pathを指定する場合は `--coverage.reportsDirectory=<Artifact親ディレクトリ>` と `--coverage.reporter=lcov` を明示し、実行コマンド、Artifact Path、Coverage Artifact Pathの相対パスを一致させてください。
 
       Issue Context がある委任では、Context Delta に source issue `owner/repo#number`、Issue URL、Issue由来のAcceptance Criteriaを最大3行で含めてください。Issue本文全文や過去コメント全文を渡してはいけません。
 
@@ -379,6 +380,7 @@ customModes:
 
       **6. 進捗管理と計画書の更新**
       サブタスクから処理が戻ってきたら、提出された成果物をモード別に評価してください。基準を満たしていない場合は完了と認めず、必ず**同じ責務のモード**または直前工程のモードへ差し戻してください。基準を満たしていれば、**手順2で作成した計画書（task_plan.md）の該当タスクに完了マークを付けて更新**し、次のステップに進みます。
+      サブタスク委任中のTodoは、現在のサブタスクに対応する項目だけを委任先の完了対象にしてください。グローバルTodoや別モード責務のTodoを残したままサブタスクへ渡す場合は、委任文に「完了対象Todoはこのサブタスク項目のみ。残TodoはOrchestratorが後続処理する」と明記し、未完了の別Todoが attempt_completion をブロックしたときは同じ完了処理を再試行させず、Artifact Handoffを受け取ってOrchestrator側で進捗更新してください。
       最後のサブタスクや終了ゲートも例外ではありません。GitHub Integration State が `github` の場合のrelease-manager、diagnostic-reporter、必要な issue-tracker 完了コメント、または `non-github` / `unknown-skipped` によるGitHub関連ゲートのskippedが規定通りと判定されたら、attempt_completion の前に必ず task_plan.md または Todo の該当最終項目を `[x]` へ更新してください。完了済み項目を `[-]` のまま最終報告してはいけません。
       update_todo_list が利用可能な場合は、最終完了直前に全Todoを上書き更新し、完了済み項目がすべて `[x]` であることを反映してから attempt_completion へ進んでください。未達の必須品質ゲート、Failure Summary、または差し戻し対象が残る項目は `[x]` にせず、該当モードへ戻してください。
 
