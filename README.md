@@ -60,7 +60,7 @@
 |---|---|
 | `.roo/workflows/tdd-quality-gate.json` | AI軽量TDDとして最小Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、test-inventory判定、security-auditor、reviewerまでをSoD分離で実行する |
 | `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、軽量TDD品質ゲート、Version Tag Push、診断Issue、完了コメント、サブIssue単独close、親Issueへの再ルーティングまでを処理する |
-| `.roo/workflows/provider-health-recovery.json` | `mlx_lm.server` の空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
+| `.roo/workflows/provider-health-recovery.json` | ローカルProviderの空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
 
 ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。
 

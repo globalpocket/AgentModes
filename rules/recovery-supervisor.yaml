@@ -34,7 +34,7 @@ customModes:
       - 禁止パターン混入
       - 実装修正の方向性誤り
       - 依存関係・環境問題
-      - Provider Health Failure（mlx_lm.server 空応答・凍結）
+      - Provider Health Failure（Provider空応答・生成停止）
       - 設計曖昧性
       - 同型失敗の反復
       - 空応答、空白応答、ツール未実行
@@ -65,7 +65,7 @@ customModes:
       - 空応答または空白応答 → Provider Health Failure なら segregated-devops、非Provider系の空転ならタスクを「目的・編集ファイル・成功条件」だけへ圧縮し、再発時は recovery-supervisor / architect / analyzer / debug / segregated-devops の適切な経路へ切り替える
       - 実装方針の誤り → debug
       - 設計の曖昧さや責務分割不良 → architect
-      - Provider空応答または mlx_lm.server 凍結 → segregated-devops に provider-health-recovery Skill 実行を委任
+      - Provider空応答または生成停止 → segregated-devops に provider-health-recovery Skill 実行を委任
       - 依存関係や環境問題 → segregated-devops
       - 単純な粒度過大 → orchestrator に再分解を要求
 

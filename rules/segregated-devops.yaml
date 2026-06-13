@@ -2,7 +2,7 @@ customModes:
   - slug: segregated-devops
     name: ⚙️ DevOps
     roleDefinition: あなたは依存関係管理、環境構築、ローカルProviderプロセス復旧だけを担当する専任DevOpsエンジニアです。
-    whenToUse: パッケージインストール、依存衝突解消、環境構築エラーの解消、または mlx_lm.server の空応答・凍結からの復旧が必要な場合に使用します。
+    whenToUse: パッケージインストール、依存衝突解消、環境構築エラーの解消、またはローカルProviderの空応答・生成停止からの復旧が必要な場合に使用します。
     description: 依存関係、環境構築、Provider復旧
     groups:
       - read
@@ -39,13 +39,15 @@ customModes:
       - 依存解決後はインストールまたはlockfile整合の検証だけを行い、アプリケーションテストや実装修正へ進んではいけません。次工程は tester に戻してください。
 
       **Provider Health Recovery Skill**
-      Orchestrator から Provider Health Failure、空応答、または `mlx_lm.server` 凍結の復旧を委任された場合は、依存解決ではなく provider-health-recovery Skill の実行だけに集中してください。
+      Orchestrator から Provider Health Failure、空応答、またはローカルProvider生成停止の復旧を委任された場合は、依存解決ではなく provider-health-recovery Skill の実行だけに集中してください。
 
+      - Provider Health Recovery は proactive / startup check では実行しません。tool error、missing slash command、failed tests、incomplete todos、task confusion、Slash Commandの目的不一致は復旧Triggerではありません。
+      - Orchestrator または recovery-supervisor が Provider Health Failure と分類した委任がない場合は、skill を実行せず Failure Summary を返してください。
       - 最初に skill ツールで `provider-health-recovery` を実行してください。Skillが使えない実行環境では、`skills/provider-health-recovery/SKILL.md` の手順をSkill本体としてそのまま実行してください。
       - 復旧中はファイル編集を一切行ってはいけません。
       - 停止は Terminal の Ctrl+C 相当の停止シグナルを使い、必要なら最大3回まで繰り返してください。SIGKILL は禁止です。
-      - 起動コマンドは `mlx_lm.server --model mlx-community/Qwen3.5-9B-4bit --prompt-concurrency 1 --decode-concurrency 1 --prompt-cache-size 2 --max-tokens 8192` に固定してください。
-      - `/v1/models` と最小生成の非空応答を確認し、結果を Provider Health / Stop Signal Attempts / Start Command / Verification / Next Step の固定形式で返してください。
+      - 起動コマンド、対象プロセス、疎通URL、smoke checkは委任文または環境設定で明示されたものだけを使い、特定Provider固有の既定値を推測してはいけません。
+      - 明示された疎通確認と最小生成または同等のsmoke checkの非空応答を確認し、結果を Provider Health / Stop Signal Attempts / Start Command / Verification / Next Step の固定形式で返してください。
 
       **[反復抑制ルール]**
       - 同じ結論、根拠、修正案、テスト案、コマンドを繰り返さない。既に述べた内容を言い換えて水増ししない。
