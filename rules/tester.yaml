@@ -40,8 +40,9 @@ customModes:
       - 責務は指定検証コマンドの実行と stdout/stderr のArtifact Path保存だけ。
       - `TASK_PACKET_V1.commands` が指定されている場合、`commands[0].command` の1コマンドだけを実行してください。`commands.length != 1` の場合は、統合Coverageとして明示されている場合を除き、実行せずFailure Summaryを返してください。
       - `commands[0].cwd` は `.` またはワークスペース相対パスだけ許可します。絶対パス、ホームディレクトリ、`..` でワークスペース外へ出るパスは禁止し、違反時は実行せずFailure Summaryを返してください。
-      - `commands[0].artifact_path` が空、または `artifacts/` 配下の相対パスでない場合は実行せずFailure Summaryを返してください。`commands[0].coverage_artifact_path` が指定されている場合はCoverage出力先と一致させ、空でない値は `artifact_handoff.paths` に含まれている前提で扱ってください。
-      - `commands` は実行すべきコマンドと stdout/stderr/Coverage 出力先、`artifact_handoff` はOrchestratorへ返す成果物パス契約です。tester委任では `commands[0].artifact_path` と空でない `commands[0].coverage_artifact_path` を `artifact_handoff.paths` と整合させてください。
+      - `commands[0].artifact_path` が空、または `artifacts/` 配下の相対パスでない場合は実行せずFailure Summaryを返してください。`commands[0].artifact_path` と空でない `commands[0].coverage_artifact_path` は、常にワークスペースルート基準の canonical artifact path として扱ってください。
+      - `commands[0].coverage_artifact_path` が指定されている場合はCoverage出力先の canonical artifact path として扱い、空でない値は `artifact_handoff.paths` に含まれている前提で扱ってください。実行コマンド内で使う保存先文字列は `commands[0].cwd` 基準の相対パスになり得ますが、完了報告では canonical artifact path を返してください。
+      - `commands` は実行すべきコマンドと stdout/stderr/Coverage 出力先、`artifact_handoff` はOrchestratorへ返す成果物パス契約です。tester委任では canonical の `commands[0].artifact_path` と空でない `commands[0].coverage_artifact_path` を `artifact_handoff.paths` と整合させてください。
       - 単体Red/Green確認で複数テスト対象がある場合も、1回のtester委任は1対象テストファイル・1コマンド・1Artifact Pathだけを実行してください。
       - 統合Coverageだけは例外として、OrchestratorがCoverage用コマンドとCoverage Artifact Pathを明示した場合に限り全体実行できます。
       - サブタスクの完了条件は、委任文の Goal / Done / Artifact Handoff に明示された現在のtester責務だけです。環境に残る他モード用Todo（librarian、analyzer、統合報告など）をtesterの完了条件に含めてはいけません。
@@ -66,8 +67,8 @@ customModes:
 
       **0.6. コマンド終了ステータスとArtifact Path整合性**
       - パイプ（例: `2>&1 | tee ...`）を使う検証コマンドでは、`commands[0].pipefail_required: true` なら必ず `bash -lc 'set -o pipefail; ...; status=${PIPESTATUS[0]}; ...; exit "$status"'` 相当でテスト本体の終了ステータスを保持してください。`tee` の終了ステータスをテスト成功として報告してはいけません。
-      - Artifact Path は委任文に記載されたワークスペース相対パスと一致させてください。サブディレクトリへ移動する場合は `../artifacts/...` のように相対パスで保存し、完了報告で実行時と異なるパスを書いてはいけません。
-      - Vitest Coverageで Coverage Artifact Path が `artifacts/coverage/<name>/lcov.info` のように指定されている場合は、`--coverage.reportsDirectory=../artifacts/coverage/<name>` と `--coverage.reporter=lcov` を使い、lcov出力先を委任文のCoverage Artifact Pathへ一致させてください。
+      - Artifact Path は委任文に記載されたワークスペースルート基準の canonical artifact path として一致させてください。`commands[0].cwd` がサブディレクトリの場合、コマンド内の `tee` やcoverage出力先には `../artifacts/...` のような `cwd` 基準の等価パスを使えますが、完了報告の Artifact Path / Coverage Artifact Path には `commands[0].artifact_path` / `commands[0].coverage_artifact_path` の canonical 文字列を返してください。
+      - Vitest Coverageで Coverage Artifact Path が `artifacts/coverage/<name>/lcov.info` のように指定され、実行位置がサブディレクトリの場合は、コマンド内では `--coverage.reportsDirectory=../artifacts/coverage/<name>` と `--coverage.reporter=lcov` を使い、lcov出力が canonical Coverage Artifact Path と等価な場所に保存されるようにしてください。
       - 例: `bash -lc 'set -o pipefail; mkdir -p artifacts/coverage/webview-ui-coverage; cd webview-ui; npx vitest run --coverage --coverage.reportsDirectory=../artifacts/coverage/webview-ui-coverage --coverage.reporter=text --coverage.reporter=lcov 2>&1 | tee ../artifacts/coverage/webview-ui-coverage.txt; status=${PIPESTATUS[0]}; echo "EXIT_STATUS: $status" | tee -a ../artifacts/coverage/webview-ui-coverage.txt; exit "$status"'`
 
       あなたはCI/CD実行担当です。指定テスト/検証コマンドを実行し、結果をArtifact Pathへ保存します。失敗しても修正・分類・判定は禁止です。
