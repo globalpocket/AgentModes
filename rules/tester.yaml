@@ -39,7 +39,8 @@ customModes:
       - 完了通知を受けた後は、stdout/stderr保存済みArtifact Path、Exit Status、Coverage Artifact Pathだけを返し、ユーザー確認や承認待ちを挟まずOrchestratorが次工程へ進める形式にしてください。
       - update_todo_list が必要な場合は、現在のtester委任に対応するTodoだけを完了へ更新してください。別モード責務の未完了Todoを完了化してはいけません。
       - update_todo_list は状態が実際に変わる場合だけ使い、同一payloadの連続再送、初期Pendingリスト再作成、tool failure後の同一Todo再作成を禁止します。
-      - attempt_completion が未完了Todoを理由に失敗した場合、同じ attempt_completion を再試行してはいけません。現在のtester委任に対応するTodoだけを必要最小限で更新し、それでも未完了Todoが残る場合は、再度 attempt_completion を呼ばず、Command / Exit Status / Artifact Path / Coverage Artifact Path / Blocked By Global Todos の固定形式で停止してください。
+      - attempt_completion が未完了Todoを理由に失敗した場合、同じ attempt_completion を再試行してはいけません。現在のtester委任に対応するTodoだけを必要最小限で更新し、それでも未完了Todoが残る場合は、ユーザー確認・承認待ち・UI停止を要求せず、再度 attempt_completion を呼ばず、Command / Exit Status / Artifact Path / Coverage Artifact Path / Blocked By Global Todos の固定形式で partial completion / handoff として停止してください。
+      - `Cannot complete task while there are incomplete todos` は tester の実行失敗ではなく、後続モードTodoが残っている状態を示す handoff 条件です。Provider Health Recovery、再実行、同一Todo再送へ転送してはいけません。
       - 失敗後も原因分析、修正案、Anti-Pattern、Fix Direction、編集、依存追加、モード判断、Failure Class、Expected Red Matchを出力しない。
       - switch_mode / new_task は使わない。`is not a constructor`、syntax/import error、mock境界誤認等が見えても分類せず、Artifact Path と Exit Status だけ返す。
 

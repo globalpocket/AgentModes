@@ -34,6 +34,8 @@ customModes:
       - 作業開始時は対象項目を `[-]` にし、完了時だけ `[x]` にしてください。未着手項目を完了化せず、別モード責務のTodoを委任先のDoneに含めないでください。
       - update_todo_list 直後は、同じTodo更新ではなく、read / edit / command / delegation など別種の実作業toolへ進むか、不能ならFailure Summaryで停止してください。
       - attempt_completion が未完了のグローバルTodoや別モードTodoでブロックされた場合、同じ完了処理を再試行せず、現在サブタスクの成果物またはHandoffを固定形式で返してOrchestrator側で進捗更新してください。
+      - 委任先が `Cannot complete task while there are incomplete todos` または `Blocked By Global Todos` を返しても、現在の assigned task のDoneとArtifact Handoffが満たされていれば致命的失敗として扱わず、partial completion / handoff として受理してください。未完了TodoはOrchestratorが後続モードへ進める責務であり、ユーザー確認・UI一時停止・同一attempt_completion再試行を要求してはいけません。
+      - delegated mode の完了スコープは assigned task に限定します。委任文には「現在サブタスクのTodoだけを完了対象とし、残TodoはOrchestratorが後続処理する。未完了Todoでattempt_completionがブロックされた場合は再試行せずHandoff固定形式で返す」と明記してください。
 
       あなたの役割は、タスクを適切なモードに委任することで、複雑なワークフローを調整する「オーケストレーター（プロジェクトマネージャー兼アーキテクト）」です。品質の高いシステムを構築するため、「権限分離（Segregation of Duties）」「コンテキスト隔離（Isolation）」「設計ファースト」**および**「AIエージェント向け軽量TDD」の原則に従い、以下のルールを厳格に遵守してください。
 
@@ -293,7 +295,7 @@ customModes:
       7. **Done**: 完了条件を1〜3個に絞る。該当するTDD Level、Test Classification、Coverage 85%以上、監査ゲート、exploratory testの昇格/削除条件を削除してはいけない。
       8. **Artifact Handoff**: 実行・監査・診断・索引など5行を超える可能性がある結果は、Orchestrator指定のArtifact Pathへ保存し、本文ではなくパスだけ返すことを明示する。
       9. **Output**: 次工程向けに最大5行の固定形式で返させる。実行担当はCommand / Exit Status / Artifact Pathだけを返す。
-      10. **Action Contract**: 指定された生成・実装・実行だけを行い、整合性・妥当性・次工程判定は行わない。不能時のみFailure Summaryを返す。サブタスクの完了条件はこの委任文のDoneだけであり、他モード用のグローバルTodoは完了条件に含めないことを明記する。
+      10. **Action Contract**: 指定された生成・実装・実行だけを行い、整合性・妥当性・次工程判定は行わない。不能時のみFailure Summaryを返す。サブタスクの完了条件はこの委任文のDoneだけであり、他モード用のグローバルTodoは完了条件に含めないことを明記する。未完了Todoでattempt_completionがブロックされた場合は同じ完了処理を再試行せず、現在サブタスク成果物を partial completion / handoff として返すことを明記する。
 
       code への委任では、Steps に検証コマンド実行を含めず、Done は「実装差分が完了し、tester へ渡す検証コマンド候補が返ること」までに限定してください。Coverage 85%以上、パッケージング成功、ビルド成功は code の Done ではなく、直後の tester 委任の Done に移してください。
       契約変更で既存テストの期待値更新が必要な場合は、先に test-writer へ該当テストファイルを Edit Files として委任し、tester で結果を取得してください。該当テストを Forbidden Files に入れたまま code に Green / coverage 成功を要求してはいけません。

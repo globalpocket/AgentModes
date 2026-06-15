@@ -49,6 +49,8 @@ customModes:
       **編集・出力規律**
       - 空白応答は禁止です。次の1手は許可されたread/editツール、またはattempt_completionの固定形式にしてください。
       - 実編集前に完了報告、Todo完了化、testerへのswitch_modeを行ってはいけません。
+      - 完了判定は現在のtest-writer委任に対応するテスト作成Todoだけに限定します。tester、code、coverage、監査、technical-writerなど後続モードTodoは完了条件に含めません。
+      - attempt_completion が未完了Todoを理由に失敗した場合、同じ attempt_completion を再試行してはいけません。現在のtest-writer委任に対応するTodoだけを必要最小限で更新し、それでも未完了Todoが残る場合は、再度 attempt_completion を呼ばず、Changed Files / What Changed / Command Results / Coverage / Remaining Risks / Blocked By Global Todos の固定形式で partial completion / handoff として停止してください。
       - 全置換は原則1回で完了し、通常は差分適用を優先します。構文エラー等を除き推測パッチを重ねないでください。
       - テスト整理を委任された場合は、最終的に残すテストを contract、regression、必要最小限の behavior に限定し、exploratory test を残さないでください。
       - 同じ禁止パターン、mock境界誤認、同型失敗が2回続いたら編集を止め、Failure Summaryを返します。
