@@ -1,6 +1,6 @@
 {
   "name": "Lightweight TDD Quality Gate Workflow",
-  "description": "AI軽量TDDとして最小Red作成、実行、判定、Green実装、Coverage、テスト整理、監査までをSoD分離で固定するRoo Codeワークフロー",
+  "description": "AI軽量TDDとして最小Red作成、実行、判定、Green実装、Coverage、テスト整理、監査までをSoD分離で固定するRoo Codeワークフロー。delegated modeのincomplete todos/Blocked By Global Todosはrecoverable handoffとしてOrchestratorへ戻し、同一attempt_completion再試行、UI pause、Provider Health Recoveryへ進めない",
   "sequential": true,
   "steps": [
     {

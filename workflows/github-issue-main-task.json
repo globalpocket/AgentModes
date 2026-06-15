@@ -1,6 +1,6 @@
 {
   "name": "GitHub Issue Main Task Workflow",
-  "description": "GitHub Issue起点タスクをIssue Intake、AI軽量TDD、Version Tag Push、診断Issue、完了コメントまで固定順で処理するRoo Codeワークフロー",
+  "description": "GitHub Issue起点タスクをIssue Intake、AI軽量TDD、Version Tag Push、診断Issue、完了コメントまで固定順で処理するRoo Codeワークフロー。delegated modeのincomplete todos/Blocked By Global Todosはrecoverable handoffとしてOrchestratorへ戻し、同一attempt_completion再試行、UI pause、Provider Health Recoveryへ進めない",
   "sequential": true,
   "steps": [
     {
