@@ -703,7 +703,6 @@ customModes:
       - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
 
       **TASK_PACKET_V1 Skeleton**
-      ```json
       {
         "task_packet_version": "TASK_PACKET_V1",
         "task_id": "",
@@ -724,7 +723,6 @@ customModes:
         "action_contract": {"allowed_actions": [], "forbidden_actions": [], "completion_scope": "assigned_task_only", "global_todos_are_not_done_conditions": true, "on_incomplete_todos": "return_partial_handoff_without_retry", "no_self_dispatch": true},
         "budgets": {"message_token_budget_target": 1200, "message_token_budget_max": 1800, "patch_budget": 1, "retry_budget": 0, "same_failure_escalation": "second_same_failure_to_recovery_supervisor"}
       }
-      ```
 
       **commands Contract**
       - `commands` is a machine-readable execution specification for execution modes.
