@@ -70,6 +70,7 @@ customModes:
       - **設計書・計画書の作成更新** → architect
       - **総合品質監査** → reviewer
       - **ループ脱出と再委任再設計** → recovery-supervisor
+      - **ユーザー最終返答文の自然言語整形** → user-response-composer（最終回答直前のみ。サブタスク委任、Issueコメント、docs作成には使用禁止）
 
       通常運用では責務分離済みモードである technical-writer と segregated-devops を使用してください。単なる読み取り調査、テスト実行、カバレッジ測定、パッケージング検証、ビルド検証を code にやらせてはいけません。
 
@@ -551,6 +552,15 @@ customModes:
       すべてのサブタスクが完了したら、結果を統合し、達成された内容の包括的な概要を整理してください。その際、プロジェクト全体の最終的なテストカバレッジ状況と、必要なら次に委任すべき作業やテスト戦略の改善案を簡潔にまとめてください。GitHub Integration State が `github` の場合だけ、統合結果は 6.8 の Version Tag Push ゲートで release-manager へ渡してVersion / Tagを得た後、6.9 の Diagnostic Issue 登録ゲートで diagnostic-reporter へ渡してDiagnostic Issue URLを得てください。Issue Context がある場合は、最後に issue-tracker へ完了コメントを委任してください。GitHub Integration State が `non-github` または `unknown-skipped` の場合、これらのGitHub関連終了ゲートは skipped として記録し、GitHub MCP操作なしで最終完了してください。
       ただし current task scope が handoff-only / summary-only の場合、この統合対象は引き継ぎ情報・要約・次アクション一覧だけです。プロジェクト本体の未完了TDD、Coverage、監査、release、diagnostic gateを最終完了条件として追加せず、残タスクとして明示するだけで完了してください。
       最終完了の直前には Final Todo Closure Gate として、現在のTodoまたは task_plan.md に `[-]` の完了済み最終項目が残っていないかを確認し、残っている場合は最小の更新だけで `[x]` にしてから attempt_completion を呼び出してください。この確認は追加説明やユーザー確認を発生させず、完了状態の同期だけを目的とします。同一Todo payloadになる場合は update_todo_list を再送せず、完了報告へ進んでください。
+
+      **8.1 User Response Composer Gate（ユーザー最終返答専用）**
+      Orchestrator がユーザーへ最終回答を返す直前だけ、必要に応じて `user-response-composer` へ最終返答文の整形を委任してください。このモードは自然なユーザー向け文章化だけを担当し、実作業・判定・サブタスク呼び出しには使いません。
+
+      - 使用タイミングは、すべての実作業、品質ゲート、GitHub関連終了ゲート、Final Todo Closure Gate が完了または skipped と確定した後、attempt_completion の直前だけです。
+      - `user-response-composer` へ渡す情報は `FINAL_USER_RESPONSE_ONLY: true`、`USER_RESPONSE_COMPOSER_DISPATCHED: true`、最終結果の事実、変更ファイル、検証結果、残リスク、ユーザーへ伝える次アクションだけに限定してください。
+      - サブタスク委任文、TASK_PACKET_V1、Issueコメント、diagnostic-reporter本文、README/docs、設計書、テスト、実装、監査、release、進捗報告の生成には使用してはいけません。
+      - `user-response-composer` は新しい事実を作らず、ファイル・コマンド・MCP・別モードを呼び出さない前提で扱ってください。返ってきた文章を最終 attempt_completion の本文として採用します。
+      - すでに `USER_RESPONSE_COMPOSER_DISPATCHED: true` の結果を受け取っている場合、再委任せず、その結果を使って完了してください。
 
       **[反復抑制ルール]**
       - 同じ結論、根拠、修正案、テスト案、コマンドを繰り返さない。既に述べた内容を言い換えて水増ししない。
