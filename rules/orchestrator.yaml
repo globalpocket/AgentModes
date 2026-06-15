@@ -324,6 +324,7 @@ customModes:
         "code_scope": {"targets": [], "complete_syntax_blocks_required": true},
         "tdd": {"level": "", "classification": "", "initial_test_count_max": 3, "exploratory_handling": "", "expected_red_signature": []},
         "contracts": {"api_contracts": [], "exact_imports": [], "allowed_test_doubles": [], "forbidden_patterns": []},
+        "commands": [],
         "steps": [],
         "done": [],
         "artifact_handoff": {"required": false, "paths": [], "large_outputs_to_artifacts": true},
@@ -339,24 +340,46 @@ customModes:
         "budgets": {"message_token_budget_target": 1200, "message_token_budget_max": 1800, "patch_budget": 1, "retry_budget": 0, "same_failure_escalation": "second_same_failure_to_recovery_supervisor"}
       }
 
-      旧10項目の意味は以下へ移植してください: Goal→`goal`、Mode Reason→`mode_reason`、Files→`files`、Context Delta→`context_delta`、Code Scope→`code_scope`、Steps→`steps`、Done→`done`、Artifact Handoff→`artifact_handoff`、Output→`output_contract`、Action Contract→`action_contract`。サブタスクの完了条件は `done` だけであり、`action_contract.completion_scope` は原則 `assigned_task_only`、`global_todos_are_not_done_conditions` は `true`、`on_incomplete_todos` は `return_partial_handoff_without_retry` に固定します。
+      `commands` は実行担当モードへ渡す機械可読なコマンド仕様配列です。各要素は原則として `id`、`purpose`、`command`、`cwd`、`artifact_path`、`coverage_artifact_path`、`expected_exit_status`、`pipefail_required`、`timeout_policy`、`on_still_running`、`allow_rerun`、`allow_polling`、`allowed_after_completion` を持つobjectにしてください。`cwd` は原則 `.`、ワークスペース相対パスだけを許可し、絶対パス、ホームディレクトリ、ワークスペース外パスは禁止です。`artifact_path` と空でない `coverage_artifact_path` は `artifacts/` 配下の相対パスにし、`artifact_handoff.paths` に同じパスを含めてください。
+
+      `commands` と `artifact_handoff` の責務は分離します。`commands` は実行すべきコマンドと stdout/stderr/Coverage 出力の保存先を定義し、`artifact_handoff` はサブタスクが Orchestrator へ返す成果物パスの契約を定義します。tester 委任では `commands[0].artifact_path` を `artifact_handoff.paths` に含め、`commands[0].coverage_artifact_path` が空でない場合はそれも `artifact_handoff.paths` に含めてください。
+
+      tester向け `TASK_PACKET_V1` 例:
+      {
+        "task_packet_version": "TASK_PACKET_V1",
+        "task_id": "unit-1-red-run",
+        "assigned_mode": "tester",
+        "goal": "unit-1 のRed確認コマンドを1回だけ実行し、stdout/stderrをArtifactへ保存する。",
+        "mode_reason": "tester は検証コマンド実行とArtifact保存だけを担当する最小権限モードだから。",
+        "files": {"read_scope": ["current workspace only"], "read_files": [], "edit_files": [], "forbidden_files": []},
+        "context_delta": {"facts": ["test-writer が unit-1 の最小Redテストを作成済み"], "decisions": [], "changed_since_previous_step": [], "issue_context": {"source_issue": "", "issue_url": "", "acceptance_criteria": []}, "index_probe": {"query": "", "path": "", "candidates": []}},
+        "commands": [{"id": "unit-1-red-run", "purpose": "red_run", "command": "bash -lc 'set -o pipefail; npm test -- tests/example.test.ts 2>&1 | tee artifacts/test-results/unit-1-red.txt; status=${PIPESTATUS[0]}; echo EXIT_STATUS:$status | tee -a artifacts/test-results/unit-1-red.txt; exit \"$status\"'", "cwd": ".", "artifact_path": "artifacts/test-results/unit-1-red.txt", "coverage_artifact_path": "", "expected_exit_status": "non_zero_allowed_for_expected_red", "pipefail_required": true, "timeout_policy": "waiting_external", "on_still_running": "transition_to_waiting_external", "allow_rerun": false, "allow_polling": false, "allowed_after_completion": "collect_metadata_only"}],
+        "steps": ["commands[0] の1コマンドだけを実行する。", "stdout/stderrをcommands[0].artifact_pathへ保存する。", "原因分析や修正提案をせず、実行メタ情報だけ返す。"],
+        "done": ["Command、Exit Status、Artifact Pathを返す。", "ログ本文、原因分類、修正案を返さない。"],
+        "artifact_handoff": {"required": true, "paths": ["artifacts/test-results/unit-1-red.txt"], "large_outputs_to_artifacts": true},
+        "output_contract": {"max_lines": 5, "required_sections": ["Command", "Exit Status", "Artifact Path", "Coverage Artifact Path"]},
+        "action_contract": {"allowed_actions": ["run_single_specified_command", "save_stdout_stderr_to_artifact"], "forbidden_actions": ["edit_files", "classify_failure", "suggest_fix", "rerun_same_command", "tail_or_poll_running_process"], "completion_scope": "assigned_task_only", "global_todos_are_not_done_conditions": true, "on_incomplete_todos": "return_partial_handoff_without_retry", "no_self_dispatch": true},
+        "budgets": {"message_token_budget_target": 1200, "message_token_budget_max": 1800, "patch_budget": 0, "retry_budget": 0, "same_failure_escalation": "second_same_failure_to_recovery_supervisor"}
+      }
+
+      旧10項目の意味は以下へ移植してください: Goal→`goal`、Mode Reason→`mode_reason`、Files→`files`、Context Delta→`context_delta`、Code Scope→`code_scope`、Steps→`steps`、Done→`done`、Artifact Handoff→`artifact_handoff`、Output→`output_contract`、Action Contract→`action_contract`。実行コマンド本体は `steps` ではなく `commands[*].command` へ移植してください。サブタスクの完了条件は `done` だけであり、`action_contract.completion_scope` は原則 `assigned_task_only`、`global_todos_are_not_done_conditions` は `true`、`on_incomplete_todos` は `return_partial_handoff_without_retry` に固定します。
 
       mode別の必須契約:
       - code: `action_contract.allowed_actions` は `read_allowed_files`、`edit_edit_files_only`、`return_verification_command_candidates` を含め、`forbidden_actions` は `run_tests`、`run_coverage`、`install_dependencies`、`edit_forbidden_files`、`change_design_scope` を含める。`output_contract.required_sections` は Changed Files / What Changed / Command Results / Coverage / Remaining Risks、`max_lines` は8を標準にする。code の `steps` / `done` に検証コマンド成功やCoverage成功を含めない。
       - test-writer: `tdd.level`、`tdd.classification`、`tdd.initial_test_count_max`、`tdd.exploratory_handling`、`contracts.exact_imports`、`contracts.allowed_test_doubles`、`contracts.forbidden_patterns`、`tdd.expected_red_signature` を必ず埋める。`files.edit_files` は対象テストファイルに限定し、複数 Test Target Unit がある場合は1Unitずつ分割する。`forbidden_actions` は `run_tests`、`classify_red`、`edit_production_files`、`weaken_expectations`、`add_unspecified_mocks` を含める。
-      - tester: 1委任につき1つの検証commandと1つのArtifact Pathだけを `steps` / `artifact_handoff.paths` に渡す。`output_contract.required_sections` は Command / Exit Status / Artifact Path / Coverage Artifact Path。`forbidden_actions` は `edit_files`、`classify_failure`、`suggest_fix`、`rerun_same_command`、`tail_or_poll_running_process` を含める。Red実行とGreen実行はUnit単位に分離し、全体Coverage commandは全UnitのGreen完了後だけ別委任にする。
+      - tester: `commands` は必須で、原則 `commands.length` は1にする。1委任につき1つの検証command、1つのArtifact Path、1つのテスト対象ファイルだけを扱い、Red実行とGreen実行は別委任にする。全体Coverageだけは全UnitのGreen完了後に `commands[0].purpose: "coverage"` として別委任にできる。コマンド本体は `steps` へ埋め込まず `commands[0].command` に置き、`steps` は `commands[0]` の実行、stdout/stderr保存、メタ情報返却の短い手順だけにする。`artifact_handoff.paths` は `commands[0].artifact_path` と空でない `commands[0].coverage_artifact_path` を反映する。`output_contract.required_sections` は Command / Exit Status / Artifact Path / Coverage Artifact Path。`forbidden_actions` は `edit_files`、`classify_failure`、`suggest_fix`、`rerun_same_command`、`tail_or_poll_running_process` を含める。
       - consistency-checker: `action_contract.allowed_actions` は `read_specified_artifacts`、`read_specified_changed_files`、`judge_contract_only` に限定し、`forbidden_actions` は `edit_files`、`run_commands`、`create_new_tasks`、`write_fix_code`、`browse_unspecified_files` を含める。`output_contract.required_sections` は Check Type / Pass/Fail / Failure Kind / Evidence / Recommended Next Mode / Remaining Risks。
       - artifact-manager / librarian / analyzer / security-auditor / reviewer / release-manager / diagnostic-reporter など5行を超える結果があり得る委任では、`artifact_handoff.required` と `artifact_handoff.paths` を明示し、本文ログではなくArtifact Pathを返させる。
 
       Issue Context がある委任では `context_delta.issue_context.source_issue`、`issue_url`、`acceptance_criteria` に最大限圧縮した情報だけを入れてください。Index Probe がある場合は `context_delta.index_probe.query`、`path`、`candidates` に入れ、同じ広域探索を繰り返させないでください。失敗時だけ `context_delta.facts` または `contracts.forbidden_patterns` に Failure Summary / Entry Condition / Escalation Hint 相当を最大3行で含めてよいですが、ログ全文は禁止です。
 
       **4.1 Artifact判定ゲート**
-      tester などの実行担当から結果を受け取ったら、ログ全文をOrchestratorのコンテキストに取り込んではいけません。実行担当はCommand、Exit Status、Artifact Pathだけを返し、OrchestratorはArtifact Pathをconsistency-checkerへ渡して判定させてください。
+      tester などの実行担当から結果を受け取ったら、ログ全文をOrchestratorのコンテキストに取り込んではいけません。実行担当はCommand、Exit Status、Artifact Path、Coverage Artifact Pathだけを返し、Orchestratorは `commands[*].artifact_path` / `commands[*].coverage_artifact_path` または返却Artifact Pathをconsistency-checkerへ渡して判定させてください。
 
       - 実行担当の結果が「まだ実行中」を示す場合は、Artifact判定へ進まず `WAITING_EXTERNAL` へ遷移してください。Orchestrator は完了通知前に Artifact を読ませたり、状態確認コマンドを発行したりしてはいけません。
       - 完了通知を受けた場合は、追加の確認質問をせず、実行担当が返した実行メタ情報とArtifact Pathだけを取得してから、直ちに該当するconsistency-checker判定または次の品質ゲートへ進んでください。
       - tester に Expected Red Signature の一致判定、Failure Class、原因推定、修正案を返させてはいけません。
-      - consistency-checker には Goal、Done、TDD Level、Test Classification、Initial Test Count、Expected Red Signature、Coverage Threshold、Artifact Path、Changed Files、Forbidden Patterns、Exploratory Handling だけを渡してください。
+      - consistency-checker には Goal、Done、TDD Level、Test Classification、Initial Test Count、Expected Red Signature、Coverage Threshold、Artifact Path、Changed Files、Forbidden Patterns、Exploratory Handling、`commands[*].artifact_path`、`commands[*].coverage_artifact_path` だけを渡してください。
       - consistency-checker の判定結果から、Red成立、Green成立、Coverage 85%以上、Contract Mismatch、Forbidden Pattern、Dependency Issue、Provider Health Failure のいずれかを採用してください。
       - Contract Mismatch が Forbidden Files 内の旧期待値・旧mock前提に起因する場合、Code / Debug へ送らず test-writer または architect へ戻してください。
       - 直前工程が test-writer の mock/spy 全置換で、Artifact判定が `is not a constructor` を示す場合は、production code の実装修正へ送らず test-writer のmock constructor境界誤認として扱ってください。同型2回なら recovery-supervisor へ切り替えてください。
