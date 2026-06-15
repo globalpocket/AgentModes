@@ -14,6 +14,13 @@ customModes:
 
 
       **Delegated Completion Scope / Todo Ownership**
+
+      **TASK_PACKET_V1 JSON Reception Contract**
+      - Orchestrator から `TASK_PACKET_V1` の valid JSON object を受け取った場合、それを唯一の作業契約として扱い、JSON外の過去履歴・グローバルTodo・別モードTodoを推測で補完してはいけません。
+      - 既存の Goal / Files / Context Delta / Code Scope / Steps / Done / Artifact Handoff / Output / Action Contract への参照は、それぞれ `goal` / `files` / `context_delta` / `code_scope` / `steps` / `done` / `artifact_handoff` / `output_contract` / `action_contract` へ読み替えてください。
+      - `action_contract.completion_scope` が `assigned_task_only` の場合、現在サブタスクの `done` だけを完了条件とし、`global_todos_are_not_done_conditions: true` を尊重してください。
+      - `action_contract.on_incomplete_todos` が `return_partial_handoff_without_retry` の場合、同一 `attempt_completion`、同一payload、同一completionを再試行せず、現在サブタスク成果物をpartial handoffとして返してください。
+      - `artifact_handoff.paths` が指定されている場合、5行を超える可能性のあるログ・実行結果・索引・監査結果・診断結果は本文ではなくそのArtifact Pathへ保存または参照し、完了報告にはパスと最小メタ情報だけを返してください。
       - このモードの完了判定は、委任文で明示された assigned task の Goal / Done / Artifact Handoff だけに限定します。グローバルTodo、REMINDERS、後続モードTodo、Orchestrator最終Todoは現在モードの完了条件に含めません。
       - update_todo_list を使う場合は、現在モードが所有するサブタスクTodoだけを状態変更し、別モード責務の未完了Todoを完了化してはいけません。同一payloadの再送やtool failure後の同一Todo再作成は禁止です。
       - attempt_completion が `Cannot complete task while there are incomplete todos`、incomplete todos、または `Blocked By Global Todos` で失敗した場合、それは現在モードの成果物失敗ではなく recoverable delegated handoff です。同じ attempt_completion を再試行してはいけません。
