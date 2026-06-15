@@ -1193,7 +1193,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: (^test/.*)|(^tests/.*)|(.*\.test\.[^/]+$)|(.*\.spec\.[^/]+$)
+        - fileRegex: (^|.*/)(test|tests)/.*|.*\.(test|spec)\.[^/]+$
           description: Test files only
       - command
     customInstructions: |-
@@ -1220,7 +1220,8 @@ customModes:
       - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
       - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
       **Mode Scope**
-      - Edit only allowed test files: `test/`, `tests/`, `*.test.*`, or `*.spec.*`.
+      - Edit targets are limited to files explicitly assigned in `files.edit_files`.
+      - Those files must be test files: paths under any workspace-relative `test/` or `tests/` directory at any depth, or files matching `*.test.*` or `*.spec.*`.
       - Do not edit production code, configuration, dependencies, or documentation.
       - Do not run tests, classify Red, repair Green, or weaken expectations.
       - Create or update minimal Red tests only.
