@@ -9,7 +9,7 @@
 - 推論設定はモデル能力ではなくモード責務で決める
 - `Qwen3.5-122B` は Orchestrator、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
 - `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
-- `Gemma4-12B-it` は documenter / user-response-composer のような文章生成・整形系に使う
+- `Gemma4-12B-it` は documenter / user-response-composer のような文章生成・整形系に使う。文書化の根拠収集は `doc-evidence-reader` に分離する
 - `tester` / `artifact-manager` は推論オフを推奨し、過剰判断や completion ループを避ける
 
 | モード | 推奨モデル | 推論設定 | 理由 |
@@ -33,7 +33,8 @@
 | `release-manager` | `Qwen3.5-122B` | オン / 中 | version bump、tag、push単位の整合判断が必要 |
 | `segregated-devops` | `Qwen3.5-122B` | オン / 高 | 依存関係、CI、環境、Provider復旧は判断密度が高い |
 | `diagnostic-reporter` | `Qwen3.5-122B` | オン / 中 | 品質ゲート後の診断Issue本文を事実ベースで構成する必要がある |
-| `documenter` | `Gemma4-12B-it` | オフ | Markdown文書生成・整形・説明文品質を優先し、過剰推論で事実を膨らませないため |
+| `doc-evidence-reader` | `Qwen3.5-9B` | オン / 中 | read-only の根拠付き事実抽出が主責務で、広範な設計判断や文章生成を行わないため |
+| `documenter` | `Gemma4-12B-it` | オフ | `DOC_FACTS_V1` からMarkdown文書を生成・整形する専任で、事実収集や仕様解釈を行わないため |
 | `ask` | `Qwen3.5-122B` | オン / 中 | 技術説明、既存コード理解、計画相談に文脈理解が必要 |
 | `user-response-composer` | `Gemma4-12B-it` | オフ | 上流結果を最終ユーザー向け文面に整形するだけで、判断や追加事実生成を禁止するため |
 
@@ -41,6 +42,8 @@
 
 - GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
 - `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う
+- 文書更新は `doc-evidence-reader` が根拠事実を `DOC_FACTS_V1` として抽出し、`documenter` が `DOC_FACTS_V1` に基づいてMarkdownを編集する二段構成にする
+- `documenter` は実装コード、テスト、設定、CI、plans を読んで事実発見や仕様解釈を行わない
 - `tester` / `artifact-manager` は推論オフを推奨し、過剰判断や completion ループを避ける
 - `Qwen3.5-122B` は Orchestrator、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
 - `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
@@ -61,7 +64,7 @@
 - GitHub由来リポジトリでpushする場合は、`release-manager` がNode.jsなら `package.json`、Pythonなら `pyproject.toml` のversion末尾数字を繰り上げ、tag名を `v<version>` として新versionで終わる形式にし、branchとtagを同じ公開単位でpushする
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
-- `architect` は設計、計画、ADR、実装分解、TDD計画、品質ゲート設計を担当し、`documenter` は README、docs、API reference、architecture notes、handoff summary、利用者/開発者向け説明を担当する
+- `architect` は設計、計画、ADR、実装分解、TDD計画、品質ゲート設計を担当する。文書化では `doc-evidence-reader` がコード・docs・plans・artifacts から根拠事実だけを抽出し、`documenter` は README、docs、API reference、architecture notes、handoff summary、利用者/開発者向け説明のMarkdown編集だけを担当する
 - セキュリティ・依存関係・secret・unsafe pattern・fabricated libraries は `security-auditor` が担当し、`reviewer` は最終品質レビュー、設計整合、保守性、性能、テスト妥当性、残リスク確認を担当する
 - `gpt-oss-needs-analyzer` はユーザーまたはランタイムが選択した分析用モデルで動作する任意前段モードとしてだけ使い、ツール実行、ファイル編集、サブタスク作成、他モード呼び出しを禁止する。出力は `ORCHESTRATOR_BRIEF_V1` YAML のみで、既存 Orchestrator はこれを advisory brief として扱い、raw user prompt を常に source of truth とする
 

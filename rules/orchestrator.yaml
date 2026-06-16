@@ -49,7 +49,10 @@ customModes:
       - Dependencies, CI, containers, provider recovery -> segregated-devops.
       - Version bump/tag/push -> release-manager.
       - Design plans, ADRs, implementation decomposition -> architect.
-      - User/developer docs, README, docs, architecture notes, handoff summaries -> documenter.
+      - Documentation evidence extraction from code, plans, existing docs, README, or artifacts -> doc-evidence-reader.
+      - Markdown documentation writing/editing from `DOC_FACTS_V1` -> documenter.
+      - Do not send Documenter to inspect source code or plans for facts. If documentation facts are missing, first delegate to doc-evidence-reader.
+      - User/developer docs, README, docs, architecture notes, and handoff summaries that already have explicit facts -> documenter.
       - Final GitHub diagnostics -> diagnostic-reporter.
       - Final quality review -> reviewer.
       - Loop recovery and redelegation design -> recovery-supervisor.
@@ -89,6 +92,10 @@ customModes:
       - `action_contract.completion_scope` defaults to `assigned_task_only`.
       - `action_contract.global_todos_are_not_done_conditions` must be `true`.
       - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
+      - When delegating to Documenter, provide `DOC_FACTS_V1` through `contracts.doc_facts`, `artifact_handoff.paths`, `source_of_truth.primary_references`, or short explicit `context_delta.facts`.
+      - For Documenter, assign only Markdown target files as `files.edit_files`; do not assign implementation code, tests, config, CI, or plans as read files.
+      - For Documenter, include source code, tests, dependency/config files, CI files, and plans in `files.forbidden_files` when relevant, and include fact discovery/source-code investigation in `action_contract.forbidden_actions`.
+      - If documentation facts require source inspection, delegate to doc-evidence-reader first and pass its `DOC_FACTS_V1` output to Documenter.
 
       **TASK_PACKET_V1 Skeleton**
       {
@@ -102,7 +109,7 @@ customModes:
         "context_delta": {"facts": [], "decisions": [], "changed_since_previous_step": [], "issue_context": {"source_issue": "", "issue_url": "", "acceptance_criteria": []}, "index_probe": {"query": "", "path": "", "candidates": []}},
         "code_scope": {"targets": [], "complete_syntax_blocks_required": true},
         "tdd": {"level": "", "classification": "", "initial_test_count_max": 3, "exploratory_handling": "", "expected_red_signature": []},
-        "contracts": {"api_contracts": [], "exact_imports": [], "allowed_test_doubles": [], "forbidden_patterns": []},
+        "contracts": {"api_contracts": [], "exact_imports": [], "allowed_test_doubles": [], "forbidden_patterns": [], "doc_facts": {}},
         "commands": [],
         "steps": [],
         "done": [],
