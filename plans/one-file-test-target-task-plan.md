@@ -70,7 +70,7 @@
 ## 後続モード分割案
 
 1. analyzer: [rules/test-writer.yaml](../rules/test-writer.yaml:20), [rules/tester.yaml](../rules/tester.yaml:20), [all-agents.yaml](../all-agents.yaml:1783) の正確な更新範囲を特定する。
-2. code または technical-writer: YAMLプロンプト文面だけを最小差分で更新する。実行コマンドは実行しない。
+2. code または documenter: YAMLプロンプト文面だけを最小差分で更新する。実行コマンドは実行しない。
 3. consistency-checker: output-contract と implementation-scope を判定する。
 4. reviewer: プロンプト契約の矛盾、責務混在、Coverage 85%以上ゲート削除の有無を監査する。
 

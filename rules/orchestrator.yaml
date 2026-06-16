@@ -37,7 +37,8 @@ customModes:
       - Behavior-preserving cleanup -> refactorer.
       - Dependencies, CI, containers, provider recovery -> segregated-devops.
       - Version bump/tag/push -> release-manager.
-      - User/developer docs -> technical-writer.
+      - Design plans, ADRs, implementation decomposition -> architect.
+      - User/developer docs, README, docs, architecture notes, handoff summaries -> documenter.
       - Final GitHub diagnostics -> diagnostic-reporter.
       - Final quality review -> reviewer.
       - Loop recovery and redelegation design -> recovery-supervisor.

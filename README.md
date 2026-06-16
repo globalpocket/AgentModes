@@ -5,35 +5,46 @@
 以下は、このワークスペースのモード設計に対応した推奨割り当て例です。
 
 前提:
-- `Qwen3.5-9B` は**推論レベル最高**前提
-- Qwen担当モードは内部推論を使って事前点検と結果圧縮を行うが、外部出力はツール呼び出しと固定形式の短い事実報告に限定する
-- write権限を持つQwen担当モードは、原則として低コスト運用を維持しつつ、推論をスコープ遵守・API意味確認・最小差分選定に使う
-- 再設計、復旧監督、統括、監査のような判断密度が高いモードには、より強いGPT系モデルを割り当てる
+- GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
+- 推論設定はモデル能力ではなくモード責務で決める
+- `Qwen3.5-122B` は Orchestrator、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
+- `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
+- `Gemma4-12B-it` は documenter / user-response-composer のような文章生成・整形系に使う
+- `tester` / `artifact-manager` は推論オフを推奨し、過剰判断や completion ループを避ける
 
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
-| `orchestrator` | `GPT-5.4` | オン / 高 | タスク分解、委任、エスカレーション判定、文脈圧縮の中心だから |
-| `gpt-oss-needs-analyzer` | ユーザー指定可（既定例: `gpt-oss-120b`） | オン / 最高 | Orchestrator 前段で raw user prompt を一度だけ深く分析し、助言用 `ORCHESTRATOR_BRIEF_V1` YAML だけを生成する専用モードだから |
-| `architect` | `GPT-5.4` | オン / 高 | 設計と責務分離の再構成が必要だから |
-| `reviewer` | `GPT-5.4` | オン / 中〜高 | 品質監査、設計整合性、リスク判定を安定させるため |
-| `recovery-supervisor` | `GPT-5.5` | オン / 高 | ループ脱出、失敗分類、再委任再設計の上位監督役だから |
-| `ask` | `GPT-5.4` | オン / 中 | 設計・実装・計画の文脈説明を安全に返すため |
-| `issue-tracker` | `Qwen3.5-9B` | オン / 最高 | GitHub Issue本文取得、親子Issue判定、未対応サブIssue選択、サブIssue作成、進捗コメント登録だけを固定手順で行い、実装推論を持たないため |
-| `release-manager` | `GPT-5.3-codex` | オン / 中 | package.jsonまたはpyproject.tomlのversion繰り上げ、タグ作成、pushはgit操作と公開整合の判断が必要だから |
-| `code` | `Qwen3.5-9B` | オン / 最高 | Green実装前のスコープ・API・副作用チェックに内部推論を使い、最小差分へ責務を限定するため |
-| `debug` | `Qwen3.5-9B` | オン / 最高 | Orchestratorが再現テスト、対象ファイル、失敗シグネチャを固定して渡す前提なら、根本原因修正を局所差分へ限定できるため |
-| `test-writer` | `Qwen3.5-9B` | オン / 最高 | 境界値・異常系・Red成立条件の内部検討に推論を使い、編集対象はテストに限定するため |
-| `tester` | `Qwen3.5-9B` | オン / 最高 | ログ圧縮、失敗テスト抽出、Coverage要約に推論を使い、修正提案は行わないため |
-| `librarian` | `Qwen3.5-9B` | オン / 最高 | 探索順序と索引分類に推論を使い、全文読解や実装推測へ拡大しないため |
-| `analyzer` | `Qwen3.5-9B` | オン / 最高 | 正確な行番号、前後文脈、差分位置の抽出だけを行う読み取り専任であり、設計判断を持たないため |
-| `security-auditor` | `GPT-5.4` | オン / 中〜高 | 脆弱性検知と捏造ライブラリ判定の精度を優先するため |
-| `refactorer` | `Qwen3.5-9B` | オン / 最高 | 振る舞い不変性と局所リスク確認に推論を使い、新機能追加を禁止するため |
-| `segregated-devops` | `GPT-5.3-codex` | オン / 中 | 依存関係衝突、CI、環境構築はコマンド実行と設定整合の判断密度が高く、失敗時の復旧設計も必要だから |
-| `technical-writer` | `Qwen3.5-9B` | オン / 最高 | 設計書と実装済み差分を基にMarkdown文書を整形する専任で、編集対象と出力形式を固定できるため |
+| `orchestrator` | `Qwen3.5-122B` | オン / 高 | 全体制御、分解、SoD、handoff、品質ゲート判断に広い文脈と推論が必要 |
+| `gpt-oss-needs-analyzer` | `GPT-OSS-120B` | オン / 最高 | raw user prompt を深く分析し、Orchestrator向け advisory brief を生成する専用前段 |
+| `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
+| `recovery-supervisor` | `GPT-OSS-120B` | オン / 最高 | ループ脱出、失敗分類、再委任設計、停止条件判断が最も重い |
+| `reviewer` | `GPT-OSS-120B` | オン / 高 | 最終品質レビュー、設計整合性、保守性、性能、残リスク判断が必要 |
+| `security-auditor` | `GPT-OSS-120B` | オン / 高 | セキュリティ・依存関係・捏造ライブラリ検知は誤判定コストが高い |
+| `code` | `Qwen3.5-122B` | オン / 高 | 最小差分実装でも API 契約、スコープ、副作用確認が必要 |
+| `debug` | `Qwen3.5-122B` | オン / 高 | 失敗シグネチャから根本原因を特定し、局所修正する必要がある |
+| `refactorer` | `Qwen3.5-122B` | オン / 中〜高 | 振る舞い不変性を維持しながら構造改善する必要がある |
+| `test-writer` | `Qwen3.5-122B` | オン / 高 | Red条件、境界値、契約テストの設計に推論が必要 |
+| `tester` | `Qwen3.5-9B` | オフ | 指定コマンドの実行とメタデータ返却が主責務で、判断を持たせないため |
+| `consistency-checker` | `Qwen3.5-122B` | オン / 中 | Artifact、契約、Coverage、スコープ整合の判定が必要 |
+| `librarian` | `Qwen3.5-9B` | オン / 中 | 探索順序、候補絞り込み、索引要約に限定的な推論が有効 |
+| `analyzer` | `Qwen3.5-9B` | オン / 中 | 差分適用位置、行範囲、周辺アンカー抽出に局所推論が必要 |
+| `artifact-manager` | `Qwen3.5-9B` | オフ | artifacts 配下の初期化・prepare・verifyのみで判断を膨らませないため |
+| `issue-tracker` | `Qwen3.5-122B` | オン / 中 | Issue本文、親子Issue、進捗コメント、sub-issue選択の文脈判断が必要 |
+| `release-manager` | `Qwen3.5-122B` | オン / 中 | version bump、tag、push単位の整合判断が必要 |
+| `segregated-devops` | `Qwen3.5-122B` | オン / 高 | 依存関係、CI、環境、Provider復旧は判断密度が高い |
+| `diagnostic-reporter` | `Qwen3.5-122B` | オン / 中 | 品質ゲート後の診断Issue本文を事実ベースで構成する必要がある |
+| `documenter` | `Gemma4-12B-it` | オフ | Markdown文書生成・整形・説明文品質を優先し、過剰推論で事実を膨らませないため |
+| `ask` | `Qwen3.5-122B` | オン / 中 | 技術説明、既存コード理解、計画相談に文脈理解が必要 |
+| `user-response-composer` | `Gemma4-12B-it` | オフ | 上流結果を最終ユーザー向け文面に整形するだけで、判断や追加事実生成を禁止するため |
 
 ## 最小運用ポリシー
 
-- `Qwen3.5-9B` を割り当てるモードでは、推論レベルを最高に設定し、内部推論を事前チェック・ログ圧縮・スコープ検証に使う
+- GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
+- `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う
+- `tester` / `artifact-manager` は推論オフを推奨し、過剰判断や completion ループを避ける
+- `Qwen3.5-122B` は Orchestrator、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
+- `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
+- 推論設定は「モデル能力」ではなく「モード責務」で決める
 - Qwen担当モードは推論過程や自己対話を出力せず、外部出力はツール実行または固定形式の短い事実報告に限定する
 - write権限を持つモードのうち、`code` / `test-writer` / `refactorer` は、Orchestratorによる極小タスク分解を前提に運用
 - `code` / `debug` は実装・修正の担当であり、テスト実行、Coverage測定、依存関係操作を行わない
@@ -50,28 +61,24 @@
 - GitHub由来リポジトリでpushする場合は、`release-manager` がNode.jsなら `package.json`、Pythonなら `pyproject.toml` のversion末尾数字を繰り上げ、tag名を `v<version>` として新versionで終わる形式にし、branchとtagを同じ公開単位でpushする
 - GitHub由来リポジトリでのメインタスク終了時のプロジェクト診断とGitHub Issue登録は `diagnostic-reporter` に分離する。非GitHubリポジトリでは診断Issue登録を起動しない
 - `orchestrator` と `architect` は、タスクを直接実装せず、分解と委任に専念させる
+- `architect` は設計、計画、ADR、実装分解、TDD計画、品質ゲート設計を担当し、`documenter` は README、docs、API reference、architecture notes、handoff summary、利用者/開発者向け説明を担当する
+- セキュリティ・依存関係・secret・unsafe pattern・fabricated libraries は `security-auditor` が担当し、`reviewer` は最終品質レビュー、設計整合、保守性、性能、テスト妥当性、残リスク確認を担当する
 - `gpt-oss-needs-analyzer` はユーザーまたはランタイムが選択した分析用モデルで動作する任意前段モードとしてだけ使い、ツール実行、ファイル編集、サブタスク作成、他モード呼び出しを禁止する。出力は `ORCHESTRATOR_BRIEF_V1` YAML のみで、既存 Orchestrator はこれを advisory brief として扱い、raw user prompt を常に source of truth とする
 
 ## Roo Code ワークフロー
 
-固定手順として扱える品質ゲートは `.roo/workflows/` に切り出しています。
+固定手順として扱える品質ゲートは `workflows/` に切り出しています。
 
 | ワークフロー | 用途 |
 |---|---|
-| `.roo/workflows/tdd-quality-gate.json` | AI軽量TDDとして最小Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、test-inventory判定、security-auditor、reviewerまでをSoD分離で実行する |
-| `.roo/workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、軽量TDD品質ゲート、Version Tag Push、診断Issue、完了コメント、サブIssue単独close、親Issueへの再ルーティングまでを処理する |
-| `.roo/workflows/provider-health-recovery.json` | ローカルProviderの空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
+| `workflows/tdd-quality-gate.json` | AI軽量TDDとして最小Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、test-inventory判定、security-auditor、reviewerまでをSoD分離で実行する |
+| `workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、軽量TDD品質ゲート、Version Tag Push、診断Issue、完了コメント、サブIssue単独close、親Issueへの再ルーティングまでを処理する |
+| `workflows/provider-health-recovery.json` | ローカルProviderの空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
 
 ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。
 
-## 代替割り当て例
+## 代替割り当て方針
 
-コストやレイテンシを優先する場合の代替例:
-
-- `orchestrator`: `GPT-5.4` → `GPT-5.2`
-- `architect`: `GPT-5.4` → `GPT-5.2`
-- `reviewer`: `GPT-5.4` → `GPT-5.2`
-- `debug`: `GPT-5.4-mini` → `GPT-5.2-codex`
-- `segregated-devops`: `GPT-5.3-codex` → `GPT-5.2-codex`
-
-ただし、`recovery-supervisor` だけは、可能な限り最上位の推論性能を持つモデルを維持することを推奨します。
+- コストやレイテンシを優先する場合も、GPT系は `GPT-OSS-*` の範囲に限定する
+- `recovery-supervisor` は可能な限り最上位の推論性能を持つモデルを維持する
+- 文書生成・最終応答整形は `Gemma4-12B-it` を優先し、追加判断を持たせない
