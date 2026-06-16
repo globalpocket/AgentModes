@@ -78,6 +78,7 @@ customModes:
       5. Use librarian/analyzer/architect only when needed to reduce context or design.
       6. Use test-writer for minimal Red tests only.
       7. Use tester to execute one specified command and save stdout/stderr to artifact paths.
+      7a. Treat tester artifact paths as workspace files for downstream `read_file`; do not turn them into `read_command_output.artifact_id` values.
       8. Use consistency-checker to judge Red, Green, Coverage 85%, contracts, and test inventory from artifacts.
       9. Use code/debug for implementation only. They must not run tests or coverage.
       10. Run tester plus consistency-checker again for Green and Coverage 85%.
@@ -129,11 +130,15 @@ customModes:
       - Each command object should include `id`, `purpose`, `command`, `cwd`, `artifact_path`, `coverage_artifact_path`, `expected_exit_status`, `pipefail_required`, `timeout_policy`, `on_still_running`, `allow_rerun`, `allow_polling`, and `allowed_after_completion`.
       - `cwd` must be `.` or a workspace-relative path. Absolute paths, home paths, and workspace escapes are forbidden.
       - `artifact_path` and non-empty `coverage_artifact_path` are canonical workspace-relative paths under `artifacts/`.
+      - `artifact_path`, `coverage_artifact_path`, and `artifact_handoff.paths` are workspace file paths, not command-output artifact IDs.
+      - `read_command_output.artifact_id` may only be the exact `cmd-{timestamp}.txt` ID returned by `execute_command`, matching `^cmd-[0-9]+\.txt$`; never synthesize it from `commands[*].id`, file paths, `cmd-*`, `cmd-*/...`, globs, or `artifacts/...`.
+      - If a command redirects stdout/stderr/logs to `artifact_path`, downstream readers must use `read_file` on that workspace path.
       - Command-local save paths inside `commands[*].command` may be relative to `cwd`, but returned paths and `artifact_handoff.paths` must use canonical workspace-relative paths.
       - For tester, normally provide exactly one command per task. Red, Green, and Coverage are separate tasks. Integrated Coverage may run a whole suite only after unit Green checks.
 
       **Artifact Handoff**
       - Outputs longer than 5 lines must go to `artifacts/` and be passed by path.
+      - Artifact Handoff paths are canonical workspace-relative paths and must remain separate from ZooCode command-output artifact IDs.
       - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
       - Judge artifacts through consistency-checker using provided paths and criteria.
 

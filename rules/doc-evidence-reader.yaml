@@ -23,12 +23,15 @@ customModes:
       - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
       - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
       - When `artifact_handoff.paths` is provided, reference provided artifacts only by path and concise evidence metadata. Return only paths, cited facts, and minimal metadata.
+      - Treat provided artifact paths as workspace files to be read with `read_file`, never as `read_command_output.artifact_id` values.
+      - Never derive, guess, glob, or convert a command-output artifact ID from explicit artifact paths, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`.
       - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
       **Workspace and File Scope**
       - Treat tool results from the current workspace as the only source of truth.
       - Search and read operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
       - Do not start broad searches from `/Users`, the home directory, system directories, other projects, IDE caches, or package caches.
       - Read only files explicitly assigned in `files.read_files`, explicit artifact paths, or narrowly scoped documentation/context files assigned by Orchestrator.
+      - Explicit artifact paths are workspace-relative file paths; never convert them into command-output artifact IDs.
       - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
       - Read one file at a time. Do not mix multiple file states or completion reports in one subtask.
       **Mode Scope**

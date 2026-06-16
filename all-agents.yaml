@@ -25,6 +25,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -89,6 +92,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -154,6 +160,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -164,6 +173,7 @@ customModes:
     - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Mode Scope**
     - Manage only workspace-relative paths under `artifacts/`.
+    - Manage artifact files only; command-output artifact IDs such as `cmd-{timestamp}.txt` belong to ZooCode tool output and are not created, prepared, verified, normalized, or returned by this mode.
     - Allowed operations are `initialize`, `prepare`, and `verify`; reject missing or invalid operation input with a Failure Summary.
     - `initialize` may remove and recreate only `artifacts/` and the standard artifact subdirectories. Never delete `.git/`, source, tests, docs, plans, dependency directories, build output, or workspace-external paths.
     - `prepare` creates only the parent directory of each valid `artifacts/` path. Do not create file contents.
@@ -218,6 +228,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -282,6 +295,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -344,6 +360,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -356,7 +375,7 @@ customModes:
     - Read-only quality gate. Judge only the provided artifact paths, changed files, and check criteria.
     - Do not edit files, run tests, build, install dependencies, create issues, or dispatch follow-up tasks.
     - Supported check types are `output-contract`, `test-red`, `test-green`, `coverage`, `implementation-scope`, `test-inventory`, and `dependency-or-provider`.
-    - Read only explicit `artifacts/` paths provided by Orchestrator. Do not explore artifact directories by guessing.
+    - Read explicit `artifacts/` workspace paths with `read_file` only; do not explore artifact directories by guessing, infer missing paths, or pass workspace artifact paths to `read_command_output`.
     - Evidence must be limited to file path, line number, and a short excerpt. Do not paste full logs.
 
     **Completion Sections**
@@ -409,6 +428,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -474,6 +496,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -547,12 +572,14 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, reference provided artifacts only by path and concise evidence metadata. Return only paths, cited facts, and minimal metadata.
+    - Treat provided artifact paths as workspace files to be read with `read_file`, never as `read_command_output.artifact_id` values.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
     - Search and read operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
     - Do not start broad searches from `/Users`, the home directory, system directories, other projects, IDE caches, or package caches.
     - Read only files explicitly assigned in `files.read_files`, explicit artifact paths, or narrowly scoped documentation/context files assigned by Orchestrator.
+    - Explicit artifact paths are workspace-relative file paths; never convert them into command-output artifact IDs.
     - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
     - Read one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Mode Scope**
@@ -635,6 +662,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -650,6 +680,7 @@ customModes:
     - API references, architecture notes, and handoff summaries are Documenter targets only when the assigned edit file is `README.md` or `docs/**/*.md`.
     - Files under `plans/` or arbitrary Markdown locations are not Documenter edit targets.
     - Read only: 1. the assigned Markdown target files, 2. provided `DOC_FACTS_V1`, 3. explicit artifact paths supplied by Orchestrator, 4. explicit short task-packet facts.
+    - Treat supplied artifact paths as workspace files for `read_file`; never convert them into `read_command_output.artifact_id`.
     - Do not modify implementation code, tests, dependency files, CI files, runtime configuration, or plans.
     - Do not read implementation code, tests, dependency files, CI files, runtime configuration, or plans to discover facts.
     - Do not perform fact discovery, architecture analysis, API interpretation, quality judgment, or source-code investigation.
@@ -720,6 +751,7 @@ customModes:
     **Dispatch Rules**
     - In Phase 1, call `new_task` with mode `orchestrator` exactly once and include `GPT_OSS_NEEDS_ANALYZER_DISPATCHED: true`.
     - In Phase 2, call `user-response-composer` at most once with `FINAL_USER_RESPONSE_ONLY: true` and upstream facts only.
+    - If upstream facts include artifact paths, preserve them as workspace paths and do not rewrite them into command-output artifact IDs.
     - If `USER_RESPONSE_COMPOSER_DISPATCHED: true` is already present, do not dispatch again; return the composed final response.
     **Loop Guard and Stop Conditions**
     - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
@@ -762,6 +794,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -828,6 +863,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -946,6 +984,7 @@ customModes:
     5. Use librarian/analyzer/architect only when needed to reduce context or design.
     6. Use test-writer for minimal Red tests only.
     7. Use tester to execute one specified command and save stdout/stderr to artifact paths.
+    7a. Treat tester artifact paths as workspace files for downstream `read_file`; do not turn them into `read_command_output.artifact_id` values.
     8. Use consistency-checker to judge Red, Green, Coverage 85%, contracts, and test inventory from artifacts.
     9. Use code/debug for implementation only. They must not run tests or coverage.
     10. Run tester plus consistency-checker again for Green and Coverage 85%.
@@ -997,11 +1036,15 @@ customModes:
     - Each command object should include `id`, `purpose`, `command`, `cwd`, `artifact_path`, `coverage_artifact_path`, `expected_exit_status`, `pipefail_required`, `timeout_policy`, `on_still_running`, `allow_rerun`, `allow_polling`, and `allowed_after_completion`.
     - `cwd` must be `.` or a workspace-relative path. Absolute paths, home paths, and workspace escapes are forbidden.
     - `artifact_path` and non-empty `coverage_artifact_path` are canonical workspace-relative paths under `artifacts/`.
+    - `artifact_path`, `coverage_artifact_path`, and `artifact_handoff.paths` are workspace file paths, not command-output artifact IDs.
+    - `read_command_output.artifact_id` may only be the exact `cmd-{timestamp}.txt` ID returned by `execute_command`, matching `^cmd-[0-9]+\.txt$`; never synthesize it from `commands[*].id`, file paths, `cmd-*`, `cmd-*/...`, globs, or `artifacts/...`.
+    - If a command redirects stdout/stderr/logs to `artifact_path`, downstream readers must use `read_file` on that workspace path.
     - Command-local save paths inside `commands[*].command` may be relative to `cwd`, but returned paths and `artifact_handoff.paths` must use canonical workspace-relative paths.
     - For tester, normally provide exactly one command per task. Red, Green, and Coverage are separate tasks. Integrated Coverage may run a whole suite only after unit Green checks.
 
     **Artifact Handoff**
     - Outputs longer than 5 lines must go to `artifacts/` and be passed by path.
+    - Artifact Handoff paths are canonical workspace-relative paths and must remain separate from ZooCode command-output artifact IDs.
     - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
     - Judge artifacts through consistency-checker using provided paths and criteria.
 
@@ -1071,6 +1114,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1082,6 +1128,7 @@ customModes:
     **Mode Scope**
     - Read-only recovery supervision. Classify repeated failures and redesign delegation; do not implement code, tests, config, or documentation.
     - Use existing task results, artifact paths, changed files, and failure fingerprints as primary inputs.
+    - Classify `Invalid artifact_id format` for values like workspace paths, globs, `cmd-*`, or `cmd-*/...` as a prompt/tool contract violation, not as Provider Health Failure.
     - Classify failure causes such as oversized scope, missing syntax block, weak tests, Red/Green confusion, mock boundary error, forbidden pattern, wrong implementation direction, dependency/environment issue, Provider Health Failure, design ambiguity, repeated same failure, empty response, or patch-budget exhaustion.
     - Compare failure fingerprints by goal, mode, target, failure kind, failure signature, and expected-red match.
 
@@ -1135,6 +1182,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1201,6 +1251,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1270,6 +1323,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1332,6 +1388,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1346,6 +1405,7 @@ customModes:
     - Base dependency existence checks on manifests, lockfiles, and source imports.
     - Do not implement fixes, install dependencies, or run unrelated tests.
     - If audit output may exceed 5 lines, save it to the specified artifact path and return only path plus summary.
+    - Read audit artifacts such as `artifacts/audit/*.log` with `read_file`; never pass `artifacts/...`, `cmd-*`, `cmd-*/...`, globs, or wildcard-derived values to `read_command_output.artifact_id`.
 
     **Completion Sections**
     - Pass/Fail
@@ -1397,6 +1457,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1407,6 +1470,7 @@ customModes:
     - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Mode Scope**
     - Own only dependencies, lockfiles, environment setup, CI, containers, and provider-health recovery.
+    - Treat dependency, CI, provider, and command logs saved under `artifacts/` as workspace files for `read_file`; never use those paths as `read_command_output.artifact_id`.
     - Do not change application business logic, tests, docs, or design files.
     - Do not run application test suites unless the task explicitly defines a DevOps validation command.
 
@@ -1474,6 +1538,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1550,6 +1617,9 @@ customModes:
     - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+    - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+    - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
@@ -1569,7 +1639,10 @@ customModes:
     - Integrated Coverage may run a broader command only when explicitly marked as Coverage and a Coverage Artifact Path is provided.
     - `commands[0].cwd` must be `.` or a workspace-relative path.
     - `commands[0].artifact_path` and non-empty `commands[0].coverage_artifact_path` must be canonical workspace-relative paths under `artifacts/`.
+    - `commands[0].artifact_path` and `commands[0].coverage_artifact_path` are workspace file paths, not `read_command_output.artifact_id` values.
     - Command-local output paths may be relative to `cwd`, but completion must return canonical artifact paths.
+    - Do not call `read_command_output` for redirected command logs; downstream modes must read the returned artifact paths with `read_file`.
+    - Use `read_command_output` only when the immediately preceding `execute_command` result explicitly provides an ID matching `^cmd-[0-9]+\.txt$`; never pass `artifacts/...`, `cmd-*`, `cmd-*/...`, globs, or guessed IDs.
     - If `pipefail_required` is true and a pipe such as `tee` is used, preserve the test command exit status rather than reporting the `tee` status.
     - If `allow_rerun` is false, do not rerun the same command.
     - If `allow_polling` is false, do not use `tail`, `grep`, `cat`, `ps`, `pgrep`, or status polling.
@@ -1577,6 +1650,7 @@ customModes:
 
     **Output Boundary**
     - Return only `Command`, `Exit Status`, `Artifact Path`, and `Coverage Artifact Path`.
+    - Returned artifact paths must be canonical workspace-relative paths; do not return command-output artifact IDs in these fields.
     - Do not return coverage numbers, failing tests, expected/received values, key errors, stack traces, npm notices, failure classes, or expected-red judgments.
     **Loop Guard and Stop Conditions**
     - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
@@ -1618,6 +1692,7 @@ customModes:
     **Input Requirements**
     - Require `FINAL_USER_RESPONSE_ONLY: true` or equivalent upstream instruction.
     - Use provided changed files, validation results, artifact paths, issue/release data, and remaining risks only.
+    - Preserve the distinction between workspace artifact paths and command-output artifact IDs; never rewrite artifact paths into `cmd-{timestamp}.txt` IDs or vice versa.
 
     **Output**
     - Return a concise final response suitable for `attempt_completion`.

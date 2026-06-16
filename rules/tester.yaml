@@ -24,6 +24,9 @@ customModes:
       - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
       - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
       - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+      - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
+      - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
+      - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
       - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
       **Workspace and File Scope**
       - Treat tool results from the current workspace as the only source of truth.
@@ -43,7 +46,10 @@ customModes:
       - Integrated Coverage may run a broader command only when explicitly marked as Coverage and a Coverage Artifact Path is provided.
       - `commands[0].cwd` must be `.` or a workspace-relative path.
       - `commands[0].artifact_path` and non-empty `commands[0].coverage_artifact_path` must be canonical workspace-relative paths under `artifacts/`.
+      - `commands[0].artifact_path` and `commands[0].coverage_artifact_path` are workspace file paths, not `read_command_output.artifact_id` values.
       - Command-local output paths may be relative to `cwd`, but completion must return canonical artifact paths.
+      - Do not call `read_command_output` for redirected command logs; downstream modes must read the returned artifact paths with `read_file`.
+      - Use `read_command_output` only when the immediately preceding `execute_command` result explicitly provides an ID matching `^cmd-[0-9]+\.txt$`; never pass `artifacts/...`, `cmd-*`, `cmd-*/...`, globs, or guessed IDs.
       - If `pipefail_required` is true and a pipe such as `tee` is used, preserve the test command exit status rather than reporting the `tee` status.
       - If `allow_rerun` is false, do not rerun the same command.
       - If `allow_polling` is false, do not use `tail`, `grep`, `cat`, `ps`, `pgrep`, or status polling.
@@ -51,6 +57,7 @@ customModes:
 
       **Output Boundary**
       - Return only `Command`, `Exit Status`, `Artifact Path`, and `Coverage Artifact Path`.
+      - Returned artifact paths must be canonical workspace-relative paths; do not return command-output artifact IDs in these fields.
       - Do not return coverage numbers, failing tests, expected/received values, key errors, stack traces, npm notices, failure classes, or expected-red judgments.
       **Loop Guard and Stop Conditions**
       - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
