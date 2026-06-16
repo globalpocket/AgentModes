@@ -23,6 +23,8 @@ customModes:
       - Complete only the assigned task described by `goal`, `done`, and `artifact_handoff`.
       - If `action_contract.completion_scope` is `assigned_task_only`, global todos are not completion conditions.
       - If `action_contract.on_incomplete_todos` is `return_partial_handoff_without_retry`, do not retry the same `attempt_completion`, payload, command, or completion summary.
+      - Treat `Cannot complete task while there are incomplete todos` as `recoverable_completion_gate` when this delegated mode's assigned `done` conditions, required output, or artifact handoff are satisfied and remaining todos belong to other modes or later gates; return a partial handoff instead of retrying or asking the user to continue.
+      - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
       - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
       - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
       **Workspace and File Scope**
@@ -49,6 +51,9 @@ customModes:
       - **Remaining Risks**
       **Loop Guard and Stop Conditions**
       - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
+      - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.
+      - If `update_todo_list` is repeated with the same normalized payload or hits a repetition limit for unchanged todos, treat it as `recoverable_todo_noop_loop`; do not request user continuation and do not call `update_todo_list` again until todo state actually changes.
+      - If a todo item contains nested markers such as `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`, split it into separate todos when possible; otherwise return a non-fatal validation warning and never store nested markers as one todo body.
       - Do not continue monitoring loops with `tail`, `grep`, `cat`, `ps`, `pgrep`, repeated command execution, or repeated subtask dispatch.
       - If the same failure fingerprint appears twice for the same goal and target, stop and return a Failure Summary or escalate as instructed.
       - Prefer a short Failure Summary over speculative repair when required inputs, exact scope, artifact paths, or command contracts are missing.
