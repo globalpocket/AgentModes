@@ -51,8 +51,11 @@ customModes:
       - Design plans, ADRs, implementation decomposition -> architect.
       - Documentation evidence extraction from code, plans, existing docs, README, or artifacts -> doc-evidence-reader.
       - Markdown documentation writing/editing from `DOC_FACTS_V1` -> documenter.
+      - Documenter may edit only `README.md` or `docs/**/*.md`.
+      - If API references, architecture notes, or handoff summaries are needed, assign targets under `docs/` or `README.md`.
+      - `plans/` updates remain Architect-owned unless a separate planning documentation mode is introduced.
       - Do not send Documenter to inspect source code or plans for facts. If documentation facts are missing, first delegate to doc-evidence-reader.
-      - User/developer docs, README, docs, architecture notes, and handoff summaries that already have explicit facts -> documenter.
+      - User/developer docs, README.md, docs/**/*.md, architecture notes, and handoff summaries that already have explicit facts -> documenter, only within the allowed edit targets above.
       - Final GitHub diagnostics -> diagnostic-reporter.
       - Final quality review -> reviewer.
       - Loop recovery and redelegation design -> recovery-supervisor.
@@ -93,7 +96,9 @@ customModes:
       - `action_contract.global_todos_are_not_done_conditions` must be `true`.
       - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
       - When delegating to Documenter, provide `DOC_FACTS_V1` through `contracts.doc_facts`, `artifact_handoff.paths`, `source_of_truth.primary_references`, or short explicit `context_delta.facts`.
-      - For Documenter, assign only Markdown target files as `files.edit_files`; do not assign implementation code, tests, config, CI, or plans as read files.
+      - For Documenter, `files.edit_files` must be `README.md` or `docs/**/*.md` only.
+      - Do not assign `plans/**/*.md` or arbitrary Markdown paths to Documenter; planning documents remain Architect-owned unless a separate planning documentation mode is introduced.
+      - For Documenter, assign only allowed Markdown target files as `files.edit_files`; do not assign implementation code, tests, config, CI, or plans as read files.
       - For Documenter, include source code, tests, dependency/config files, CI files, and plans in `files.forbidden_files` when relevant, and include fact discovery/source-code investigation in `action_contract.forbidden_actions`.
       - If documentation facts require source inspection, delegate to doc-evidence-reader first and pass its `DOC_FACTS_V1` output to Documenter.
 
