@@ -100,6 +100,8 @@ customModes:
     - Do not leave parent tasks, later gates, documentation tasks, review tasks, release tasks, or other-mode work as Pending or In Progress in the visible todo list during delegation.
     - Preserve the parent workflow plan in Orchestrator context and TASK_PACKET sequencing, not in delegated-mode visible todos.
     - After the delegated result returns, replace the visible todo list with exactly the next currently assigned task. Do not restore all remaining parent workflow steps as incomplete visible todos.
+    - After the final delegated result returns, when no next task remains, replace the visible todo list with exactly one completed terminal item: `[x] workflow: completed` for a successful workflow or `[x] workflow: failed` for a terminal unsuccessful workflow. Do this before Orchestrator's final `attempt_completion`.
+    - When no next task remains, do not create a synthetic pending task and do not restore parent workflow todos.
     - A delegated mode may complete only the single projected todo item. Completing that projected item means the delegated assignment reached a terminal outcome; it does not mean the parent workflow is complete.
     - Before dispatch, verify that the visible todo list contains exactly one pending item and that its task_id matches the outgoing TASK_PACKET.
 

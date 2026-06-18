@@ -170,12 +170,32 @@ def validate_scoped_todo_compatibility(modes: dict[str, dict]) -> None:
         require_contains(slug, text, "Never call `attempt_completion` while any visible todo is Pending or In Progress")
         require_contains(slug, text, "Call `attempt_completion` exactly once")
         require_contains(slug, text, "do not call `update_todo_list` again")
+        require_contains(
+            slug,
+            text,
+            "Terminal local outcomes are `completed`, `failed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.",
+        )
+        require_contains(
+            slug,
+            text,
+            "never label a failed command, unsatisfied `done` condition, or failed required action as `completed`",
+        )
+        if (
+            "Terminal local outcomes are `completed`, `task_packet_conflict`, "
+            "`blocked_by_permission`, and `not_found_after_inspection`."
+            in text
+        ):
+            fail(f"{slug}: terminal outcomes do not include failed")
         require_regex(slug, text, r"Never use `\[-\]`", "no in-progress todo marker rule")
 
     orch_text = instructions(modes["orchestrator"])
     require_contains("orchestrator", orch_text, "**Scoped TODO Projection Protocol**")
     require_contains("orchestrator", orch_text, "hard Zoo/Roo runtime completion gate")
     require_contains("orchestrator", orch_text, "exactly one pending item")
+    require_contains("orchestrator", orch_text, "[x] workflow: completed")
+    require_contains("orchestrator", orch_text, "[x] workflow: failed")
+    require_contains("orchestrator", orch_text, "when no next task remains")
+    require_contains("orchestrator", orch_text, "do not create a synthetic pending task")
     require_regex(
         "orchestrator",
         orch_text,
@@ -202,6 +222,44 @@ def validate_librarian(modes: dict[str, dict]) -> None:
     require_regex("librarian", text, r"max_lines.*less than.*required_sections", "max_lines required_sections validation")
     require_contains("librarian", text, "Do not call `execute_command`.")
     require_regex("librarian", text, r"Do not create directories or files|Do not use shell redirection", "filesystem mutation prohibition")
+    require_contains(
+        "librarian",
+        text,
+        "The normal three-candidate limit applies only to target discovery.",
+    )
+    require_contains(
+        "librarian",
+        text,
+        "complete directory, crate, source-file, documentation-file, or test-file inventory",
+    )
+    forbid_regex(
+        "librarian",
+        text,
+        r"Search, read, and command operations",
+        "command operation wording",
+    )
+    forbid_regex(
+        "librarian",
+        text,
+        r"list/search/read/command exploration",
+        "command exploration wording",
+    )
+    forbid_regex(
+        "librarian",
+        text,
+        r"Reference commands are limited",
+        "reference command permission wording",
+    )
+    require_contains(
+        "librarian",
+        text,
+        "Search and read operations must stay inside the current workspace",
+    )
+    require_contains(
+        "librarian",
+        text,
+        "use Codebase Index before list/search/read exploration",
+    )
     require_contains("librarian", text, "**Evidence and Count Integrity**")
     require_contains("librarian", text, "Do not infer a source file's responsibility from its filename alone.")
     require_contains("librarian", text, "A search for `#[test]` alone is not a complete Rust test inventory")

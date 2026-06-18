@@ -48,7 +48,8 @@ customModes:
     - At task start, the visible todo list must contain exactly one scoped item formatted as `[ ] <task_id>: <goal>`.
     - If unrelated parent or other-mode todos are visible, replace the entire list with exactly that one scoped item. Do not copy, retain, complete, skip, or set unrelated todos to In Progress.
     - Keep exactly one scoped todo item; do not expand `steps` into multiple visible todos.
-    - Terminal local outcomes are `completed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Terminal local outcomes are `completed`, `failed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Use `failed` when the assigned task reaches a terminal unsuccessful outcome; never label a failed command, unsatisfied `done` condition, or failed required action as `completed`.
     - Immediately before `attempt_completion`, replace the visible todo list with exactly one completed item formatted as `[x] <task_id>: <terminal outcome>`.
     - Never call `attempt_completion` while any visible todo is Pending or In Progress.
     - Never use `[-]` for parent, future, unrelated, or out-of-scope work.

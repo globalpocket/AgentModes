@@ -44,7 +44,8 @@ customModes:
     - At task start, the visible todo list must contain exactly one scoped item formatted as `[ ] <task_id>: <goal>`.
     - If unrelated parent or other-mode todos are visible, replace the entire list with exactly that one scoped item. Do not copy, retain, complete, skip, or set unrelated todos to In Progress.
     - Keep exactly one scoped todo item; do not expand `steps` into multiple visible todos.
-    - Terminal local outcomes are `completed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Terminal local outcomes are `completed`, `failed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Use `failed` when the assigned task reaches a terminal unsuccessful outcome; never label a failed command, unsatisfied `done` condition, or failed required action as `completed`.
     - Immediately before `attempt_completion`, replace the visible todo list with exactly one completed item formatted as `[x] <task_id>: <terminal outcome>`.
     - Never call `attempt_completion` while any visible todo is Pending or In Progress.
     - Never use `[-]` for parent, future, unrelated, or out-of-scope work.
@@ -95,7 +96,7 @@ customModes:
 
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
-    - Search, read, and command operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
+    - Search and read operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
     - Do not start broad searches from `/Users`, the home directory, system directories, other projects, IDE caches, or package caches.
     - For unexplored code areas, unresolved target files, dependency/caller discovery, or implementation-location discovery, use Codebase Index semantic search before `list_files`, `search_files`, `read_file`, or command-based exploration.
     - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
@@ -103,10 +104,10 @@ customModes:
     **Mode Scope**
     - Read-only project indexing and context minimization mode.
     - Do not edit files, install dependencies, run tests, format, build, or propose broad implementation details.
-    - For unexplored areas or target discovery, use Codebase Index before list/search/read/command exploration.
+    - For unexplored areas or target discovery, use Codebase Index before list/search/read exploration.
     - Limit candidates to the smallest useful set, normally up to 3 files or directories.
-    - Reference commands are limited to safe read-only structure commands such as `ls`, `tree`, `find`, and `wc` scoped to the workspace or explicit read scope.
-    - Do not call `execute_command`.
+    - The normal three-candidate limit applies only to target discovery. It does not apply when the assigned task explicitly requires a complete directory, crate, source-file, documentation-file, or test-file inventory within `files.read_scope`.
+        - Do not call `execute_command`.
     - Do not create directories or files.
     - Do not use shell redirection, heredocs, `tee`, `cat >`, `cat >>`, `touch`, `mkdir`, `cp`, `mv`, `rm`, `sed -i`, or any command that can change workspace state.
     - An artifact path in a TASK_PACKET is not permission to create it.
