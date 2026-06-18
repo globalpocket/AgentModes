@@ -51,12 +51,15 @@ def fail(message: str) -> None:
     raise SystemExit(f"ERROR: {message}")
 
 
-def validate_file(path: Path):
-    text = path.read_text(encoding="utf-8")
-
+def validate_text_patterns(path: Path, text: str) -> None:
     for pattern, reason in BROKEN_PATTERNS:
         if pattern.search(text):
             fail(f"{path}: broken pattern detected: {reason}")
+
+
+def validate_file(path: Path, require_unique_slugs: bool = False):
+    text = path.read_text(encoding="utf-8")
+    validate_text_patterns(path, text)
 
     try:
         data = yaml.safe_load(text)
@@ -72,6 +75,8 @@ def validate_file(path: Path):
     if not isinstance(data["customModes"], list):
         fail(f"{path}: customModes must be list")
 
+    seen_slugs: set[str] = set()
+
     for index, mode in enumerate(data["customModes"]):
         if not isinstance(mode, dict):
             fail(f"{path}: customModes[{index}] must be mapping")
@@ -80,7 +85,17 @@ def validate_file(path: Path):
             if key not in mode:
                 fail(f"{path}: customModes[{index}] missing {key}")
 
-        slug = mode.get("slug", f"index-{index}")
+        slug = mode.get("slug")
+        if not isinstance(slug, str) or not slug.strip():
+            fail(f"{path}: customModes[{index}] invalid slug")
+
+        if require_unique_slugs:
+            if slug in seen_slugs:
+                fail(f"{path}: duplicate slug {slug}")
+            seen_slugs.add(slug)
+
+        if "source" in mode:
+            fail(f"{path}: {slug}: source must be top-level only")
 
         if not isinstance(mode["groups"], list):
             fail(f"{path}: {slug}: groups must be list")
@@ -92,7 +107,10 @@ def validate_file(path: Path):
 
 
 def main() -> None:
-    data_by_path = {path: validate_file(path) for path in FILES}
+    data_by_path = {
+        path: validate_file(path, require_unique_slugs=(path == ALL_AGENTS))
+        for path in FILES
+    }
     rule_mode_count = sum(len(data_by_path[path]["customModes"]) for path in sorted(RULES_DIR.glob("*.yaml")))
     all_agents_count = len(data_by_path[ALL_AGENTS]["customModes"])
     if all_agents_count != rule_mode_count:

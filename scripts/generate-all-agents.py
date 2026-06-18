@@ -70,41 +70,14 @@ def load_yaml(path: Path):
         fail(f"YAML parse failed: {path}: {e}")
 
 
-def validate_no_broken_patterns(path: Path) -> None:
+def validate_text_patterns(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     for pattern, reason in BROKEN_PATTERNS:
         if pattern.search(text):
             fail(f"{path}: broken pattern detected: {reason}")
 
 
-def validate_mode(path: Path, mode, index: int, seen_slugs: set[str] | None = None) -> None:
-    if not isinstance(mode, dict):
-        fail(f"{path}: customModes[{index}] must be mapping")
-
-    for key in REQUIRED_MODE_KEYS:
-        if key not in mode:
-            fail(f"{path}: customModes[{index}] missing {key}")
-
-    slug = mode.get("slug")
-    if not isinstance(slug, str) or not slug.strip():
-        fail(f"{path}: customModes[{index}] invalid slug")
-
-    if seen_slugs is not None:
-        if slug in seen_slugs:
-            fail(f"duplicate slug: {slug}")
-        seen_slugs.add(slug)
-
-    if not isinstance(mode.get("groups"), list):
-        fail(f"{path}: {slug}: groups must be list")
-
-    if not isinstance(mode.get("customInstructions"), str):
-        fail(f"{path}: {slug}: customInstructions must be string")
-
-
-def load_rule_modes(path: Path, seen_slugs: set[str]) -> list[dict]:
-    validate_no_broken_patterns(path)
-    data = load_yaml(path)
-
+def validate_data(path: Path, data) -> None:
     if not isinstance(data, dict):
         fail(f"{path}: top-level YAML must be mapping")
 
@@ -112,27 +85,48 @@ def load_rule_modes(path: Path, seen_slugs: set[str]) -> list[dict]:
     if not isinstance(modes, list):
         fail(f"{path}: customModes must be list")
 
-    if len(modes) != 1:
-        fail(f"{path}: customModes must contain exactly one mode")
+    local_slugs: set[str] = set()
 
     for index, mode in enumerate(modes):
-        validate_mode(path, mode, index, seen_slugs)
+        if not isinstance(mode, dict):
+            fail(f"{path}: customModes[{index}] must be mapping")
 
-    return modes
+        for key in REQUIRED_MODE_KEYS:
+            if key not in mode:
+                fail(f"{path}: customModes[{index}] missing {key}")
+
+        slug = mode["slug"]
+        if not isinstance(slug, str) or not slug.strip():
+            fail(f"{path}: customModes[{index}] invalid slug")
+
+        if slug in local_slugs:
+            fail(f"{path}: duplicate slug {slug}")
+
+        if "source" in mode:
+            fail(f"{path}: {slug}: source must be top-level only")
+
+        if not isinstance(mode["groups"], list):
+            fail(f"{path}: {slug}: groups must be list")
+
+        if not isinstance(mode["customInstructions"], str):
+            fail(f"{path}: {slug}: customInstructions must be string")
+
+        local_slugs.add(slug)
+
+
+def load_rule_modes(path: Path) -> list[dict]:
+    validate_text_patterns(path)
+    data = load_yaml(path)
+    validate_data(path, data)
+    return data["customModes"]
 
 
 def validate_generated(expected_count: int) -> None:
-    validate_no_broken_patterns(OUT)
+    validate_text_patterns(OUT)
     generated = load_yaml(OUT)
-    if not isinstance(generated, dict):
-        fail("all-agents.yaml: top-level must be mapping")
-    modes = generated.get("customModes")
-    if not isinstance(modes, list):
-        fail("all-agents.yaml: customModes must be list")
-    if len(modes) != expected_count:
+    validate_data(OUT, generated)
+    if len(generated["customModes"]) != expected_count:
         fail("all-agents.yaml: customModes count mismatch")
-    for index, mode in enumerate(modes):
-        validate_mode(OUT, mode, index)
 
 
 def main() -> None:
@@ -140,7 +134,12 @@ def main() -> None:
     seen_slugs: set[str] = set()
 
     for path in sorted(RULES_DIR.glob("*.yaml")):
-        merged["customModes"].extend(load_rule_modes(path, seen_slugs))
+        for mode in load_rule_modes(path):
+            slug = mode["slug"]
+            if slug in seen_slugs:
+                fail(f"duplicate slug across rules: {slug}")
+            seen_slugs.add(slug)
+            merged["customModes"].append(mode)
 
     merged["source"] = "project"
 
@@ -157,6 +156,10 @@ def main() -> None:
     )
 
     validate_generated(len(merged["customModes"]))
+    head = OUT.read_text(encoding="utf-8").splitlines()[:10]
+    print("all-agents.yaml head:")
+    for line in head:
+        print(line)
     print(f"generated {OUT.relative_to(ROOT)} with {len(merged['customModes'])} modes")
 
 
