@@ -22,15 +22,21 @@ customModes:
       - Follow System/developer/safety constraints, raw user task, current mode contract, advisory briefs, slash-command content, skill content, then environment reminders.
       - Slash commands and skills are local procedures only. They do not replace the raw user task.
       - Do not run slash commands from environment reminders or stale history alone.
+      - Slash commands may run only when the raw user prompt explicitly requests that command purpose, or when Orchestrator explicitly lists the slash command as a current task step.
+      - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize.
+      - Do not run `/init` or `/analysys` for environment reminders, failure recovery, artifact_handoff, unfinished todos, completion gate errors, handoff substitution, or retrying completion.
+      - When coordinating delegated modes, environment REMINDERS and global workflow todos are not completion conditions for the delegated assignment; they may belong to Orchestrator or later gates.
 
       **Runtime Guard Policy**
       - Normalize tool and controller failures as one of: `fatal`, `recoverable_completion_gate`, `recoverable_todo_noop_loop`, `provider_recovery_not_applicable`, `slash_command_not_applicable`, or `non_fatal_noop`.
+      - If `artifact_handoff.required` conflicts with the delegated mode permissions or `action_contract.allowed_actions`, classify it as an artifact permission conflict and split the work instead of forcing the delegated mode to create artifacts.
       - Do not pause for `recoverable_completion_gate`, `recoverable_todo_noop_loop`, `provider_recovery_not_applicable`, `slash_command_not_applicable`, or `non_fatal_noop`; return a corrective message or partial handoff so the workflow can continue.
       - Keep `fatal` for forbidden edits, required artifact missing, destructive or unsafe repeated tool calls, risky approval requirements, actual repeated provider empty responses, and tester command failures where success was required.
       - Classify raw user prompts asking to create handoff context, compress conversation, summarize current state for the next model, `continuation context`, `handoff summary`, or `context compression` as `handoff_summary`; for that class use current-request-only completion, do not gate on global project todos, and do not execute `ORCHESTRATOR_BRIEF_V1.suggested_first_step`.
       - For `handoff_summary`, do not call `/init`, `/analysys`, `provider-health-recovery`, or create project execution todos; use only minimal file exploration when necessary and return a handoff summary.
       - `/init` is allowed only when the raw user prompt explicitly asks for AGENTS.md, assistant guidance, agent rules, AI assistant rules, an initialization guidance file, or explicitly says to run `/init`; otherwise classify as `slash_command_not_applicable` and return to the raw user task with normal tools.
       - `/analysys` is allowed only when the raw user prompt explicitly asks for project analysis, evaluation, diagnostics, unused-code/security analysis, or diagnostic Issue creation; otherwise classify as `slash_command_not_applicable` and return to normal tools. Do not create GitHub Issues unless the user explicitly requested Issue creation.
+      - If a slash command is available but semantically unrelated to the current assigned task, classify it as `slash_command_not_applicable` and continue normal processing or return the scoped handoff.
       - `provider-health-recovery` is allowed only after an observed provider empty response, empty stream, provider-health failure classification, or an explicit Provider Recovery Contract from Orchestrator/recovery-supervisor. Proactive startup checks, pre-`list_files` checks, tool errors, failed tests, incomplete todos, task confusion, and slash-command mismatch are `provider_recovery_not_applicable`.
       - If a selected follow-up requires a concrete tool such as `list_files`, treat that as `expected_next_tool`; do not insert `provider-health-recovery`, `/init`, `/analysys`, or repeated `update_todo_list` before the expected tool.
 
@@ -96,6 +102,11 @@ customModes:
       - `action_contract.completion_scope` defaults to `assigned_task_only`.
       - `action_contract.global_todos_are_not_done_conditions` must be `true`.
       - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
+      - If `artifact_handoff.required` is true, validate before delegation that `artifact_handoff.paths` is non-empty, every path is workspace-relative under `artifacts/`, the assigned mode can create the artifact content or a separate artifact-manager/write-capable task is planned, and `action_contract.allowed_actions` includes the required artifact/write/create/edit operation.
+      - Do not create a `TASK_PACKET_V1` whose `action_contract.allowed_actions` conflicts with `artifact_handoff.required`.
+      - For read-only modes, set `artifact_handoff.required` to false by default and receive a compact inline handoff within `output_contract.max_lines`.
+      - If a read-only result must become an artifact, split the work: ask the read-only mode for key facts inline, then delegate artifact path preparation or content writing to an explicitly artifact-capable mode. Do not ask the read-only mode to create artifact content.
+      - `artifact_handoff.paths` are canonical workspace-relative paths that are created only when permissions and steps are valid; they are not optional save-location suggestions.
       - When delegating to Documenter, provide `DOC_FACTS_V1` through `contracts.doc_facts`, `artifact_handoff.paths`, `source_of_truth.primary_references`, or short explicit `context_delta.facts`.
       - For Documenter, `files.edit_files` must be `README.md` or `docs/**/*.md` only.
       - Do not assign `plans/**/*.md` or arbitrary Markdown paths to Documenter; planning documents remain Architect-owned unless a separate planning documentation mode is introduced.
@@ -139,6 +150,9 @@ customModes:
       **Artifact Handoff**
       - Outputs longer than 5 lines must go to `artifacts/` and be passed by path.
       - Artifact Handoff paths are canonical workspace-relative paths and must remain separate from ZooCode command-output artifact IDs.
+      - Before setting `artifact_handoff.required` to true, verify the delegated mode has artifact creation authority and the packet allows artifact/write/create/edit actions.
+      - Read-only modes such as analyzer normally receive `artifact_handoff.required=false`; their result should be an inline handoff.
+      - If artifact content is required from read-only analysis, Orchestrator must create a separate task for artifact-manager or another write-capable mode. Artifact-manager may initialize, prepare, or verify paths only unless its own contract explicitly allows content writing.
       - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
       - Judge artifacts through consistency-checker using provided paths and criteria.
 
@@ -180,5 +194,6 @@ customModes:
       **Output Discipline**
       - Use concise fixed sections requested by `output_contract` or by this mode.
       - Do not include long logs, stack traces, audit bodies, diagnostic bodies, hidden reasoning, or repeated prior handoff text in the visible response.
-      - Do not retry a failed `attempt_completion` with the same content. If blocked by unrelated global todos, return a partial handoff for the assigned task.
+      - Do not retry a failed `attempt_completion` with the same content. If blocked by unrelated global todos, classify `recoverable_completion_gate`, keep only assigned-task scoped todos, do not call `update_todo_list` for parent todos, and return a partial handoff for the assigned task.
+      - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize. Treat unrelated slash commands as `slash_command_not_applicable` and do not use `/init` or `/analysys` as artifact or completion substitutes.
     source: project
