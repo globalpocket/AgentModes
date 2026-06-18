@@ -32,7 +32,7 @@ customModes:
     - Tester Artifact Materialization Authority exception: when `action_contract.allowed_actions` includes `execute_command`, `commands[0].artifact_path` is a canonical workspace-relative path under `artifacts/`, and `commands[0].command` writes stdout/stderr to that exact path with `tee` or shell redirection while preserving the original command exit status when a pipe is used, the delegated `execute_command` is sufficient artifact materialization authority and must not be classified as `artifact_permission_conflict`.
     - `artifact_handoff.paths` are canonical workspace-relative paths under `artifacts/` only when artifact write permission, the Tester Artifact Materialization Authority exception, or another explicit write procedure is granted; otherwise they are references for Orchestrator to hand to an artifact-capable mode.
     - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize. Do not run `/init` or `/analysys` unless the raw user prompt explicitly requested the corresponding command purpose. If a slash command is available but semantically unrelated to the current assigned task, classify it as `slash_command_not_applicable` and continue with normal tools or return the scoped handoff.
-    - When `artifact_handoff.paths` is provided, store or reference logs, execution output, indexes, audit results, and diagnostics through those artifact paths. Return only paths and minimal metadata.
+    - When `artifact_handoff.paths` is provided, write to those paths only when this mode has explicit artifact write authority or a documented mode-specific materialization exception. Read-only modes must not create, prepare, touch, redirect output to, or populate those paths; they must return `artifact_permission_conflict` or an inline handoff.
     - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
     - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
     - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
@@ -41,6 +41,18 @@ customModes:
     - If `action_contract.no_self_dispatch` is true, do not create new task packets, do not directly call another mode, and do not perform mode transitions. You may include `Recommended Next Mode` in the handoff only as a recommendation for Orchestrator.
     - After an `attempt_completion` failure caused by incomplete todos outside `assigned_task_only` scope, do not retry `attempt_completion`. If `budgets.retry_budget` is `0`, do not retry tool actions. If no permitted output channel remains, stop further tool actions; the already prepared result text is the Partial Handoff.
     - Handoff boundaries should identify `Scope Completed`, `Out of Scope`, `Artifacts Written`, `Artifacts Missing`, `Recommended Next Mode`, or `Do Not Continue Reason` when these sections fit the assigned `output_contract`.
+    **Zoo/Roo Hard Completion Gate Compatibility**
+    - Under a valid `TASK_PACKET_V1` with `completion_scope: assigned_task_only`, treat the visible REMINDERS todo list as a runtime completion-gate projection, not as parent workflow authority.
+    - At task start, the visible todo list must contain exactly one scoped item formatted as `[ ] <task_id>: <goal>`.
+    - If unrelated parent or other-mode todos are visible, replace the entire list with exactly that one scoped item. Do not copy, retain, complete, skip, or set unrelated todos to In Progress.
+    - Keep exactly one scoped todo item; do not expand `steps` into multiple visible todos.
+    - Terminal local outcomes are `completed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Immediately before `attempt_completion`, replace the visible todo list with exactly one completed item formatted as `[x] <task_id>: <terminal outcome>`.
+    - Never call `attempt_completion` while any visible todo is Pending or In Progress.
+    - Never use `[-]` for parent, future, unrelated, or out-of-scope work.
+    - Call `attempt_completion` exactly once.
+    - If `attempt_completion` is rejected, do not retry it, do not call `update_todo_list` again, do not invoke slash commands, and do not perform any additional tool action.
+    - The completion payload prepared before the rejection is the terminal Partial Handoff.
     **Self-Service First Contract**
     - If information can be obtained from the current workspace with permitted tools, do not ask the user. Inspect it yourself.
     - File existence, README contents, configuration values, test results, line numbers, existing implementations, type definitions, artifact presence, diffs, and command outputs are inspectable workspace facts, not user questions, when read/search/list/execute inspection is available.

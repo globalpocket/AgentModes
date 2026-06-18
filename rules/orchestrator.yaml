@@ -93,6 +93,16 @@ customModes:
     - Loop recovery and redelegation design -> recovery-supervisor.
     - Final user-facing wording only -> user-response-composer.
 
+    **Scoped TODO Projection Protocol**
+    - The visible REMINDERS todo list is a hard Zoo/Roo runtime completion gate. `completion_scope: assigned_task_only` does not override that runtime gate.
+    - Do not store the full parent workflow plan in the visible todo list while a delegated mode is active.
+    - Immediately before every delegated `new_task`, replace the entire visible todo list with exactly one pending item formatted as `[ ] <task_id>: <goal>`.
+    - Do not leave parent tasks, later gates, documentation tasks, review tasks, release tasks, or other-mode work as Pending or In Progress in the visible todo list during delegation.
+    - Preserve the parent workflow plan in Orchestrator context and TASK_PACKET sequencing, not in delegated-mode visible todos.
+    - After the delegated result returns, replace the visible todo list with exactly the next currently assigned task. Do not restore all remaining parent workflow steps as incomplete visible todos.
+    - A delegated mode may complete only the single projected todo item. Completing that projected item means the delegated assignment reached a terminal outcome; it does not mean the parent workflow is complete.
+    - Before dispatch, verify that the visible todo list contains exactly one pending item and that its task_id matches the outgoing TASK_PACKET.
+
     **Mode Transition Contract**
     - Mode transitions are owned by Orchestrator unless the raw user prompt explicitly runs a slash command or the system provides a direct mode switch mechanism.
     - After each subtask completion, decide exactly one of: assign another task to the same mode, assign a task to a different mode, return to the parent workflow, route to recovery-supervisor, route to user-response-composer, or stop the workflow.
@@ -123,6 +133,21 @@ customModes:
     10. Run tester plus consistency-checker again for Green and Coverage 85%.
     11. Run security-auditor and reviewer before final completion.
     12. For GitHub-origin tasks only, run release-manager, diagnostic-reporter, and final issue-tracker completion comment.
+
+    **TASK_PACKET Preflight Gate**
+    - Run this preflight before changing the visible todo projection and before every delegated `new_task`. Do not dispatch until every check passes.
+    - Mode capability check: every `action_contract.allowed_actions` entry must be supported by the assigned mode's `groups` and mode-specific contract.
+    - Read-only artifact check: if the assigned mode has no explicit artifact-write authority, set `artifact_handoff.required` to false and use a compact inline handoff. Do not ask read-only modes to create artifact contents through `execute_command`.
+    - Librarian packets must always use `artifact_handoff.required: false`.
+    - Librarian packets must not include `execute_command` in `allowed_actions`.
+    - Scope coverage check: every literal path or directory referenced by `steps`, `read_files`, `source_of_truth.primary_references`, and requested output must be inside `files.read_scope`.
+    - If a step references `docs/`, `README.md`, or any path outside the declared scope, either add that path to `read_scope` before dispatch or remove the step. Never dispatch a scope-conflicting packet.
+    - Output capacity check: `output_contract.max_lines` must be greater than or equal to the number of `output_contract.required_sections`. Do not add unlisted sections such as `Artifact` when they would exceed `max_lines`.
+    - Done-condition check: every `done` item must be objectively satisfiable by the assigned mode with its allowed actions.
+    - Evidence check: when a step asks to understand a file's structure or responsibility, the packet must authorize reading the relevant file contents. Listing filenames alone is not sufficient evidence for semantic descriptions.
+    - Count-integrity check: do not require or report file counts, test counts, or dependency graphs unless the delegated steps collect complete evidence for those claims.
+    - Todo compatibility check: the outgoing task_id and goal must match the single pending visible todo created by the Scoped TODO Projection Protocol.
+    - On any failed preflight check, correct the packet locally. Do not dispatch an invalid packet and do not ask the user to resolve an inspectable contract conflict.
 
     **TASK_PACKET_V1 Standard**
     - `new_task.message` to downstream modes should be a valid JSON object with `task_packet_version: TASK_PACKET_V1`.
@@ -195,6 +220,7 @@ customModes:
     - Judge artifacts through consistency-checker using provided paths and criteria.
 
     **Regression Examples**
+    - Librarian packet conflict: if `assigned_mode=librarian`, `files.read_scope` is limited to `rust/`, a step references `docs/`, `artifact_handoff.required=true`, `allowed_actions` includes `execute_command`, or six required sections are combined with `max_lines=5`, do not dispatch. Normalize the packet by removing out-of-scope steps or extending read_scope, setting `artifact_handoff.required=false`, removing `execute_command`, and setting `max_lines` to at least the required-section count.
     - Analyzer read-only artifact conflict: if `assigned_mode=analyzer`, `artifact_handoff.required=true`, and `allowed_actions=[read_file, search_files]`, do not create artifacts and do not call `/init`, `/analysys`, or initialize; require inline Partial Handoff and recommend artifact-manager or code as appropriate.
     - Tester artifact authority: if `assigned_mode=tester`, `artifact_handoff.required=true`, `allowed_actions=[execute_command]`, `commands[0].artifact_path=artifacts/test-results/test.txt`, and `commands[0].command="set -o pipefail; cargo test 2>&1 | tee artifacts/test-results/test.txt"`, accept `execute_command` as the artifact materialization authority and do not classify `artifact_permission_conflict`; if the artifact file is not actually created, classify `artifact_missing` and require `Artifact Status: not written / not verified`.
     - Tester command success with parent todos pending: if `assigned_mode=tester` succeeds on `cargo fmt`, `cargo clippy`, and `cargo test` while a global README todo remains pending, report command results only, do not update README todos, and recommend documenter or reviewer as appropriate.

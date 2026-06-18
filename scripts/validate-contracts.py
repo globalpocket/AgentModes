@@ -152,6 +152,90 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
         fail("orchestrator: forbidden Documenter in standalone README/docs presence routing")
 
 
+def task_packet_modes(modes: dict[str, dict]) -> dict[str, dict]:
+    return {
+        slug: mode
+        for slug, mode in modes.items()
+        if "**TASK_PACKET_V1 Reception Contract**" in instructions(mode)
+    }
+
+
+def validate_scoped_todo_compatibility(modes: dict[str, dict]) -> None:
+    for slug, mode in task_packet_modes(modes).items():
+        if slug == "orchestrator":
+            continue
+        text = instructions(mode)
+        require_contains(slug, text, "**Zoo/Roo Hard Completion Gate Compatibility**")
+        require_contains(slug, text, "exactly one scoped item")
+        require_contains(slug, text, "Never call `attempt_completion` while any visible todo is Pending or In Progress")
+        require_contains(slug, text, "Call `attempt_completion` exactly once")
+        require_contains(slug, text, "do not call `update_todo_list` again")
+        require_regex(slug, text, r"Never use `\[-\]`", "no in-progress todo marker rule")
+
+    orch_text = instructions(modes["orchestrator"])
+    require_contains("orchestrator", orch_text, "**Scoped TODO Projection Protocol**")
+    require_contains("orchestrator", orch_text, "hard Zoo/Roo runtime completion gate")
+    require_contains("orchestrator", orch_text, "exactly one pending item")
+    require_regex(
+        "orchestrator",
+        orch_text,
+        r"Do not store the full parent workflow plan in the visible todo list",
+        "parent workflow plan visible todo prohibition",
+    )
+
+
+def validate_librarian(modes: dict[str, dict]) -> None:
+    mode = modes["librarian"]
+    groups = mode.get("groups")
+    if groups != ["read"]:
+        fail(f"librarian: groups must be ['read'], got {groups!r}")
+    if group_contains(groups, "command"):
+        fail("librarian: command group is forbidden")
+    if group_contains(groups, "edit"):
+        fail("librarian: edit group is forbidden")
+
+    text = instructions(mode)
+    require_contains("librarian", text, "**Librarian TASK_PACKET Preflight**")
+    require_contains("librarian", text, "Reject when `artifact_handoff.required` is true")
+    require_contains("librarian", text, "Reject when `allowed_actions` includes `execute_command`")
+    require_regex("librarian", text, r"falls outside `files\.read_scope`", "scope conflict rejection")
+    require_regex("librarian", text, r"max_lines.*less than.*required_sections", "max_lines required_sections validation")
+    require_contains("librarian", text, "Do not call `execute_command`.")
+    require_regex("librarian", text, r"Do not create directories or files|Do not use shell redirection", "filesystem mutation prohibition")
+    require_contains("librarian", text, "**Evidence and Count Integrity**")
+    require_contains("librarian", text, "Do not infer a source file's responsibility from its filename alone.")
+    require_contains("librarian", text, "A search for `#[test]` alone is not a complete Rust test inventory")
+    require_contains("librarian", text, "Every reported file count must equal the number of files actually listed in the same result.")
+
+
+def validate_orchestrator_packet_preflight(modes: dict[str, dict]) -> None:
+    text = instructions(modes["orchestrator"])
+    require_contains("orchestrator", text, "**TASK_PACKET Preflight Gate**")
+    require_contains("orchestrator", text, "Librarian packets must always use `artifact_handoff.required: false`.")
+    require_contains("orchestrator", text, "Librarian packets must not include `execute_command` in `allowed_actions`.")
+    require_contains("orchestrator", text, "Scope coverage check")
+    require_regex("orchestrator", text, r"max_lines.*greater than or equal to.*required_sections", "max_lines >= required_sections count rule")
+    require_regex("orchestrator", text, r"understand a file's structure or responsibility.*authorize reading", "semantic source read evidence rule")
+    require_contains("orchestrator", text, "Librarian packet conflict")
+
+
+def validate_artifact_wording(modes: dict[str, dict]) -> None:
+    old = "When `artifact_handoff.paths` is provided, store or reference logs"
+    new = "Read-only modes must not create, prepare, touch, redirect output to, or populate those paths"
+    for slug, mode in task_packet_modes(modes).items():
+        text = instructions(mode)
+        if old in text:
+            fail(f"{slug}: old ambiguous artifact wording remains")
+        if new in text:
+            continue
+        require_regex(
+            slug,
+            text,
+            r"artifact_handoff\.required.*?read-only.*?Do not create files|artifact_handoff\.paths.*?reference provided artifacts only by path",
+            "read-only artifact path non-write condition",
+        )
+
+
 def validate_user_response_composer(modes: dict[str, dict]) -> None:
     mode = modes["user-response-composer"]
     if mode.get("groups") != []:
@@ -329,6 +413,10 @@ def main() -> None:
 
     validate_tester(rule_modes)
     validate_orchestrator(rule_modes)
+    validate_scoped_todo_compatibility(rule_modes)
+    validate_librarian(rule_modes)
+    validate_orchestrator_packet_preflight(rule_modes)
+    validate_artifact_wording(rule_modes)
     validate_user_response_composer(rule_modes)
     validate_ask(rule_modes)
     validate_documenter(rule_modes)

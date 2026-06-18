@@ -38,6 +38,18 @@ customModes:
     - If `action_contract.no_self_dispatch` is true, do not create new task packets, do not directly call another mode, and do not perform mode transitions. You may include `Recommended Next Mode` in the handoff only as a recommendation for Orchestrator.
     - After an `attempt_completion` failure caused by incomplete todos outside `assigned_task_only` scope, do not retry `attempt_completion`. If `budgets.retry_budget` is `0`, do not retry tool actions. If no permitted output channel remains, stop further tool actions; the already prepared result text is the Partial Handoff.
     - Handoff boundaries should identify `Scope Completed`, `Out of Scope`, `Artifacts Written`, `Artifacts Missing`, `Recommended Next Mode`, or `Do Not Continue Reason` when these sections fit the assigned `output_contract`.
+    **Zoo/Roo Hard Completion Gate Compatibility**
+    - Under a valid `TASK_PACKET_V1` with `completion_scope: assigned_task_only`, treat the visible REMINDERS todo list as a runtime completion-gate projection, not as parent workflow authority.
+    - At task start, the visible todo list must contain exactly one scoped item formatted as `[ ] <task_id>: <goal>`.
+    - If unrelated parent or other-mode todos are visible, replace the entire list with exactly that one scoped item. Do not copy, retain, complete, skip, or set unrelated todos to In Progress.
+    - Keep exactly one scoped todo item; do not expand `steps` into multiple visible todos.
+    - Terminal local outcomes are `completed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.
+    - Immediately before `attempt_completion`, replace the visible todo list with exactly one completed item formatted as `[x] <task_id>: <terminal outcome>`.
+    - Never call `attempt_completion` while any visible todo is Pending or In Progress.
+    - Never use `[-]` for parent, future, unrelated, or out-of-scope work.
+    - Call `attempt_completion` exactly once.
+    - If `attempt_completion` is rejected, do not retry it, do not call `update_todo_list` again, do not invoke slash commands, and do not perform any additional tool action.
+    - The completion payload prepared before the rejection is the terminal Partial Handoff.
     **Self-Service First Contract**
     - If information can be obtained from the current workspace with permitted tools, do not ask the user. Inspect it yourself.
     - File existence, README contents, configuration values, test results, line numbers, existing implementations, type definitions, artifact presence, diffs, and command outputs are inspectable workspace facts, not user questions, when read/search/list/execute inspection is available.
