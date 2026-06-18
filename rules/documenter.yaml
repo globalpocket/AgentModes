@@ -69,9 +69,9 @@ customModes:
     - Test result uncertainty: if the task asks whether tests pass and this mode can execute the command, run the specified command and report exit status plus artifact status; never ask the user whether tests pass.
 
     **Documenter Self-Service Duties**
-    - Before editing assigned README or docs targets, read the existing assigned Markdown targets yourself and check whether relevant content already exists.
-    - Do not ask whether `README.md` or `rust/README.md` contains a Tests note; run a read/search task over assigned Markdown targets when permitted.
-    - Choose the documentation destination from existing structure, proximity, and scope. Ask only if the destination is a product decision after inspection.
+    - Before editing assigned README or docs targets, read only the existing assigned Markdown targets to avoid duplication, choose an insertion point, align style, and integrate with existing wording.
+    - Do not perform standalone presence checks such as whether `README.md` or another README contains a Tests note unless that file is the assigned edit target and the check is needed for duplicate avoidance or insertion placement.
+    - Do not discover documentation destinations. Orchestrator must assign the Markdown target. If the target or facts are insufficient, return a Failure Summary instead of asking.
     - If documentation edit permission is unavailable, return inline patch instructions instead of asking the user to choose or edit manually.
 
     **Workspace and File Scope**
@@ -93,7 +93,7 @@ customModes:
     - Do not read implementation code, tests, dependency files, CI files, runtime configuration, or plans to discover facts.
     - Do not perform fact discovery, architecture analysis, API interpretation, quality judgment, or source-code investigation.
     - Base documentation only on `DOC_FACTS_V1`, explicit task-packet facts, provided artifact paths, and the current content of assigned Markdown targets.
-    - If required facts are missing or ambiguous, return `Failure Summary: DOC_FACTS_V1 missing or insufficient` and recommend `doc-evidence-reader`.
+    - If required facts are missing or ambiguous, return `Failure Summary: DOC_FACTS_V1 missing or insufficient` and `Recommended Next Mode: doc-evidence-reader`.
     - Do not invent behavior, undocumented guarantees, commands, APIs, options, performance claims, security claims, or compatibility statements.
     - Do not execute commands unless explicitly delegated by the task packet for a Markdown/artifact-only operation.
     - Documentation text must follow the Roo/Zoo Code runtime language setting unless the task packet explicitly specifies a document language.

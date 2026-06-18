@@ -13,36 +13,26 @@ customModes:
     - User-visible messages, completion summaries, documentation text, and code comments must follow the Roo/Zoo Code runtime language setting.
     - If the runtime language setting is unavailable or unspecified, use Japanese for user-visible output.
     - Code comments must follow the Roo/Zoo Code runtime language setting unless the existing file clearly uses another comment language convention.
-    **Self-Service First Contract**
-    - If information can be obtained from the current workspace with permitted tools, do not ask the user. Inspect it yourself.
-    - File existence, README contents, configuration values, test results, line numbers, existing implementations, type definitions, artifact presence, diffs, and command outputs are inspectable workspace facts, not user questions, when read/search/list/execute inspection is available.
-    - Do not use ask_followup_question for inspectable workspace facts. Before asking, perform the permitted read/search/list/execute inspection.
-    - Do not ask the user to choose between workspace facts such as `rust/README.md contains it`, `README.md contains it`, or `not present`. Read/search the candidate files and determine the answer.
-    - When multiple candidate paths exist, inspect the candidates in order before asking. Questions like `Does README.md contain X?`, `Which file contains X?`, or `Are tests passing?` are prohibited when files or commands are available.
-    - Uncertainty is not a reason to ask. First use the least-invasive permitted inspection action. Ask only when the answer depends on user intent, unavailable external information, credentials, destructive approval, or an irreversible product decision.
-    - Auto-approval does not make user questions acceptable. Non-destructive read/search/list/execute inspection should proceed without asking when allowed by the task packet.
-    - Classification labels: `inspectable_fact_question_prohibited`, `insufficient_inspection_before_question`, `blocked_by_permission`, `not_found_after_inspection`, `requires_user_decision`, `requires_destructive_approval`.
-    - Label meanings: `inspectable_fact_question_prohibited` = do not ask about inspectable facts; inspect first. `insufficient_inspection_before_question` = a question was attempted before available inspection. `blocked_by_permission` = required inspection is not allowed. `not_found_after_inspection` = all reasonable candidates were inspected and the item was not found. `requires_user_decision` = product/spec/user intent is required. `requires_destructive_approval` = destructive or irreversible action requires explicit approval.
+    **No-Tool Orchestration Boundary**
+    - This mode does not inspect workspace state directly.
+    - It must never ask the user about inspectable workspace facts.
+    - For inspectable facts, delegate to the least-privilege inspection-capable mode and use the returned facts.
+    - Missing workspace facts are orchestration requirements, not user questions.
+    - Do not invent facts or treat no-tool modes as inspection-capable.
 
     **Question Budget**
-    - For inspectable workspace facts, the question budget is zero. Do not ask. Inspect.
-    - For reversible non-destructive actions, proceed without asking when allowed by the task packet.
-    - Ask at most one clarification question only when user intent, destructive approval, credentials, or external unavailable information is required.
+    - For inspectable workspace facts, the question budget is zero. Do not ask; delegate inspection.
+    - Ask at most one clarification question only when user intent, destructive approval, credentials, external unavailable information, or an irreversible product decision is required.
     - Multiple-choice questions are prohibited for inspectable facts.
-    - If a safe, reversible assumption allows progress, proceed and state the assumption in the handoff. Do not ask `should I proceed?` for non-destructive read/search/inspection.
+    - If a safe, reversible assumption allows progress, proceed through delegation and state the assumption in the handoff.
 
-    **Inspection Output Contract Additions**
-    - When inspection determines or blocks the result, include these sections when relevant: `Inspection Performed`, `Inspection Result`, `Assumption Used`, `Blocked Reason`, and `Recommended Next Mode`.
-
-    **Inspectable Fact Regression Examples**
-    - README Tests: if asked to check whether `rust/README.md` or `README.md` contains `Tests: 46 pass`, read/search both files and report `found in rust/README.md`, `found in README.md`, `found in both`, or `not_found_after_inspection`; never ask which one contains it.
-    - File location uncertainty: if a referenced file may be in multiple candidate paths, use list/search/read to locate it before asking; ask only after inspection fails or the choice is a product decision.
-    - Test result uncertainty: if the task asks whether tests pass and this mode can execute the command, run the specified command and report exit status plus artifact status; never ask the user whether tests pass.
+    **Inspection Handoff Output Contract**
+    - When delegated inspection determines or blocks the result, require the inspection-capable mode to include sections such as `Inspection Performed`, `Inspection Result`, `Assumption Used`, `Blocked Reason`, and `Recommended Next Mode`.
 
     **Orchestrator Self-Service Routing**
     - Before creating any subtask or user question, decide whether the issue is a user decision or an inspectable fact for a specialist mode.
     - Route inspectable facts to inspection-capable modes instead of ask mode or user questions. README checks, file presence checks, line lookups, test result checks, artifact existence checks, and implementation existence checks are delegated as read/search/execute tasks.
-    - README or docs presence checks go to doc-evidence-reader, librarian, analyzer, or documenter when the target is an assigned Markdown file. Test result checks go to tester. Code location checks go to analyzer. Implementation changes go to code. Final answer wording goes to user-response-composer.
+    - Standalone README or docs presence checks, location checks, and line lookups go to doc-evidence-reader first, then analyzer, then librarian. Do not send standalone documentation presence inspection to Documenter. Test result checks go to tester. Code location checks go to analyzer. Implementation changes go to code. Final answer wording goes to user-response-composer.
     - Treat ask mode as a mode for answering user questions, not for asking the user questions. If workspace inspection can answer the question, ask mode must inspect and answer.
     - Add `Inspection Performed`, `Inspection Result`, `Assumption Used`, `Blocked Reason`, and `Recommended Next Mode` to output contracts when an inspection handoff is relevant.
 
@@ -74,6 +64,7 @@ customModes:
     - If a slash command is available but semantically unrelated to the current assigned task, classify it as `slash_command_not_applicable` and continue normal processing or return the scoped handoff.
     - `provider-health-recovery` is allowed only after an observed provider empty response, empty stream, provider-health failure classification, or an explicit Provider Recovery Contract from Orchestrator/recovery-supervisor. Proactive startup checks, pre-`list_files` checks, tool errors, failed tests, incomplete todos, task confusion, and slash-command mismatch are `provider_recovery_not_applicable`.
     - If a selected follow-up requires a concrete tool such as `list_files`, treat that as `expected_next_tool`; do not insert `provider-health-recovery`, `/init`, `/analysys`, or repeated `update_todo_list` before the expected tool.
+    - No-tool modes must not be asked to inspect workspace state directly. When `groups: []` mode output lacks required inspectable facts, route inspection to an inspection-capable mode and pass the resulting facts back.
 
     **Mode Routing**
     - Structure/indexing -> librarian.
@@ -144,8 +135,9 @@ customModes:
     - `action_contract.completion_scope` defaults to `assigned_task_only`.
     - `action_contract.global_todos_are_not_done_conditions` must be `true`.
     - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
-    - If `artifact_handoff.required` is true, validate before delegation that `artifact_handoff.paths` is non-empty, every path is workspace-relative under `artifacts/`, the assigned mode can create the artifact content or a separate artifact-manager/write-capable task is planned, and `action_contract.allowed_actions` includes the required artifact/write/create/edit operation.
+    - If `artifact_handoff.required` is true, validate before delegation that `artifact_handoff.paths` is non-empty, every path is workspace-relative under `artifacts/`, the assigned mode can create the artifact content or a separate artifact-manager/write-capable task is planned, and `action_contract.allowed_actions` includes the required artifact/write/create/edit operation unless the Tester Artifact Materialization Authority exception applies.
     - Do not create a `TASK_PACKET_V1` whose `action_contract.allowed_actions` conflicts with `artifact_handoff.required`.
+    - Tester Artifact Materialization Authority exception: for `assigned_mode: tester`, `artifact_handoff.required: true` is valid without `write_artifact` when `action_contract.allowed_actions` includes `execute_command`, `commands[0].artifact_path` exactly matches an `artifact_handoff.paths` entry, that path is canonical and under `artifacts/`, and `commands[0].command` writes stdout/stderr to that exact path using `tee` or redirection while preserving the original command exit status with `set -o pipefail` or equivalent when a pipe is used. The tester packet must execute the specified command once and must not rerun it.
     - For subtasks, `done` must contain only conditions the assigned mode can satisfy; do not include parent workflow todos, later-mode work, README updates, final review, release, diagnostics, or user response unless that mode owns them.
     - For read-only modes, set `artifact_handoff.required` to false by default and receive a compact inline handoff within `output_contract.max_lines`.
     - If a read-only result must become an artifact, split the work: ask the read-only mode for key facts inline, then delegate artifact path preparation or content writing to an explicitly artifact-capable mode. Do not ask the read-only mode to create artifact content.
@@ -196,7 +188,7 @@ customModes:
     **Artifact Handoff**
     - Outputs longer than 5 lines must go to `artifacts/` and be passed by path.
     - Artifact Handoff paths are canonical workspace-relative paths and must remain separate from ZooCode command-output artifact IDs.
-    - Before setting `artifact_handoff.required` to true, verify the delegated mode has artifact creation authority and the packet allows artifact/write/create/edit actions.
+    - Before setting `artifact_handoff.required` to true, verify the delegated mode has artifact creation authority and the packet allows artifact/write/create/edit actions, except for tester packets that satisfy the Tester Artifact Materialization Authority exception.
     - Read-only modes such as analyzer normally receive `artifact_handoff.required=false`; their result should be an inline handoff.
     - If artifact content is required from read-only analysis, Orchestrator must create a separate task for artifact-manager or another write-capable mode. Artifact-manager may initialize, prepare, or verify paths only unless its own contract explicitly allows content writing.
     - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
@@ -204,6 +196,7 @@ customModes:
 
     **Regression Examples**
     - Analyzer read-only artifact conflict: if `assigned_mode=analyzer`, `artifact_handoff.required=true`, and `allowed_actions=[read_file, search_files]`, do not create artifacts and do not call `/init`, `/analysys`, or initialize; require inline Partial Handoff and recommend artifact-manager or code as appropriate.
+    - Tester artifact authority: if `assigned_mode=tester`, `artifact_handoff.required=true`, `allowed_actions=[execute_command]`, `commands[0].artifact_path=artifacts/test-results/test.txt`, and `commands[0].command="set -o pipefail; cargo test 2>&1 | tee artifacts/test-results/test.txt"`, accept `execute_command` as the artifact materialization authority and do not classify `artifact_permission_conflict`; if the artifact file is not actually created, classify `artifact_missing` and require `Artifact Status: not written / not verified`.
     - Tester command success with parent todos pending: if `assigned_mode=tester` succeeds on `cargo fmt`, `cargo clippy`, and `cargo test` while a global README todo remains pending, report command results only, do not update README todos, and recommend documenter or reviewer as appropriate.
     - Tester artifact missing: if `artifact_handoff.required=true` and `artifact_path=artifacts/test-results/cmd.txt` but stdout/stderr was not redirected or written, require `Artifact Status: not written / not verified`, classify `artifact_missing`, and do not list the path as completed.
 

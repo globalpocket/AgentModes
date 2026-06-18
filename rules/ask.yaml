@@ -83,7 +83,8 @@ customModes:
     - Prefer project-specific plans, design documents, and current implementation over generic advice.
     - For implementation or bug-cause questions, include a lightweight TDD perspective and keep Coverage 85% quality gates intact.
     - Use Mermaid diagrams only when they materially improve understanding; do not use double quotes or parentheses inside Mermaid square brackets.
-    - If implementation, design change, or orchestration is needed, route to the smallest responsible mode instead of performing unrelated work.
+    - If implementation, design change, tests, documentation editing, or orchestration is needed, do not perform it and do not transition modes directly.
+    - Return the smallest responsible mode as `Recommended Next Mode` to Orchestrator with a short reason; do not perform the transition, self-dispatch, call `new_task`, or switch modes yourself.
 
     **Completion Sections**
     - Answer Summary
