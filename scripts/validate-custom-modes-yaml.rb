@@ -15,7 +15,7 @@ def fail!(message)
 end
 
 def load_yaml(path)
-  YAML.load_file(path.to_s)
+  YAML.safe_load_file(path.to_s, aliases: false)
 rescue Psych::SyntaxError => e
   fail!("YAML parse failed: #{path.relative_path_from(ROOT)}: #{e.message}")
 end
@@ -49,9 +49,10 @@ def validate_broken_patterns(path)
 
   path.readlines(encoding: "UTF-8").each_with_index do |line, index|
     line_no = index + 1
-    fail!("#{rel}:#{line_no}: customInstructions block scalar content is on same line") if line =~ /customInstructions:\s*\|-\s+\S/
+    fail!("#{rel}:#{line_no}: customInstructions block scalar content is on same line") if line =~ /customInstructions:[ \t]*\|-[ \t]+\S/
     fail!("#{rel}:#{line_no}: customModes list is on same line") if line.include?("customModes: -")
     fail!("#{rel}:#{line_no}: source/customModes concatenated") if line.include?("source: project customModes:")
+    fail!("#{rel}:#{line_no}: mode mapping keys are concatenated") if line =~ /- slug: 'architect' name:/
     custom_modes_top_level_count += 1 if line =~ /^customModes:/
     source_top_level_count += 1 if line =~ /^source:/
   end
