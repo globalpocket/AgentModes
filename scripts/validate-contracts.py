@@ -82,6 +82,33 @@ def instructions(mode: dict) -> str:
     return text
 
 
+def normalized_mode(mode: dict) -> dict:
+    return {key: value for key, value in mode.items() if not key.startswith("__")}
+
+
+def group_contains(value, target: str) -> bool:
+    if isinstance(value, str):
+        return value == target
+    if isinstance(value, list):
+        return any(group_contains(item, target) for item in value)
+    if isinstance(value, dict):
+        return any(group_contains(item, target) for item in value.values())
+    return False
+
+
+def metadata_text(mode: dict) -> str:
+    parts = []
+    for key in ("roleDefinition", "whenToUse", "description"):
+        value = mode.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+    return "\n".join(parts)
+
+
+def full_mode_text(mode: dict) -> str:
+    return metadata_text(mode) + "\n" + instructions(mode)
+
+
 def require_contains(slug: str, text: str, needle: str) -> None:
     if needle not in text:
         fail(f"{slug}: missing required contract text: {needle}")
@@ -149,21 +176,95 @@ def validate_documenter(modes: dict[str, dict]) -> None:
     require_contains("documenter", text, "Do not discover documentation destinations")
 
 
+def validate_mode_metadata(modes: dict[str, dict]) -> None:
+    gpt = modes["gpt-oss-needs-analyzer"]
+    gpt_description = gpt.get("description")
+    if gpt_description != "GPT-OSS分析とOrchestrator向けbrief作成":
+        fail("gpt-oss-needs-analyzer: description must match advisory brief contract")
+    if "起動" in gpt_description:
+        fail("gpt-oss-needs-analyzer: description must not imply Orchestrator launch")
+    if gpt.get("groups") != []:
+        fail("gpt-oss-needs-analyzer: groups must be []")
+
+    gpt_text = full_mode_text(gpt)
+    require_contains("gpt-oss-needs-analyzer", gpt_text, "Recommended Next Mode: orchestrator")
+    require_regex(
+        "gpt-oss-needs-analyzer",
+        gpt.get("roleDefinition", "") + "\n" + instructions(gpt),
+        r"without dispatching|No runtime dispatch|do not .*dispatch",
+        "explicit no-dispatch contract",
+    )
+    require_regex(
+        "gpt-oss-needs-analyzer",
+        instructions(gpt),
+        r"Do not .*invoke .*Orchestrator|advisory handoff only",
+        "no Orchestrator invocation contract",
+    )
+    forbid_regex(
+        "gpt-oss-needs-analyzer",
+        metadata_text(gpt),
+        r"Orchestrator起動|dispatch Orchestrator|invoke Orchestrator|call Orchestrator",
+        "direct Orchestrator launch metadata",
+    )
+
+    ask = modes["ask"]
+    if group_contains(ask.get("groups", []), "edit"):
+        fail("ask: edit permission is forbidden")
+    ask_role = ask.get("roleDefinition")
+    if not isinstance(ask_role, str):
+        fail("ask: roleDefinition must be string")
+    if "read-only" not in ask_role.lower():
+        fail("ask: roleDefinition must include read-only")
+    if "unless explicitly requested" in ask_role.lower():
+        fail("ask: roleDefinition must not include unless explicitly requested")
+    ask_text = instructions(ask)
+    require_contains("ask", ask_text, "Read-only technical consultation mode. Do not modify files.")
+    require_contains("ask", ask_text, "Recommended Next Mode")
+    require_regex(
+        "ask",
+        ask_text,
+        r"do not perform the transition|do not transition modes directly",
+        "direct transition prohibition",
+    )
+    require_regex(
+        "ask",
+        ask_text,
+        r"self-dispatch|call `new_task`|switch modes yourself",
+        "self-dispatch prohibition",
+    )
+    forbid_regex(
+        "ask",
+        ask_role + "\n" + ask_text,
+        r"without modifying files unless explicitly requested|Do not modify files unless|unless explicitly requested",
+        "edit-on-request wording",
+    )
+
+
 def validate_no_tool_modes(modes: dict[str, dict]) -> None:
     forbidden = re.compile(
         r"Inspect it yourself|Before asking, perform|read/search both|use list/search/read|run the specified command|"
         r"perform the inspection|call `new_task`|call new_task|switch modes yourself",
         flags=re.IGNORECASE,
     )
+    metadata_forbidden = re.compile(
+        r"Orchestrator起動|dispatch Orchestrator|invoke Orchestrator|call Orchestrator|"
+        r"read files directly|run commands directly|inspect workspace directly|workspace inspection authority",
+        flags=re.IGNORECASE,
+    )
     for slug, mode in modes.items():
         if mode.get("groups") != []:
             continue
+        meta = metadata_text(mode)
         if slug == "orchestrator":
             # Orchestrator may explicitly delegate but must not inspect directly.
             text = instructions(mode)
+            if re.search(r"inspect workspace (state )?directly|workspace inspection authority", meta, flags=re.IGNORECASE):
+                fail(f"{slug}: no-tool metadata promises direct workspace inspection")
             require_contains(slug, text, "This mode does not inspect workspace state directly")
             require_contains(slug, text, "delegate to the least-privilege inspection-capable mode")
             continue
+        if metadata_forbidden.search(meta):
+            fail(f"{slug}: no-tool metadata contains direct tool, inspection, or dispatch wording")
         text = instructions(mode)
         if forbidden.search(text):
             fail(f"{slug}: no-tool mode contains direct inspection or self-dispatch wording")
@@ -179,10 +280,19 @@ def validate_sync(rule_modes: dict[str, dict], all_modes: dict[str, dict]) -> No
         missing = sorted(set(rule_modes) ^ set(all_modes))
         fail(f"slug mismatch between rules and all-agents: {missing}")
     for slug, rule_mode in rule_modes.items():
-        all_mode = all_modes[slug]
-        for key in ("name", "roleDefinition", "groups", "customInstructions"):
-            if rule_mode.get(key) != all_mode.get(key):
-                fail(f"all-agents.yaml not synchronized for {slug}: {key}")
+        expected = normalized_mode(rule_mode)
+        actual = normalized_mode(all_modes[slug])
+
+        if expected != actual:
+            differing_keys = sorted(
+                key
+                for key in set(expected) | set(actual)
+                if expected.get(key) != actual.get(key)
+            )
+            fail(
+                f"all-agents.yaml not synchronized for {slug}: "
+                f"{', '.join(differing_keys)}"
+            )
 
 
 def validate_scenarios(modes: dict[str, dict]) -> None:
@@ -219,6 +329,7 @@ def main() -> None:
     validate_documenter(rule_modes)
     validate_no_tool_modes(rule_modes)
     validate_sync(rule_modes, all_modes)
+    validate_mode_metadata(rule_modes)
     validate_scenarios(rule_modes)
 
     print("contract validation ok")

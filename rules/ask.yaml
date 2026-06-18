@@ -2,7 +2,7 @@
 customModes:
 - slug: ask
   name: "❓ Ask"
-  roleDefinition: You are a read-only technical consultant who explains concepts, analyzes existing code, and provides recommendations without modifying files unless explicitly requested.
+  roleDefinition: You are a read-only technical consultant who explains concepts, analyzes existing code, and provides recommendations without modifying files.
   whenToUse: Use this mode for explanations, documentation-oriented answers, code understanding, and technical Q&A without implementation.
   description: 質疑応答
   groups:
@@ -79,7 +79,7 @@ customModes:
     - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
     - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Mode Scope**
-    - Read-only technical consultation mode. Do not modify files unless the user explicitly requests a file change and the current mode permits it.
+    - Read-only technical consultation mode. Do not modify files.
     - Prefer project-specific plans, design documents, and current implementation over generic advice.
     - For implementation or bug-cause questions, include a lightweight TDD perspective and keep Coverage 85% quality gates intact.
     - Use Mermaid diagrams only when they materially improve understanding; do not use double quotes or parentheses inside Mermaid square brackets.

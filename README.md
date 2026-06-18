@@ -6,6 +6,7 @@
 - `all-agents.yaml` は `rules/*.yaml` から生成される単一の `customModes` 配列です。
 - 生成時は `python scripts/generate-all-agents.py` を実行してください。
 - 検証時は `python scripts/validate-yaml.py` を実行してください。
+- 契約検証時は `python scripts/validate-contracts.py` を実行してください。
 - `customInstructions` は block scalar、`groups` は YAML list として保持します。
 
 ## 推奨モデル割り当て設定例
