@@ -1,5 +1,13 @@
 # AgentModes
 
+## Zoo Code custom modes import
+
+- Zoo Code へインポートする対象ファイルは `all-agents.yaml` です。
+- `all-agents.yaml` は `rules/*.yaml` から生成される単一の `customModes` 配列です。
+- 生成時は `ruby scripts/generate-all-agents.rb --write-rules` を実行してください。
+- 検証時は `ruby scripts/validate-custom-modes-yaml.rb` を実行してください。
+- `customInstructions` は block scalar、`groups` は YAML list として保持します。
+
 ## 推奨モデル割り当て設定例
 
 以下は、このワークスペースのモード設計に対応した推奨割り当て例です。
