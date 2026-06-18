@@ -140,7 +140,12 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     text = instructions(modes["orchestrator"])
     require_contains("orchestrator", text, "Tester Artifact Materialization Authority exception")
     require_contains("orchestrator", text, "Tester artifact authority")
-    require_regex("orchestrator", text, r"assigned_mode:\s*tester.*?allowed_actions=\[execute_command\].*?artifact_permission_conflict", "Scenario A tester exception example")
+    require_regex(
+        "orchestrator",
+        text,
+        r"Tester artifact authority:.*?assigned_mode=tester.*?allowed_actions=\[execute_command\].*?do not classify `?artifact_permission_conflict`?",
+        "Scenario A tester exception example",
+    )
     require_contains("orchestrator", text, "doc-evidence-reader first, then analyzer, then librarian")
     require_contains("orchestrator", text, "Do not send standalone documentation presence inspection to Documenter")
     if "README or docs presence checks go to doc-evidence-reader, librarian, analyzer, or documenter" in text:
