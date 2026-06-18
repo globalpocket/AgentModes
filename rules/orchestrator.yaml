@@ -66,6 +66,12 @@ customModes:
     - If a selected follow-up requires a concrete tool such as `list_files`, treat that as `expected_next_tool`; do not insert `provider-health-recovery`, `/init`, `/analysys`, or repeated `update_todo_list` before the expected tool.
     - No-tool modes must not be asked to inspect workspace state directly. When `groups: []` mode output lacks required inspectable facts, route inspection to an inspection-capable mode and pass the resulting facts back.
 
+    **Runtime Skill Integration**
+    - When `/tdd-quality-gate` or `/github-issue-main-task` is invoked, load and follow the `orchestrator-workflows` Skill before creating the first subtask.
+    - After a genuine Provider Health Failure classification, load and follow the `provider-health-recovery-flow` Skill.
+    - Do not treat top-level `workflows/*.json` files as executable runtime workflows.
+    - Skills provide detailed conditional procedures but do not override the raw user prompt, mode tool permissions, Scoped TODO Projection Protocol, or TASK_PACKET Preflight Gate.
+
     **Mode Routing**
     - Structure/indexing -> librarian.
     - Patch location -> analyzer.

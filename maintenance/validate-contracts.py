@@ -455,6 +455,135 @@ def validate_scenarios(modes: dict[str, dict]) -> None:
     require_regex("orchestrator", doc_text, r"doc-evidence-reader first, then analyzer, then librarian", "Scenario D documentation presence routing")
 
 
+def relative(path: Path) -> str:
+    return str(path.relative_to(ROOT))
+
+
+def require_file(path: Path) -> None:
+    if not path.is_file():
+        fail(f"required runtime file missing: {relative(path)}")
+
+
+def markdown_frontmatter(path: Path) -> dict:
+    require_file(path)
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        fail(f"{relative(path)} missing YAML frontmatter")
+    end = text.find("\n---", 4)
+    if end == -1:
+        fail(f"{relative(path)} missing closing YAML frontmatter delimiter")
+    try:
+        data = yaml.safe_load(text[4:end]) or {}
+    except Exception as exc:  # noqa: BLE001
+        fail(f"{relative(path)} invalid YAML frontmatter: {exc}")
+    if not isinstance(data, dict):
+        fail(f"{relative(path)} frontmatter must be a mapping")
+    return data
+
+
+def validate_runtime_layout() -> None:
+    for forbidden_dir in (ROOT / "scripts", ROOT / "workflows"):
+        if forbidden_dir.exists():
+            fail(f"top-level runtime-incompatible directory must not exist: {relative(forbidden_dir)}")
+
+    for required in [
+        ROOT / "maintenance" / "generate-all-agents.py",
+        ROOT / "maintenance" / "validate-yaml.py",
+        ROOT / "maintenance" / "validate-contracts.py",
+        ROOT / "skills" / "orchestrator-workflows" / "SKILL.md",
+        ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md",
+        ROOT / "skills" / "provider-health-recovery" / "SKILL.md",
+        ROOT / "commands" / "tdd-quality-gate.md",
+        ROOT / "commands" / "github-issue-main-task.md",
+    ]:
+        require_file(required)
+
+
+def validate_skill_frontmatter() -> None:
+    expected = {
+        ROOT / "skills" / "orchestrator-workflows" / "SKILL.md": {
+            "name": "orchestrator-workflows",
+            "modeSlugs": ["orchestrator"],
+            "description_contains": ["tdd-quality-gate", "github-issue-main-task"],
+        },
+        ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
+            "name": "provider-health-recovery-flow",
+            "modeSlugs": ["recovery-supervisor", "orchestrator"],
+            "description_contains": [],
+        },
+        ROOT / "skills" / "provider-health-recovery" / "SKILL.md": {
+            "name": "provider-health-recovery",
+            "modeSlugs": ["segregated-devops"],
+            "description_contains": [],
+        },
+    }
+    for path, spec in expected.items():
+        data = markdown_frontmatter(path)
+        if data.get("name") != spec["name"]:
+            fail(f"{relative(path)} frontmatter name must be {spec['name']!r}")
+        if sorted(data.get("modeSlugs") or []) != sorted(spec["modeSlugs"]):
+            fail(f"{relative(path)} frontmatter modeSlugs must be exactly {spec['modeSlugs']!r}")
+        description = str(data.get("description") or "")
+        if not description:
+            fail(f"{relative(path)} frontmatter description is required")
+        for needle in spec["description_contains"]:
+            if needle not in description:
+                fail(f"{relative(path)} frontmatter description must mention {needle!r}")
+
+
+def validate_command_frontmatter() -> None:
+    for path in [
+        ROOT / "commands" / "tdd-quality-gate.md",
+        ROOT / "commands" / "github-issue-main-task.md",
+    ]:
+        data = markdown_frontmatter(path)
+        if not data.get("description"):
+            fail(f"{relative(path)} frontmatter description is required")
+        if not data.get("argument-hint"):
+            fail(f"{relative(path)} frontmatter argument-hint is required")
+        if data.get("mode") != "orchestrator":
+            fail(f"{relative(path)} frontmatter mode must be 'orchestrator'")
+
+
+def validate_stale_runtime_references() -> None:
+    workflows_prefix = "workflows/"
+    scripts_prefix = "python scripts/"
+    stale_needles = [
+        workflows_prefix + "tdd-quality-gate.json",
+        workflows_prefix + "github-issue-main-task.json",
+        workflows_prefix + "provider-health-recovery.json",
+        scripts_prefix + "generate-all-agents.py",
+        scripts_prefix + "validate-yaml.py",
+        scripts_prefix + "validate-contracts.py",
+    ]
+    checked_roots = [
+        ROOT / "README.md",
+        ROOT / "commands",
+        ROOT / "skills",
+        ROOT / "rules",
+        ROOT / "maintenance",
+        ROOT / "all-agents.yaml",
+    ]
+    self_path = Path(__file__).resolve()
+    files: list[Path] = []
+    for root in checked_roots:
+        if root.is_file():
+            files.append(root)
+        elif root.is_dir():
+            files.extend(path for path in root.rglob("*") if path.is_file())
+    for path in files:
+        if path.resolve() == self_path:
+            continue
+        if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
+            continue
+        if any(part == ".git" for part in path.parts):
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for needle in stale_needles:
+            if needle in text:
+                fail(f"stale runtime reference {needle!r} found in {relative(path)}")
+
+
 def main() -> None:
     rule_modes = load_rule_modes()
     all_modes = load_all_agents_modes()
@@ -482,6 +611,10 @@ def main() -> None:
     validate_sync(rule_modes, all_modes)
     validate_mode_metadata(rule_modes)
     validate_scenarios(rule_modes)
+    validate_runtime_layout()
+    validate_skill_frontmatter()
+    validate_command_frontmatter()
+    validate_stale_runtime_references()
 
     print("contract validation ok")
     print(f"customModes count = {len(rule_modes)}")

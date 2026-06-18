@@ -1,6 +1,8 @@
 ---
 name: provider-health-recovery
-description: ローカルProviderが空応答または生成停止状態に陥った場合に、明示されたProvider停止・起動・疎通手順だけで安全に復旧するProvider非依存の復旧Skill。
+description: Provider Health Failureとして分類済みの空応答または生成停止を、明示されたProvider停止・起動・疎通手順だけで復旧する
+modeSlugs:
+  - segregated-devops
 ---
 
 # Provider Health Recovery

@@ -1,0 +1,19 @@
+---
+description: OrchestratorでGitHub Issue起点のメインタスクWorkflowを開始する
+argument-hint: <GitHub Issue URL>
+mode: orchestrator
+---
+
+`orchestrator-workflows` Skillの
+`Workflow: github-issue-main-task`
+を使用して、ユーザーがこのSlash Commandの後に指定したGitHub Issueを処理する。
+
+必須条件:
+
+- 最初のsubtask作成前にSkillをロードする
+- GitHub Issue URLをraw workflow inputとして扱う
+- Skill内のphase順序とconditional gateを変更しない
+- phaseごとに1つのTASK_PACKETだけを作成する
+- 各delegation前にTASK_PACKET Preflightを行う
+- visible TODOには現在phaseのtask 1件だけを置く
+- 親workflow全体をdelegated modeのREMINDERSへ残さない

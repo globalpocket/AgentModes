@@ -4,10 +4,31 @@
 
 - Zoo Code へインポートする対象ファイルは `all-agents.yaml` です。
 - `all-agents.yaml` は `rules/*.yaml` から生成される単一の `customModes` 配列です。
-- 生成時は `python scripts/generate-all-agents.py` を実行してください。
-- 検証時は `python scripts/validate-yaml.py` を実行してください。
-- 契約検証時は `python scripts/validate-contracts.py` を実行してください。
+- 生成時は `python maintenance/generate-all-agents.py` を実行してください。
+- 検証時は `python maintenance/validate-yaml.py` を実行してください。
+- 契約検証時は `python maintenance/validate-contracts.py` を実行してください。
 - `customInstructions` は block scalar、`groups` は YAML list として保持します。
+
+## Global ~/.roo deployment layout
+
+このリポジトリは、内容をグローバル `~/.roo/` へコピーして使う配布物です。Zoo Code / Roo Code runtime が参照する入口は `skills/` と `commands/` で、保守スクリプトは runtime から自動実行されません。
+
+| Repository path | Deployment target / usage |
+| --- | --- |
+| `skills/` | `~/.roo/skills/` へコピー |
+| `commands/` | `~/.roo/commands/` へコピー |
+| `all-agents.yaml` | Zoo Code custom modes import 対象 |
+| `maintenance/` | 人間またはCIが明示的に実行する保守用。Zoo/Roo runtime は自動実行しない |
+
+AgentModes の GitHub 更新だけでは既存の Zoo Code 設定へ反映されません。更新後は `all-agents.yaml` の再importと、更新済み `skills/` / `commands/` の `~/.roo/` へのコピーが必要です。
+
+保守コマンド:
+
+```bash
+python maintenance/generate-all-agents.py
+python maintenance/validate-yaml.py
+python maintenance/validate-contracts.py
+```
 
 ## 推奨モデル割り当て設定例
 
@@ -79,17 +100,19 @@
 - セキュリティ・依存関係・secret・unsafe pattern・fabricated libraries は `security-auditor` が担当し、`reviewer` は最終品質レビュー、設計整合、保守性、性能、テスト妥当性、残リスク確認を担当する
 - `gpt-oss-needs-analyzer` はユーザーまたはランタイムが選択した分析用モデルで動作する任意前段モードとしてだけ使い、ツール実行、ファイル編集、サブタスク作成、他モード呼び出しを禁止する。出力は `ORCHESTRATOR_BRIEF_V1` YAML のみで、既存 Orchestrator はこれを advisory brief として扱い、raw user prompt を常に source of truth とする
 
-## Roo Code ワークフロー
+## Runtime Skills and Slash Commands
 
-固定手順として扱える品質ゲートは `workflows/` に切り出しています。
+top-level `workflows/` は使用しません。Skill は必要時にオンデマンドロードされ、Slash Command はユーザーが明示的に workflow を開始する entrypoint です。`maintenance/` は runtime 機能ではありません。
 
-| ワークフロー | 用途 |
-|---|---|
-| `workflows/tdd-quality-gate.json` | AI軽量TDDとして最小Red作成、Red実行、Red判定、Green実装、Coverage 85%以上、test-inventory判定、security-auditor、reviewerまでをSoD分離で実行する |
-| `workflows/github-issue-main-task.json` | GitHub Issue URL起点のIssue Intake、サブIssue分解、軽量TDD品質ゲート、Version Tag Push、診断Issue、完了コメント、サブIssue単独close、親Issueへの再ルーティングまでを処理する |
-| `workflows/provider-health-recovery.json` | ローカルProviderの空応答・生成停止をProvider Health Failureとして隔離し、provider-health-recovery Skillで復旧する |
+| Path | Type | Purpose |
+| --- | --- | --- |
+| `commands/tdd-quality-gate.md` | Slash Command | 軽量TDD Workflowの明示的entrypoint |
+| `commands/github-issue-main-task.md` | Slash Command | GitHub Issue Workflowの明示的entrypoint |
+| `skills/orchestrator-workflows/SKILL.md` | Skill | 上記2 Workflowの詳細phase定義 |
+| `skills/provider-health-recovery-flow/SKILL.md` | Skill | Provider復旧の分類・委任・再開フロー |
+| `skills/provider-health-recovery/SKILL.md` | Skill | Segregated DevOpsによる実際のProvider復旧手順 |
 
-ワークフローは順序と責務境界を固定するための定義です。各ステップの実処理は既存のカスタムモード、スラッシュコマンド、Skillに委任し、ログ全文や長い診断結果はArtifact Pathで受け渡します。
+固定手順は JSON workflow ではなく Slash Command と Skill に分けて管理します。ユーザーが Slash Command で workflow を開始し、Orchestrator は対応する Skill をロードして phase 順序、TASK_PACKET preflight、Scoped TODO Projection、条件付き品質ゲートを適用します。
 
 ## 代替割り当て方針
 
