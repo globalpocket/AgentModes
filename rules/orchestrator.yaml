@@ -29,7 +29,8 @@ customModes:
 
       **Runtime Guard Policy**
       - Normalize tool and controller failures as one of: `fatal`, `recoverable_completion_gate`, `recoverable_todo_noop_loop`, `provider_recovery_not_applicable`, `slash_command_not_applicable`, or `non_fatal_noop`.
-      - If `artifact_handoff.required` conflicts with the delegated mode permissions or `action_contract.allowed_actions`, classify it as an artifact permission conflict and split the work instead of forcing the delegated mode to create artifacts.
+      - If `artifact_handoff.required` conflicts with the delegated mode permissions or `action_contract.allowed_actions`, classify it as `artifact_permission_conflict` and split the work instead of forcing the delegated mode to create artifacts.
+      - If a tester result or delegated handoff names an artifact path that was not actually written or verified, classify it as `artifact_missing`; do not treat the path as completed.
       - Do not pause for `recoverable_completion_gate`, `recoverable_todo_noop_loop`, `provider_recovery_not_applicable`, `slash_command_not_applicable`, or `non_fatal_noop`; return a corrective message or partial handoff so the workflow can continue.
       - Keep `fatal` for forbidden edits, required artifact missing, destructive or unsafe repeated tool calls, risky approval requirements, actual repeated provider empty responses, and tester command failures where success was required.
       - Classify raw user prompts asking to create handoff context, compress conversation, summarize current state for the next model, `continuation context`, `handoff summary`, or `context compression` as `handoff_summary`; for that class use current-request-only completion, do not gate on global project todos, and do not execute `ORCHESTRATOR_BRIEF_V1.suggested_first_step`.
@@ -66,6 +67,13 @@ customModes:
       - Final quality review -> reviewer.
       - Loop recovery and redelegation design -> recovery-supervisor.
       - Final user-facing wording only -> user-response-composer.
+
+      **Mode Transition Contract**
+      - Mode transitions are owned by Orchestrator unless the raw user prompt explicitly runs a slash command or the system provides a direct mode switch mechanism.
+      - After each subtask completion, decide exactly one of: assign another task to the same mode, assign a task to a different mode, return to the parent workflow, route to recovery-supervisor, route to user-response-composer, or stop the workflow.
+      - Delegated modes must not self-dispatch, must not create follow-up task packets, and must not execute work belonging to another mode.
+      - A delegated mode may include `Recommended Next Mode` in its handoff, but Orchestrator owns the actual transition.
+      - If `action_contract.no_self_dispatch` is true, do not permit the delegated mode to call another mode, create a new packet, or continue into downstream work.
 
       **Lightweight TDD Policy**
       - Use Level 1 Contract Test or Level 2 Behavior Test for normal implementation work.
@@ -104,6 +112,7 @@ customModes:
       - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
       - If `artifact_handoff.required` is true, validate before delegation that `artifact_handoff.paths` is non-empty, every path is workspace-relative under `artifacts/`, the assigned mode can create the artifact content or a separate artifact-manager/write-capable task is planned, and `action_contract.allowed_actions` includes the required artifact/write/create/edit operation.
       - Do not create a `TASK_PACKET_V1` whose `action_contract.allowed_actions` conflicts with `artifact_handoff.required`.
+      - For subtasks, `done` must contain only conditions the assigned mode can satisfy; do not include parent workflow todos, later-mode work, README updates, final review, release, diagnostics, or user response unless that mode owns them.
       - For read-only modes, set `artifact_handoff.required` to false by default and receive a compact inline handoff within `output_contract.max_lines`.
       - If a read-only result must become an artifact, split the work: ask the read-only mode for key facts inline, then delegate artifact path preparation or content writing to an explicitly artifact-capable mode. Do not ask the read-only mode to create artifact content.
       - `artifact_handoff.paths` are canonical workspace-relative paths that are created only when permissions and steps are valid; they are not optional save-location suggestions.
@@ -140,10 +149,13 @@ customModes:
       - `commands` is a machine-readable execution specification for execution modes.
       - Each command object should include `id`, `purpose`, `command`, `cwd`, `artifact_path`, `coverage_artifact_path`, `expected_exit_status`, `pipefail_required`, `timeout_policy`, `on_still_running`, `allow_rerun`, `allow_polling`, and `allowed_after_completion`.
       - `cwd` must be `.` or a workspace-relative path. Absolute paths, home paths, and workspace escapes are forbidden.
+      - `action_contract.allowed_actions` and `action_contract.forbidden_actions` are tool/action names, not shell command substrings; never use ambiguous values such as `test` or `build`. Prefer explicit names such as `execute_command`, `read_file`, `search_files`, `edit_files`, `modify_source`, `delegate_task`, `self_dispatch`, or `write_artifact`.
       - `artifact_path` and non-empty `coverage_artifact_path` are canonical workspace-relative paths under `artifacts/`.
       - `artifact_path`, `coverage_artifact_path`, and `artifact_handoff.paths` are workspace file paths, not command-output artifact IDs.
       - `read_command_output.artifact_id` may only be the exact `cmd-{timestamp}.txt` ID returned by `execute_command`, matching `^cmd-[0-9]+\.txt$`; never synthesize it from `commands[*].id`, file paths, `cmd-*`, `cmd-*/...`, globs, or `artifacts/...`.
       - If a command redirects stdout/stderr/logs to `artifact_path`, downstream readers must use `read_file` on that workspace path.
+      - execute_command output is not automatically an artifact. When tester must produce `artifact_path`, normalize the shell command to write stdout/stderr to that path with an exit-status-preserving mechanism such as `tee` plus pipefail when required.
+      - `allow_rerun: false` means the command must not be rerun; `allow_polling: false` means the delegated mode must not tail, grep, cat, ps, pgrep, or otherwise poll; `on_still_running` defines whether to return `WAITING_EXTERNAL` or continue without additional checks.
       - Command-local save paths inside `commands[*].command` may be relative to `cwd`, but returned paths and `artifact_handoff.paths` must use canonical workspace-relative paths.
       - For tester, normally provide exactly one command per task. Red, Green, and Coverage are separate tasks. Integrated Coverage may run a whole suite only after unit Green checks.
 
@@ -155,6 +167,11 @@ customModes:
       - If artifact content is required from read-only analysis, Orchestrator must create a separate task for artifact-manager or another write-capable mode. Artifact-manager may initialize, prepare, or verify paths only unless its own contract explicitly allows content writing.
       - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
       - Judge artifacts through consistency-checker using provided paths and criteria.
+
+      **Regression Examples**
+      - Analyzer read-only artifact conflict: if `assigned_mode=analyzer`, `artifact_handoff.required=true`, and `allowed_actions=[read_file, search_files]`, do not create artifacts and do not call `/init`, `/analysys`, or initialize; require inline Partial Handoff and recommend artifact-manager or code as appropriate.
+      - Tester command success with parent todos pending: if `assigned_mode=tester` succeeds on `cargo fmt`, `cargo clippy`, and `cargo test` while a global README todo remains pending, report command results only, do not update README todos, and recommend documenter or reviewer as appropriate.
+      - Tester artifact missing: if `artifact_handoff.required=true` and `artifact_path=artifacts/test-results/cmd.txt` but stdout/stderr was not redirected or written, require `Artifact Status: not written / not verified`, classify `artifact_missing`, and do not list the path as completed.
 
       **WAITING_EXTERNAL**
       - Use task states `PENDING`, `RUNNING`, `WAITING_EXTERNAL`, `COMPLETED`, and `FAILED` only.

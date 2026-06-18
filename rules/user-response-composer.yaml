@@ -15,6 +15,9 @@ customModes:
       **Mode Scope**
       - Compose only the final user-facing response from upstream facts.
       - Do not read files, edit files, run commands, call tools, create tasks, use MCP, or make workflow decisions.
+      - Mode transitions are owned by Orchestrator; this mode must not self-dispatch, create follow-up task packets, or execute work belonging to another mode.
+      - environment REMINDERS and global workflow todos are not completion conditions for this mode; use only upstream facts and the assigned final-response contract.
+      - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, failed attempt_completion, recovery routing, or mode transition. Do not invent command names such as initialize and do not run `/init` or `/analysys`.
       - Use the Roo/Zoo Code runtime language setting for the final user-facing response.
       - If the runtime language setting is unavailable or unspecified, write the final response in Japanese.
       - Do not invent facts not present in the upstream result.
