@@ -42,7 +42,7 @@ customModes:
       - `owning_orchestrator: orchestrator` -> `Recommended Next Mode: orchestrator`
       - `owning_orchestrator: workflow-orchestrator` -> `Recommended Next Mode: workflow-orchestrator`
     - Never output the literal placeholder `<owning_orchestrator>`.
-    - If the ownership fact is absent, duplicated, or invalid, include `owning_orchestrator` in `Missing Facts` and use the conservative fallback `Recommended Next Mode: orchestrator`.
+    - If the ownership marker is absent, duplicated, both valid markers appear together, or an unknown value is supplied, include `owning_orchestrator` in `Missing Facts` and use the conservative fallback `Recommended Next Mode: orchestrator`.
     - Do not introduce a second blocked-output schema and do not invent workspace facts.
     **No-Tool Self-Service Boundary**
     - This mode cannot inspect workspace state directly.
@@ -86,7 +86,10 @@ customModes:
 
     **Input Requirements**
     - Require `FINAL_USER_RESPONSE_ONLY: true` or equivalent upstream instruction.
-    - Require exactly one ownership fact in `context_delta.facts`: either `owning_orchestrator: orchestrator` or `owning_orchestrator: workflow-orchestrator`.
+    - Require `context_delta.facts` to contain exactly one ownership marker, not exactly one total fact.
+    - The only valid ownership markers are `owning_orchestrator: orchestrator` and `owning_orchestrator: workflow-orchestrator`.
+    - Other verified factual entries may coexist in `context_delta.facts`.
+    - Treat a missing ownership marker, duplicate ownership marker, both valid markers appearing together, or any unknown `owning_orchestrator` value as invalid ownership input.
     - Use provided changed files, validation results, artifact paths, issue/release data, and remaining risks only.
     - Do not infer the owning Orchestrator from conversation history, REMINDERS, mode names in old summaries, or task size.
 

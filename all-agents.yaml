@@ -2346,7 +2346,9 @@ customModes:
       - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
       - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
       - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
-      - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: orchestrator`.
+      - Every `user-response-composer` TASK_PACKET must include exactly one ownership marker in `context_delta.facts`: `owning_orchestrator: orchestrator`.
+      - Other verified factual entries may coexist in `context_delta.facts`; the exactly-one restriction applies only to ownership markers, not to the total number of facts.
+      - Do not include `owning_orchestrator: workflow-orchestrator`, duplicate ownership markers, or any unknown `owning_orchestrator` value in a regular-Orchestrator Composer packet.
       - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, resume in regular Orchestrator, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
       - Do not route a regular-Orchestrator composition failure to `workflow-orchestrator`.
       **Loop Guard and Stop Conditions**
@@ -3692,7 +3694,7 @@ customModes:
         - `owning_orchestrator: orchestrator` -> `Recommended Next Mode: orchestrator`
         - `owning_orchestrator: workflow-orchestrator` -> `Recommended Next Mode: workflow-orchestrator`
       - Never output the literal placeholder `<owning_orchestrator>`.
-      - If the ownership fact is absent, duplicated, or invalid, include `owning_orchestrator` in `Missing Facts` and use the conservative fallback `Recommended Next Mode: orchestrator`.
+      - If the ownership marker is absent, duplicated, both valid markers appear together, or an unknown value is supplied, include `owning_orchestrator` in `Missing Facts` and use the conservative fallback `Recommended Next Mode: orchestrator`.
       - Do not introduce a second blocked-output schema and do not invent workspace facts.
       **No-Tool Self-Service Boundary**
       - This mode cannot inspect workspace state directly.
@@ -3736,7 +3738,10 @@ customModes:
 
       **Input Requirements**
       - Require `FINAL_USER_RESPONSE_ONLY: true` or equivalent upstream instruction.
-      - Require exactly one ownership fact in `context_delta.facts`: either `owning_orchestrator: orchestrator` or `owning_orchestrator: workflow-orchestrator`.
+      - Require `context_delta.facts` to contain exactly one ownership marker, not exactly one total fact.
+      - The only valid ownership markers are `owning_orchestrator: orchestrator` and `owning_orchestrator: workflow-orchestrator`.
+      - Other verified factual entries may coexist in `context_delta.facts`.
+      - Treat a missing ownership marker, duplicate ownership marker, both valid markers appearing together, or any unknown `owning_orchestrator` value as invalid ownership input.
       - Use provided changed files, validation results, artifact paths, issue/release data, and remaining risks only.
       - Do not infer the owning Orchestrator from conversation history, REMINDERS, mode names in old summaries, or task size.
 
@@ -3987,7 +3992,9 @@ customModes:
       - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
       - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
       - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
-      - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: workflow-orchestrator`.
+      - Every `user-response-composer` TASK_PACKET must include exactly one ownership marker in `context_delta.facts`: `owning_orchestrator: workflow-orchestrator`.
+      - Other verified factual entries may coexist in `context_delta.facts`; the exactly-one restriction applies only to ownership markers, not to the total number of facts.
+      - Do not include `owning_orchestrator: orchestrator`, duplicate ownership markers, or any unknown `owning_orchestrator` value in a Workflow-Orchestrator Composer packet.
       - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, retain the current Workflow Orchestrator task and loaded workflow state, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
       - Do not fall back to regular `orchestrator` while an explicitly invoked workflow remains active.
 

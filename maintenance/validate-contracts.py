@@ -168,8 +168,35 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "orchestrator",
         text,
-        "owning_orchestrator: orchestrator",
+        "exactly one ownership marker in `context_delta.facts`: "
+        "`owning_orchestrator: orchestrator`",
     )
+    require_contains(
+        "orchestrator",
+        text,
+        "Other verified factual entries may coexist in "
+        "`context_delta.facts`",
+    )
+    require_contains(
+        "orchestrator",
+        text,
+        "the exactly-one restriction applies only to ownership markers, "
+        "not to the total number of facts",
+    )
+    require_contains(
+        "orchestrator",
+        text,
+        "Do not include `owning_orchestrator: workflow-orchestrator`",
+    )
+
+    if (
+        "must include exactly one fact in `context_delta.facts`"
+        in text
+    ):
+        fail(
+            "orchestrator: ownership wording incorrectly limits the "
+            "entire facts collection to one entry"
+        )
     require_contains(
         "orchestrator",
         text,
@@ -233,8 +260,35 @@ def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "workflow-orchestrator",
         text,
-        "owning_orchestrator: workflow-orchestrator",
+        "exactly one ownership marker in `context_delta.facts`: "
+        "`owning_orchestrator: workflow-orchestrator`",
     )
+    require_contains(
+        "workflow-orchestrator",
+        text,
+        "Other verified factual entries may coexist in "
+        "`context_delta.facts`",
+    )
+    require_contains(
+        "workflow-orchestrator",
+        text,
+        "the exactly-one restriction applies only to ownership markers, "
+        "not to the total number of facts",
+    )
+    require_contains(
+        "workflow-orchestrator",
+        text,
+        "Do not include `owning_orchestrator: orchestrator`",
+    )
+
+    if (
+        "must include exactly one fact in `context_delta.facts`"
+        in text
+    ):
+        fail(
+            "workflow-orchestrator: ownership wording incorrectly "
+            "limits the entire facts collection to one entry"
+        )
     require_contains(
         "workflow-orchestrator",
         text,
@@ -629,6 +683,48 @@ def validate_user_response_composer(modes: dict[str, dict]) -> None:
         text,
         "Never output the literal placeholder `<owning_orchestrator>`",
     )
+    require_contains(
+        "user-response-composer",
+        text,
+        "exactly one ownership marker, not exactly one total fact",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "Other verified factual entries may coexist in "
+        "`context_delta.facts`",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "both valid markers appearing together",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "any unknown `owning_orchestrator` value",
+    )
+
+    stale_ownership_input = (
+        "Require exactly one ownership fact in "
+        "`context_delta.facts`"
+    )
+    if stale_ownership_input in text:
+        fail(
+            "user-response-composer: ambiguous ownership input wording "
+            "remains"
+        )
+
+    stale_total_fact_wording = (
+        "must include exactly one fact in `context_delta.facts`"
+    )
+
+    for owner_slug in ("orchestrator", "workflow-orchestrator"):
+        owner_text = instructions(modes[owner_slug])
+        if stale_total_fact_wording in owner_text:
+            fail(
+                f"{owner_slug}: stale total-fact ownership wording remains"
+            )
     require_contains(
         "user-response-composer",
         text,

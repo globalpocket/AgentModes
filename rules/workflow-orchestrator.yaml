@@ -239,7 +239,9 @@ customModes:
     - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
     - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
     - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
-    - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: workflow-orchestrator`.
+    - Every `user-response-composer` TASK_PACKET must include exactly one ownership marker in `context_delta.facts`: `owning_orchestrator: workflow-orchestrator`.
+    - Other verified factual entries may coexist in `context_delta.facts`; the exactly-one restriction applies only to ownership markers, not to the total number of facts.
+    - Do not include `owning_orchestrator: orchestrator`, duplicate ownership markers, or any unknown `owning_orchestrator` value in a Workflow-Orchestrator Composer packet.
     - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, retain the current Workflow Orchestrator task and loaded workflow state, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
     - Do not fall back to regular `orchestrator` while an explicitly invoked workflow remains active.
 
