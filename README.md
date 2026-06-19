@@ -36,6 +36,8 @@ python maintenance/validate-contracts.py
 
 前提:
 - GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
+- `qwen35-MTP` は `orchestrator`、`workflow-orchestrator`、`code`、`debug`、`recovery-supervisor` には割り当てない
+- MTP系モデルはread-only索引、定型command実行、定型文生成など、control-plane判断や精密patch生成を必要としない責務に限定する
 - 推論設定はモデル能力ではなくモード責務で決める
 - `Qwen3.5-122B` は Orchestrator、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
 - `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
@@ -45,6 +47,7 @@ python maintenance/validate-contracts.py
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
 | `orchestrator` | `Qwen3.5-122B` | オン / 高 | 全体制御、分解、SoD、handoff、品質ゲート判断に広い文脈と推論が必要 |
+| `workflow-orchestrator` | `Qwen3.5-122B` | オン / 高 | 明示的Workflowのphase制御、TASK_PACKET生成、TODO投影、条件分岐を担当 |
 | `gpt-oss-needs-analyzer` | `GPT-OSS-120B` | オン / 最高 | raw user prompt を深く分析し、Orchestrator向け advisory brief を生成する専用前段 |
 | `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
 | `recovery-supervisor` | `GPT-OSS-120B` | オン / 最高 | ループ脱出、失敗分類、再委任設計、停止条件判断が最も重い |
@@ -112,8 +115,8 @@ top-level `workflows/` は使用しません。Skill は必要時にオンデマ
 | `skills/provider-health-recovery-flow/SKILL.md` | Skill | Provider Health Failure分類済み後の復旧委任・再開フロー |
 | `skills/provider-health-recovery/SKILL.md` | Skill | Segregated DevOpsによる実際のProvider復旧手順 |
 
-固定手順は JSON workflow ではなく Slash Command と Skill に分けて管理します。ユーザーが Slash Command で workflow を開始し、Orchestrator は対応する Skill をロードして phase 順序、TASK_PACKET preflight、Scoped TODO Projection、条件付き品質ゲートを適用します。
-Workflowの詳細phase順序は `skills/orchestrator-workflows/SKILL.md` だけをsource of truthとし、Orchestrator mode promptには常時必須のinvariantだけを保持します。
+固定手順は JSON workflow ではなく Slash Command と Skill に分けて管理します。ユーザーが Slash Command で workflow を開始し、Workflow Orchestrator は対応する Skill をロードして phase 順序、TASK_PACKET preflight、Scoped TODO Projection、条件付き品質ゲートを適用します。
+Workflowの詳細phase順序は `skills/orchestrator-workflows/SKILL.md` だけをsource of truthとし、Workflow Orchestrator mode promptには常時必須のinvariantだけを保持します。
 
 ## 代替割り当て方針
 

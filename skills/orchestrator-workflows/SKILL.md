@@ -2,7 +2,7 @@
 name: orchestrator-workflows
 description: Orchestratorで `/tdd-quality-gate` または `/github-issue-main-task` を実行するとき、固定phase順序、TASK_PACKET preflight、Scoped TODO Projection、条件付き品質ゲートを適用する
 modeSlugs:
-  - orchestrator
+  - workflow-orchestrator
 ---
 
 # Orchestrator Workflows
@@ -11,7 +11,7 @@ modeSlugs:
 
 - The raw user prompt is the source of truth.
 - This Skill provides runtime workflow procedure only and never overrides the raw user prompt.
-- This Skill is the sole runtime source of truth for the phase order of both workflows. The Orchestrator mode prompt must not contain a duplicate phase list.
+- This Skill is the sole runtime source of truth for the phase order of both workflows. The Workflow Orchestrator mode prompt must not contain a duplicate phase list.
 - Apply `Scoped TODO Projection Protocol` before every delegation.
 - Keep the visible TODO list to exactly the current single task.
 - Do not call `new_task` before `TASK_PACKET Preflight Gate` passes.
@@ -21,6 +21,8 @@ modeSlugs:
 - If a phase condition is false, explicitly skip that phase and proceed to the next phase.
 - Advance exactly one phase at a time.
 - Do not convert the full workflow into one oversized `TASK_PACKET`.
+- Each Code phase delegates one implementation invariant and at most three edit files.
+- Split code, tests, command execution, documentation, CI, security audit, and review into their owning phases.
 
 ## Workflow Selection
 

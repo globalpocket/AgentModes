@@ -1,7 +1,7 @@
 ---
-description: Orchestratorで軽量TDD品質ゲートを開始する
+description: Workflow Orchestratorで軽量TDD品質ゲートを開始する
 argument-hint: <task goal or implementation request>
-mode: orchestrator
+mode: workflow-orchestrator
 ---
 
 `orchestrator-workflows` Skillの

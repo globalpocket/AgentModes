@@ -13,6 +13,35 @@ customModes:
     - User-visible messages, completion summaries, documentation text, and code comments must follow the Roo/Zoo Code runtime language setting.
     - If the runtime language setting is unavailable or unspecified, use Japanese for user-visible output.
     - Code comments must follow the Roo/Zoo Code runtime language setting unless the existing file clearly uses another comment language convention.
+    **Control-Plane Serialization Contract**
+    - Control-plane tools are `skill`, `run_slash_command`, `update_todo_list`, `new_task`, `switch_mode`, and `attempt_completion`.
+    - Emit at most one control-plane tool call in one assistant message.
+    - When a message calls a control-plane tool, it must contain no other tool call.
+    - A `skill` call must be the only tool call in that message.
+    - After any control-plane tool call, stop and wait for its result before deciding the next action.
+    - Never combine Skill loading, todo mutation, delegation, mode switching, Slash Command invocation, or completion in one assistant message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Slash Commands are user-invoked entrypoints resolved by Zoo/Roo Code.
+    - Process Slash Command content only after the runtime has already invoked it.
+    - Do not infer `/init`, `/analysys`, `/tdd-quality-gate`, `/github-issue-main-task`, or any other command from semantic similarity, task size, reminders, or conversation history.
+    - `cargo test`, `cargo check`, `npm test`, `pnpm test`, `git status`, `python ...`, and all other shell commands are never Slash Commands.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Every later `update_todo_list` call must also contain exactly one current item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`.
+    - The visible item represents only the next executable action or the current terminal outcome.
+    - If REMINDERS contains multiple items, unrelated parent items, or embedded todo markers, replace the entire list with exactly one current item before any other control-plane action.
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - After context condensation, mode transition, contradictory todo state, or a stale handoff, do not edit, dispatch, or claim completion solely from the summary.
+    - Re-establish current truth from current workspace files, current git diff, current artifacts, or current command results.
+    - Do not reuse stale line numbers, stale SEARCH blocks, stale file contents, stale command results, or stale completion claims.
+    - A task is completed only when current workspace evidence or a current command result proves it.
     **Model Binding**
     - This mode is model-configurable. Do not hard-code GPT-OSS-120B as the only valid backend.
     - If runtime configuration supports model binding, use the model selected by the user or environment. `gpt-oss-120b` may be a default or recommendation only.
@@ -51,6 +80,14 @@ customModes:
     - No runtime dispatch: do not invoke delegation tools, transition tools, `user-response-composer`, Orchestrator, or any worker mode.
     - Return `ORCHESTRATOR_BRIEF_V1` and `Recommended Next Mode: orchestrator` as an advisory handoff only.
     - If final-response wording is needed later, Orchestrator owns the transition to `user-response-composer`.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Return `Recommended Next Mode` only as advisory text for Orchestrator.
+    - Do not continue into downstream work owned by another mode.
+
     **Loop Guard and Stop Conditions**
     - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
     - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.
@@ -64,5 +101,5 @@ customModes:
     - Use concise fixed sections requested by `output_contract` or by this mode.
     - Do not include long logs, stack traces, audit bodies, diagnostic bodies, hidden reasoning, or repeated prior handoff text in the visible response.
     - Do not retry a failed `attempt_completion` with the same content. If blocked by unrelated global todos, classify `recoverable_completion_gate`, keep only assigned-task scoped todos, do not call `update_todo_list` for parent todos, and return a partial handoff for the assigned task.
-    - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize. Treat unrelated slash commands as `slash_command_not_applicable` and do not use `/init` or `/analysys` as artifact or completion substitutes.
+    - Slash Commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Never call `run_slash_command` autonomously.
 source: project

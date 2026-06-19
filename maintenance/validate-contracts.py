@@ -148,13 +148,15 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "orchestrator",
         text,
-        "**Workflow Definition Boundary**",
+        "**Workflow Isolation Boundary**",
     )
     require_contains(
         "orchestrator",
         text,
-        "sole runtime source of truth for the detailed phase order",
+        "Regular Orchestrator must not load `orchestrator-workflows`",
     )
+    require_contains("orchestrator", text, "**Explicit First-Step Fidelity**")
+    require_contains("orchestrator", text, "**Large Task Admission Control**")
     if "**SoD Workflow**" in text:
         fail("orchestrator: duplicated SoD Workflow phase list remains")
     require_regex(
@@ -167,6 +169,137 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains("orchestrator", text, "Do not send standalone documentation presence inspection to Documenter")
     if "README or docs presence checks go to doc-evidence-reader, librarian, analyzer, or documenter" in text:
         fail("orchestrator: forbidden Documenter in standalone README/docs presence routing")
+
+
+def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
+    mode = modes.get("workflow-orchestrator")
+    if mode is None:
+        fail("workflow-orchestrator: missing required mode")
+    if mode.get("groups") != []:
+        fail("workflow-orchestrator: groups must be []")
+    text = instructions(mode)
+    for needle in [
+        "**Workflow Invocation Gate**",
+        "**Workflow Skill Entry**",
+        "Workflow Invocation Required",
+        "The `skill` call must be the only tool call in that assistant message.",
+        "**Workflow Completion**",
+        "**Provider Recovery Coordination**",
+        "**Large Task Admission Control**",
+        "**Internal Routing Contract**",
+        "Do not create a wrapper `new_task` targeting `orchestrator`",
+        "Do not call `new_task` targeting `workflow-orchestrator` or `orchestrator`",
+        "Code granularity check",
+        "Responsibility check",
+        "state rehydration",
+    ]:
+        require_contains("workflow-orchestrator", text, needle)
+    forbid_regex(
+        "workflow-orchestrator",
+        text,
+        r"## Workflow: tdd-quality-gate|## Workflow: github-issue-main-task|### Phase: red-write",
+        "duplicated workflow phase list in mode prompt",
+    )
+
+
+def validate_control_plane_serialization(modes: dict[str, dict]) -> None:
+    for slug, mode in modes.items():
+        text = instructions(mode)
+        require_contains(slug, text, "**Control-Plane Serialization Contract**")
+        require_contains(slug, text, "Emit at most one control-plane tool call in one assistant message.")
+        require_contains(slug, text, "A `skill` call must be the only tool call in that message.")
+        require_contains(slug, text, "Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.")
+
+
+def validate_slash_command_boundary(modes: dict[str, dict]) -> None:
+    for slug, mode in modes.items():
+        text = instructions(mode)
+        require_contains(slug, text, "**Slash Command Invocation Boundary**")
+        require_contains(slug, text, "Never call `run_slash_command` autonomously.")
+        require_contains(slug, text, "Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.")
+        require_contains(slug, text, "Missing or unrelated Slash Commands are not Provider Health Failures.")
+
+
+def validate_internal_routing(modes: dict[str, dict]) -> None:
+    for slug in ("orchestrator", "workflow-orchestrator"):
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Internal Routing Contract**")
+        require_contains(slug, text, "Delegate specialist work only with `new_task`.")
+        require_contains(slug, text, "Never call `switch_mode` for internal work.")
+        require_contains(slug, text, "Do not create a wrapper `new_task` targeting `orchestrator`.")
+
+
+def validate_visible_todo_admission(modes: dict[str, dict]) -> None:
+    for slug, mode in modes.items():
+        text = instructions(mode)
+        require_contains(slug, text, "**Visible TODO Admission Contract**")
+        require_contains(slug, text, "The first `update_todo_list` call in a task must contain exactly one item.")
+        require_contains(slug, text, "Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.")
+        require_contains(slug, text, "Never encode multiple todos inside one todo body")
+
+
+def validate_command_group_policy(modes: dict[str, dict]) -> None:
+    allowed = {"artifact-manager", "tester", "segregated-devops", "release-manager", "security-auditor"}
+    actual = {slug for slug, mode in modes.items() if group_contains(mode.get("groups", []), "command")}
+    if actual != allowed:
+        fail(f"command group modes must be exactly {sorted(allowed)!r}, got {sorted(actual)!r}")
+    if modes["code"].get("groups") != ["read", "edit", "mcp"]:
+        fail(f"code: groups must be ['read', 'edit', 'mcp'], got {modes['code'].get('groups')!r}")
+    if modes["diagnostic-reporter"].get("groups") != ["read", "mcp"]:
+        fail("diagnostic-reporter: groups must be ['read', 'mcp']")
+
+
+def validate_patch_recovery_skill(modes: dict[str, dict]) -> None:
+    path = ROOT / "skills" / "apply-diff-recovery" / "SKILL.md"
+    require_file(path)
+    data = markdown_frontmatter(path)
+    if data.get("name") != "apply-diff-recovery":
+        fail("apply-diff-recovery: frontmatter name must be 'apply-diff-recovery'")
+    expected_slugs = {"code", "debug", "refactorer", "test-writer"}
+    if set(data.get("modeSlugs") or []) != expected_slugs:
+        fail("apply-diff-recovery: modeSlugs must be exactly ['code', 'debug', 'refactorer', 'test-writer']")
+    skill_text = path.read_text(encoding="utf-8")
+    for needle in [
+        "`-------` must be on its own line",
+        "Retry `apply_diff` at most once",
+        "`patch_application_failed`",
+        "Do not invent helper methods",
+        "read_file",
+    ]:
+        if needle not in skill_text:
+            fail(f"apply-diff-recovery: missing required text: {needle}")
+    for slug in ["code", "debug", "refactorer", "test-writer"]:
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Patch Application Contract**")
+        require_contains(slug, text, "Before the first `apply_diff`, load `apply-diff-recovery`")
+        require_contains(slug, text, "Do not call `execute_command`.")
+
+
+def validate_post_condense_rehydration(modes: dict[str, dict]) -> None:
+    for slug, mode in modes.items():
+        text = instructions(mode)
+        require_contains(slug, text, "**Post-Condense Rehydration Contract**")
+        require_contains(slug, text, "Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.")
+        require_contains(slug, text, "Do not reuse stale line numbers")
+    for slug in ("orchestrator", "workflow-orchestrator"):
+        require_contains(slug, instructions(modes[slug]), "state rehydration")
+
+
+def validate_explicit_first_step(modes: dict[str, dict]) -> None:
+    text = instructions(modes["orchestrator"])
+    require_contains("orchestrator", text, "**Explicit First-Step Fidelity**")
+    require_contains("orchestrator", text, "Exact shell commands are routed to Tester, never to Slash Commands.")
+    require_contains("orchestrator", text, "Do not substitute a semantically related Skill, Slash Command, or exploratory task for the explicit first step.")
+
+
+def validate_large_task_admission(modes: dict[str, dict]) -> None:
+    for slug in ("orchestrator", "workflow-orchestrator"):
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Large Task Admission Control**")
+        require_contains(slug, text, "One Code task owns exactly one implementation invariant")
+        require_contains(slug, text, "`files.edit_files` for Code must contain no more than three files.")
+        require_contains(slug, text, "Code granularity check")
+        require_contains(slug, text, "Responsibility check")
 
 
 def task_packet_modes(modes: dict[str, dict]) -> dict[str, dict]:
@@ -407,7 +540,7 @@ def validate_mode_metadata(modes: dict[str, dict]) -> None:
 def validate_no_tool_modes(modes: dict[str, dict]) -> None:
     forbidden = re.compile(
         r"Inspect it yourself|Before asking, perform|read/search both|use list/search/read|run the specified command|"
-        r"perform the inspection|call `new_task`|call new_task|switch modes yourself",
+        r"perform the inspection|switch modes yourself",
         flags=re.IGNORECASE,
     )
     metadata_forbidden = re.compile(
@@ -419,7 +552,7 @@ def validate_no_tool_modes(modes: dict[str, dict]) -> None:
         if mode.get("groups") != []:
             continue
         meta = metadata_text(mode)
-        if slug == "orchestrator":
+        if slug in {"orchestrator", "workflow-orchestrator"}:
             # Orchestrator may explicitly delegate but must not inspect directly.
             text = instructions(mode)
             if re.search(r"inspect workspace (state )?directly|workspace inspection authority", meta, flags=re.IGNORECASE):
@@ -520,12 +653,12 @@ def validate_skill_frontmatter() -> None:
     expected = {
         ROOT / "skills" / "orchestrator-workflows" / "SKILL.md": {
             "name": "orchestrator-workflows",
-            "modeSlugs": ["orchestrator"],
+            "modeSlugs": ["workflow-orchestrator"],
             "description_contains": ["tdd-quality-gate", "github-issue-main-task"],
         },
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
             "name": "provider-health-recovery-flow",
-            "modeSlugs": ["orchestrator"],
+            "modeSlugs": ["orchestrator", "workflow-orchestrator"],
             "description_contains": [],
         },
         ROOT / "skills" / "provider-health-recovery" / "SKILL.md": {
@@ -588,10 +721,10 @@ def validate_runtime_skill_semantics() -> None:
             )
 
     provider_frontmatter = markdown_frontmatter(provider_path)
-    if provider_frontmatter.get("modeSlugs") != ["orchestrator"]:
+    if sorted(provider_frontmatter.get("modeSlugs") or []) != ["orchestrator", "workflow-orchestrator"]:
         fail(
             "provider-health-recovery-flow: modeSlugs must be exactly "
-            "['orchestrator']"
+            "['orchestrator', 'workflow-orchestrator']"
         )
 
     required_provider = [
@@ -633,8 +766,8 @@ def validate_command_frontmatter() -> None:
             fail(f"{relative(path)} frontmatter description is required")
         if not data.get("argument-hint"):
             fail(f"{relative(path)} frontmatter argument-hint is required")
-        if data.get("mode") != "orchestrator":
-            fail(f"{relative(path)} frontmatter mode must be 'orchestrator'")
+        if data.get("mode") != "workflow-orchestrator":
+            fail(f"{relative(path)} frontmatter mode must be 'workflow-orchestrator'")
 
 
 def validate_stale_runtime_references() -> None:
@@ -682,6 +815,7 @@ def main() -> None:
     for slug in [
         "tester",
         "orchestrator",
+        "workflow-orchestrator",
         "user-response-composer",
         "ask",
         "documenter",
@@ -690,6 +824,16 @@ def main() -> None:
         if slug not in rule_modes:
             fail(f"missing required mode: {slug}")
 
+    validate_control_plane_serialization(rule_modes)
+    validate_slash_command_boundary(rule_modes)
+    validate_visible_todo_admission(rule_modes)
+    validate_post_condense_rehydration(rule_modes)
+    validate_internal_routing(rule_modes)
+    validate_workflow_orchestrator(rule_modes)
+    validate_command_group_policy(rule_modes)
+    validate_patch_recovery_skill(rule_modes)
+    validate_explicit_first_step(rule_modes)
+    validate_large_task_admission(rule_modes)
     validate_tester(rule_modes)
     validate_orchestrator(rule_modes)
     validate_scoped_todo_compatibility(rule_modes)

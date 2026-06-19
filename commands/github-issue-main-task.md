@@ -1,7 +1,7 @@
 ---
-description: OrchestratorでGitHub Issue起点のメインタスクWorkflowを開始する
+description: Workflow OrchestratorでGitHub Issue起点のメインタスクWorkflowを開始する
 argument-hint: <GitHub Issue URL>
-mode: orchestrator
+mode: workflow-orchestrator
 ---
 
 `orchestrator-workflows` Skillの

@@ -3,6 +3,7 @@ name: provider-health-recovery-flow
 description: recovery-supervisorがProvider Health Failureを確認した後だけ、Segregated DevOpsによる復旧とOrchestratorによる直前タスク再開を調整する
 modeSlugs:
   - orchestrator
+  - workflow-orchestrator
 ---
 
 # Provider Health Recovery Flow

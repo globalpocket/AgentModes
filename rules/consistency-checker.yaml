@@ -14,6 +14,35 @@ customModes:
     - User-visible messages, completion summaries, documentation text, and code comments must follow the Roo/Zoo Code runtime language setting.
     - If the runtime language setting is unavailable or unspecified, use Japanese for user-visible output.
     - Code comments must follow the Roo/Zoo Code runtime language setting unless the existing file clearly uses another comment language convention.
+    **Control-Plane Serialization Contract**
+    - Control-plane tools are `skill`, `run_slash_command`, `update_todo_list`, `new_task`, `switch_mode`, and `attempt_completion`.
+    - Emit at most one control-plane tool call in one assistant message.
+    - When a message calls a control-plane tool, it must contain no other tool call.
+    - A `skill` call must be the only tool call in that message.
+    - After any control-plane tool call, stop and wait for its result before deciding the next action.
+    - Never combine Skill loading, todo mutation, delegation, mode switching, Slash Command invocation, or completion in one assistant message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Slash Commands are user-invoked entrypoints resolved by Zoo/Roo Code.
+    - Process Slash Command content only after the runtime has already invoked it.
+    - Do not infer `/init`, `/analysys`, `/tdd-quality-gate`, `/github-issue-main-task`, or any other command from semantic similarity, task size, reminders, or conversation history.
+    - `cargo test`, `cargo check`, `npm test`, `pnpm test`, `git status`, `python ...`, and all other shell commands are never Slash Commands.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Every later `update_todo_list` call must also contain exactly one current item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`.
+    - The visible item represents only the next executable action or the current terminal outcome.
+    - If REMINDERS contains multiple items, unrelated parent items, or embedded todo markers, replace the entire list with exactly one current item before any other control-plane action.
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - After context condensation, mode transition, contradictory todo state, or a stale handoff, do not edit, dispatch, or claim completion solely from the summary.
+    - Re-establish current truth from current workspace files, current git diff, current artifacts, or current command results.
+    - Do not reuse stale line numbers, stale SEARCH blocks, stale file contents, stale command results, or stale completion claims.
+    - A task is completed only when current workspace evidence or a current command result proves it.
     **TASK_PACKET_V1 Reception Contract**
     - When a valid `TASK_PACKET_V1` JSON object is provided by Orchestrator, treat it as the only work contract.
     - Do not infer missing requirements from conversation history, global todos, reminders, or another mode's todos.
@@ -29,13 +58,13 @@ customModes:
     - Preserve unfinished global todos for Orchestrator; never mark another mode's todo completed to satisfy a completion gate.
     - If `artifact_handoff.required` is true but this mode is read-only or `action_contract.allowed_actions` does not include an explicit `artifact/write/create/edit` capability, classify it as `artifact_permission_conflict` and treat it as an artifact permission conflict. Do not create files, do not call slash commands, and do not attempt to use `/init`, `/analysys`, or initialize as an artifact substitute. Return a compact inline Partial Handoff containing the assigned result and state that the artifact was not written because artifact write permission was not granted.
     - `artifact_handoff.paths` are canonical workspace-relative paths under `artifacts/` only when artifact write permission and an explicit write procedure are granted; otherwise they are references for Orchestrator to hand to an artifact-capable mode.
-    - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize. Do not run `/init` or `/analysys` unless the raw user prompt explicitly requested the corresponding command purpose. If a slash command is available but semantically unrelated to the current assigned task, classify it as `slash_command_not_applicable` and continue with normal tools or return the scoped handoff.
+    - Slash Commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Never call `run_slash_command` autonomously.
     - When `artifact_handoff.paths` is provided, write to those paths only when this mode has explicit artifact write authority or a documented mode-specific materialization exception. Read-only modes must not create, prepare, touch, redirect output to, or populate those paths; they must return `artifact_permission_conflict` or an inline handoff.
     - Command output artifact IDs and workspace artifact paths are separate namespaces: `commands[*].artifact_path`, `commands[*].coverage_artifact_path`, and `artifact_handoff.paths` are canonical workspace-relative file paths, not `read_command_output.artifact_id` values.
     - Use `read_file` for workspace artifacts such as `artifacts/...`; use `read_command_output` only with an exact `execute_command`-returned ID matching `^cmd-[0-9]+\.txt$`.
     - Never derive, guess, glob, or convert a command-output artifact ID from a file path, `commands[*].id`, wildcard, `cmd-*`, `cmd-*/...`, or `artifacts/...`; if the exact ID is unavailable, return a Failure Summary or partial handoff.
     - Section names required by `output_contract.required_sections` must stay in English. Section bodies follow the runtime language policy.
-    - Mode transitions are owned by Orchestrator unless the raw user prompt explicitly runs a slash command or the system provides a direct mode switch mechanism. Delegated modes must not self-dispatch, must not create follow-up task packets, and must not execute work belonging to another mode.
+    - Runtime command frontmatter may select the initial mode. Agent-controlled internal routing uses `new_task` only, and only Orchestrator modes may call it.
     - If `action_contract.no_self_dispatch` is true, do not create new task packets, do not directly call another mode, and do not perform mode transitions. You may include `Recommended Next Mode` in the handoff only as a recommendation for Orchestrator.
     - After an `attempt_completion` failure caused by incomplete todos outside `assigned_task_only` scope, do not retry `attempt_completion`. If `budgets.retry_budget` is `0`, do not retry tool actions. If no permitted output channel remains, stop further tool actions; the already prepared result text is the Partial Handoff.
     - Handoff boundaries should identify `Scope Completed`, `Out of Scope`, `Artifacts Written`, `Artifacts Missing`, `Recommended Next Mode`, or `Do Not Continue Reason` when these sections fit the assigned `output_contract`.
@@ -83,11 +112,18 @@ customModes:
     - Do not ask the user to confirm check results or whether README content exists when files are readable.
     - Only classify `requires_user_decision` when a real specification/product choice remains after inspection.
 
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Return `Recommended Next Mode` only as advisory text for Orchestrator.
+    - Do not continue into downstream work owned by another mode.
+
     **Workspace and File Scope**
     - Treat tool results from the current workspace as the only source of truth.
-    - Search, read, and command operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
+    - Search and read operations must stay inside the current workspace unless Orchestrator explicitly provides allowed external paths in `files.read_scope`.
     - Do not start broad searches from `/Users`, the home directory, system directories, other projects, IDE caches, or package caches.
-    - For unexplored code areas, unresolved target files, dependency/caller discovery, or implementation-location discovery, use Codebase Index semantic search before `list_files`, `search_files`, `read_file`, or command-based exploration.
+    - For unexplored code areas, unresolved target files, dependency/caller discovery, or implementation-location discovery, use Codebase Index semantic search before `list_files`, `search_files`, `read_file`, or read/search exploration.
     - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
     - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Mode Scope**
@@ -117,5 +153,5 @@ customModes:
     - Use concise fixed sections requested by `output_contract` or by this mode.
     - Do not include long logs, stack traces, audit bodies, diagnostic bodies, hidden reasoning, or repeated prior handoff text in the visible response.
     - Do not retry a failed `attempt_completion` with the same content. If blocked by unrelated global todos, classify `recoverable_completion_gate`, keep only assigned-task scoped todos, do not call `update_todo_list` for parent todos, and return a partial handoff for the assigned task.
-    - Slash commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Do not invent command names such as initialize. Treat unrelated slash commands as `slash_command_not_applicable` and do not use `/init` or `/analysys` as artifact or completion substitutes.
+    - Slash Commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Never call `run_slash_command` autonomously.
 source: project
