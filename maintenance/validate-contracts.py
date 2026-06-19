@@ -30,6 +30,16 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES_DIR = ROOT / "rules"
 ALL_AGENTS = ROOT / "all-agents.yaml"
 
+ORCHESTRATOR_NO_TOOL_MODES = {
+    "orchestrator",
+    "workflow-orchestrator",
+}
+
+TERMINAL_NO_TOOL_MODES = {
+    "user-response-composer",
+    "gpt-oss-needs-analyzer",
+}
+
 
 def fail(message: str) -> None:
     raise SystemExit(f"ERROR: {message}")
@@ -124,6 +134,21 @@ def forbid_regex(slug: str, text: str, pattern: str, reason: str) -> None:
         fail(f"{slug}: forbidden {reason}")
 
 
+def validate_no_tool_classification(modes: dict[str, dict]) -> None:
+    actual = {
+        slug
+        for slug, mode in modes.items()
+        if mode.get("groups") == []
+    }
+    expected = ORCHESTRATOR_NO_TOOL_MODES | TERMINAL_NO_TOOL_MODES
+
+    if actual != expected:
+        fail(
+            "unclassified no-tool modes: "
+            f"actual={sorted(actual)!r} expected={sorted(expected)!r}"
+        )
+
+
 def validate_tester(modes: dict[str, dict]) -> None:
     text = instructions(modes["tester"])
     require_contains("tester", text, "Tester Artifact Materialization Authority exception")
@@ -191,7 +216,7 @@ def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
         "Do not call `new_task` targeting `workflow-orchestrator` or `orchestrator`",
         "Code granularity check",
         "Responsibility check",
-        "state rehydration",
+        "state-rehydrate",
     ]:
         require_contains("workflow-orchestrator", text, needle)
     forbid_regex(
@@ -205,6 +230,18 @@ def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
 def validate_control_plane_serialization(modes: dict[str, dict]) -> None:
     for slug, mode in modes.items():
         text = instructions(mode)
+        if slug in TERMINAL_NO_TOOL_MODES:
+            require_contains(slug, text, "**No-Tool Control Boundary**")
+            require_contains(slug, text, "This mode must not call any tool.")
+            require_regex(
+                slug,
+                text,
+                r"Do not call `skill`.*`run_slash_command`.*`update_todo_list`.*`new_task`.*`switch_mode`.*`attempt_completion`",
+                "no-tool control-plane prohibition",
+            )
+            if "**Control-Plane Serialization Contract**" in text:
+                fail(f"{slug}: terminal no-tool mode must not include Control-Plane Serialization Contract")
+            continue
         require_contains(slug, text, "**Control-Plane Serialization Contract**")
         require_contains(slug, text, "Emit at most one control-plane tool call in one assistant message.")
         require_contains(slug, text, "A `skill` call must be the only tool call in that message.")
@@ -212,12 +249,22 @@ def validate_control_plane_serialization(modes: dict[str, dict]) -> None:
 
 
 def validate_slash_command_boundary(modes: dict[str, dict]) -> None:
+    stale_permissive_phrases = [
+        "Slash commands may run only when",
+        "/init is allowed only when",
+        "/analysys is allowed only when",
+        "unless the raw user prompt explicitly requested the corresponding command purpose",
+        "unless the raw user prompt explicitly runs a slash command",
+    ]
     for slug, mode in modes.items():
         text = instructions(mode)
         require_contains(slug, text, "**Slash Command Invocation Boundary**")
         require_contains(slug, text, "Never call `run_slash_command` autonomously.")
         require_contains(slug, text, "Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.")
         require_contains(slug, text, "Missing or unrelated Slash Commands are not Provider Health Failures.")
+        for phrase in stale_permissive_phrases:
+            if phrase in text:
+                fail(f"{slug}: stale permissive slash-command wording: {phrase}")
 
 
 def validate_internal_routing(modes: dict[str, dict]) -> None:
@@ -227,11 +274,26 @@ def validate_internal_routing(modes: dict[str, dict]) -> None:
         require_contains(slug, text, "Delegate specialist work only with `new_task`.")
         require_contains(slug, text, "Never call `switch_mode` for internal work.")
         require_contains(slug, text, "Do not create a wrapper `new_task` targeting `orchestrator`.")
+    for slug, mode in modes.items():
+        if slug in ORCHESTRATOR_NO_TOOL_MODES:
+            continue
+        text = instructions(mode)
+        require_contains(slug, text, "**Delegated Routing Boundary**")
+        require_contains(slug, text, "Never call `new_task`.")
+        require_contains(slug, text, "Never call `switch_mode`.")
+        require_contains(slug, text, "Never invoke another mode directly.")
+        require_contains(slug, text, "Recommended Next Mode")
 
 
 def validate_visible_todo_admission(modes: dict[str, dict]) -> None:
     for slug, mode in modes.items():
         text = instructions(mode)
+        if slug in TERMINAL_NO_TOOL_MODES:
+            require_contains(slug, text, "**No-Tool TODO Boundary**")
+            require_contains(slug, text, "Do not call `update_todo_list`.")
+            if "**Visible TODO Admission Contract**" in text:
+                fail(f"{slug}: terminal no-tool mode must not include Visible TODO Admission Contract")
+            continue
         require_contains(slug, text, "**Visible TODO Admission Contract**")
         require_contains(slug, text, "The first `update_todo_list` call in a task must contain exactly one item.")
         require_contains(slug, text, "Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.")
@@ -278,11 +340,45 @@ def validate_patch_recovery_skill(modes: dict[str, dict]) -> None:
 def validate_post_condense_rehydration(modes: dict[str, dict]) -> None:
     for slug, mode in modes.items():
         text = instructions(mode)
+        if slug in ORCHESTRATOR_NO_TOOL_MODES:
+            require_contains(slug, text, "**Orchestrated Post-Condense Rehydration Contract**")
+            require_contains(slug, text, "no direct workspace inspection authority")
+            require_contains(slug, text, "[ ] state-rehydrate:")
+            require_contains(slug, text, "`update_todo_list` call must be the only control-plane call")
+            require_contains(slug, text, "delegate exactly one `state-rehydrate` task with `new_task`")
+            require_contains(slug, text, "`new_task` call must be the only control-plane call")
+            require_contains(slug, text, "Wait for the rehydration handoff")
+            for forbidden in [
+                "**Post-Condense Rehydration Contract**",
+                "**No-Tool Post-Condense Boundary**",
+            ]:
+                if forbidden in text:
+                    fail(f"{slug}: forbidden post-condense contract text remains: {forbidden}")
+            continue
+        if slug in TERMINAL_NO_TOOL_MODES:
+            require_contains(slug, text, "**No-Tool Post-Condense Boundary**")
+            require_contains(slug, text, "cannot rehydrate workspace state directly")
+            require_regex(slug, text, r"Do not read, search, execute, inspect", "terminal no-tool inspection prohibition")
+            for forbidden in [
+                "**Post-Condense Rehydration Contract**",
+                "**Orchestrated Post-Condense Rehydration Contract**",
+                "Re-establish current truth from current workspace files",
+            ]:
+                if forbidden in text:
+                    fail(f"{slug}: forbidden post-condense contract text remains: {forbidden}")
+            if slug == "user-response-composer":
+                require_contains(slug, text, "COMPOSER_BLOCKED: inspection_required")
+                require_contains(slug, text, "Missing Facts")
+                require_contains(slug, text, "Recommended Next Mode: orchestrator")
+            if slug == "gpt-oss-needs-analyzer":
+                require_contains(slug, text, "blocked_by_permission")
+                require_contains(slug, text, "analysis_confidence: unavailable")
+                require_contains(slug, text, "ORCHESTRATOR_BRIEF_V1")
+                require_contains(slug, text, "Recommended Next Mode: orchestrator")
+            continue
         require_contains(slug, text, "**Post-Condense Rehydration Contract**")
         require_contains(slug, text, "Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.")
         require_contains(slug, text, "Do not reuse stale line numbers")
-    for slug in ("orchestrator", "workflow-orchestrator"):
-        require_contains(slug, instructions(modes[slug]), "state rehydration")
 
 
 def validate_explicit_first_step(modes: dict[str, dict]) -> None:
@@ -449,6 +545,9 @@ def validate_user_response_composer(modes: dict[str, dict]) -> None:
     if mode.get("groups") != []:
         fail("user-response-composer: groups must be []")
     text = instructions(mode)
+    require_contains("user-response-composer", text, "**No-Tool Control Boundary**")
+    require_contains("user-response-composer", text, "**No-Tool TODO Boundary**")
+    require_contains("user-response-composer", text, "**No-Tool Post-Condense Boundary**")
     require_contains("user-response-composer", text, "COMPOSER_BLOCKED: inspection_required")
     require_contains("user-response-composer", text, "Recommended Next Mode: orchestrator")
     require_contains("user-response-composer", text, "Do not inspect, self-dispatch, or invent facts")
@@ -484,16 +583,21 @@ def validate_mode_metadata(modes: dict[str, dict]) -> None:
         fail("gpt-oss-needs-analyzer: groups must be []")
 
     gpt_text = full_mode_text(gpt)
+    gpt_instructions = instructions(gpt)
+    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Control Boundary**")
+    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool TODO Boundary**")
+    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Post-Condense Boundary**")
+    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "analysis_confidence: unavailable")
     require_contains("gpt-oss-needs-analyzer", gpt_text, "Recommended Next Mode: orchestrator")
     require_regex(
         "gpt-oss-needs-analyzer",
-        gpt.get("roleDefinition", "") + "\n" + instructions(gpt),
+        gpt.get("roleDefinition", "") + "\n" + gpt_instructions,
         r"without dispatching|No runtime dispatch|do not .*dispatch",
         "explicit no-dispatch contract",
     )
     require_regex(
         "gpt-oss-needs-analyzer",
-        instructions(gpt),
+        gpt_instructions,
         r"Do not .*invoke .*Orchestrator|advisory handoff only",
         "no Orchestrator invocation contract",
     )
@@ -824,6 +928,7 @@ def main() -> None:
         if slug not in rule_modes:
             fail(f"missing required mode: {slug}")
 
+    validate_no_tool_classification(rule_modes)
     validate_control_plane_serialization(rule_modes)
     validate_slash_command_boundary(rule_modes)
     validate_visible_todo_admission(rule_modes)

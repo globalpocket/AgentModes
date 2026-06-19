@@ -40,15 +40,17 @@ customModes:
     - The visible item represents only the next executable action or the current terminal outcome.
     - If REMINDERS contains multiple items, unrelated parent items, or embedded todo markers, replace the entire list with exactly one current item before any other control-plane action.
 
-    **Post-Condense Rehydration Contract**
-    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
-    - After context condensation, mode transition, contradictory todo state, or a stale handoff, do not edit, dispatch, or claim completion solely from the summary.
-    - Re-establish current truth from current workspace files, current git diff, current artifacts, or current command results.
-    - Do not reuse stale line numbers, stale SEARCH blocks, stale file contents, stale command results, or stale completion claims.
-    - A task is completed only when current workspace evidence or a current command result proves it.
-    - When state is condensed or contradictory, perform state rehydration before the next implementation delegation.
-    - Use Analyzer or Librarian for current file state and Tester for current command state.
-    - Do not trust a summary claiming that a file, test, or phase is complete without current evidence.
+    **Orchestrated Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not verified workspace evidence.
+    - This mode has no direct workspace inspection authority and must not read, search, execute, or inspect workspace state itself.
+    - When current evidence is required, first replace the visible TODO list with exactly one pending item: `[ ] state-rehydrate: reconstruct current workflow state`.
+    - That `update_todo_list` call must be the only control-plane call in its assistant message.
+    - In the next assistant message, delegate exactly one `state-rehydrate` task with `new_task`: use Analyzer or Librarian for current file state, and Tester for current git-diff, command, build, or test state.
+    - The `new_task` call must be the only control-plane call in its assistant message.
+    - Wait for the rehydration handoff before resuming or advancing a workflow phase.
+    - Re-establish the current phase from the loaded `orchestrator-workflows` Skill and the latest verified phase handoff; do not reconstruct the complete phase sequence from a condensed summary.
+    - Do not ask the user for inspectable facts and do not infer phase completion from a condensed summary.
+    - Continue only from current rehydration evidence; otherwise return a blocked workflow handoff.
 
     **No-Tool Orchestration Boundary**
     - This mode does not inspect workspace state directly.
