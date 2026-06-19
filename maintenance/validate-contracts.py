@@ -168,6 +168,17 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "orchestrator",
         text,
+        "owning_orchestrator: orchestrator",
+    )
+    require_contains(
+        "orchestrator",
+        text,
+        "Do not route a regular-Orchestrator composition failure "
+        "to `workflow-orchestrator`",
+    )
+    require_contains(
+        "orchestrator",
+        text,
         "Do not create a wrapper `new_task` targeting `orchestrator`",
     )
     require_contains(
@@ -219,6 +230,16 @@ def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
         "state-rehydrate",
     ]:
         require_contains("workflow-orchestrator", text, needle)
+    require_contains(
+        "workflow-orchestrator",
+        text,
+        "owning_orchestrator: workflow-orchestrator",
+    )
+    require_contains(
+        "workflow-orchestrator",
+        text,
+        "Do not fall back to regular `orchestrator`",
+    )
     forbid_regex(
         "workflow-orchestrator",
         text,
@@ -379,6 +400,43 @@ def validate_post_condense_rehydration(modes: dict[str, dict]) -> None:
         require_contains(slug, text, "**Post-Condense Rehydration Contract**")
         require_contains(slug, text, "Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.")
         require_contains(slug, text, "Do not reuse stale line numbers")
+
+
+def validate_terminal_no_tool_stop_conditions(
+    modes: dict[str, dict],
+) -> None:
+    forbidden_phrases = [
+        "**Loop Guard and Stop Conditions**",
+        "**Output Discipline**",
+        "If an `update_todo_list` payload is identical",
+        "split it into separate todos",
+        "Do not continue monitoring loops with",
+        "same failure fingerprint",
+        "proceed with a concrete non-todo action",
+        "Do not retry a failed `attempt_completion` with the same content",
+        "Use concise fixed sections requested by `output_contract`",
+    ]
+
+    for slug in TERMINAL_NO_TOOL_MODES:
+        text = instructions(modes[slug])
+
+        require_contains(
+            slug,
+            text,
+            "**No-Tool Stop Conditions**",
+        )
+        require_contains(
+            slug,
+            text,
+            "Do not inspect workspace state, repair todos, invoke tools",
+        )
+
+        for phrase in forbidden_phrases:
+            if phrase in text:
+                fail(
+                    f"{slug}: stale operational no-tool wording remains: "
+                    f"{phrase}"
+                )
 
 
 def validate_explicit_first_step(modes: dict[str, dict]) -> None:
@@ -551,6 +609,47 @@ def validate_user_response_composer(modes: dict[str, dict]) -> None:
     require_contains("user-response-composer", text, "COMPOSER_BLOCKED: inspection_required")
     require_contains("user-response-composer", text, "Recommended Next Mode: orchestrator")
     require_contains("user-response-composer", text, "Do not inspect, self-dispatch, or invent facts")
+    require_contains(
+        "user-response-composer",
+        text,
+        "owning_orchestrator: orchestrator",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "owning_orchestrator: workflow-orchestrator",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "owner-aware `Recommended Next Mode`",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "Never output the literal placeholder `<owning_orchestrator>`",
+    )
+    require_contains(
+        "user-response-composer",
+        text,
+        "**No-Tool Stop Conditions**",
+    )
+    stale_fixed_composer_lines = [
+        (
+            "return `COMPOSER_BLOCKED: inspection_required` to Orchestrator"
+        ),
+        (
+            "return only: `COMPOSER_BLOCKED: inspection_required`, "
+            "`Missing Facts`, and `Recommended Next Mode: orchestrator`"
+        ),
+    ]
+
+    for phrase in stale_fixed_composer_lines:
+        if phrase in text:
+            fail(
+                "user-response-composer: "
+                f"stale fixed Orchestrator return remains: {phrase}"
+            )
     forbid_regex("user-response-composer", text, r"Inspect it yourself|perform the inspection|read/search|run the specified command|use list/search/read", "direct inspection instruction")
 
 
@@ -587,6 +686,32 @@ def validate_mode_metadata(modes: dict[str, dict]) -> None:
     require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Control Boundary**")
     require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool TODO Boundary**")
     require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Post-Condense Boundary**")
+    require_contains(
+        "gpt-oss-needs-analyzer",
+        gpt_instructions,
+        "The user question budget is zero.",
+    )
+    require_contains(
+        "gpt-oss-needs-analyzer",
+        gpt_instructions,
+        "Never ask the user a clarification question",
+    )
+    require_contains(
+        "gpt-oss-needs-analyzer",
+        gpt_instructions,
+        "Do not call `ask_followup_question`.",
+    )
+    require_contains(
+        "gpt-oss-needs-analyzer",
+        gpt_instructions,
+        "**No-Tool Stop Conditions**",
+    )
+
+    if "Ask only when the raw prompt cannot be understood" in gpt_instructions:
+        fail(
+            "gpt-oss-needs-analyzer: "
+            "stale clarification permission remains"
+        )
     require_contains("gpt-oss-needs-analyzer", gpt_instructions, "analysis_confidence: unavailable")
     require_contains("gpt-oss-needs-analyzer", gpt_text, "Recommended Next Mode: orchestrator")
     require_regex(
@@ -933,6 +1058,7 @@ def main() -> None:
     validate_slash_command_boundary(rule_modes)
     validate_visible_todo_admission(rule_modes)
     validate_post_condense_rehydration(rule_modes)
+    validate_terminal_no_tool_stop_conditions(rule_modes)
     validate_internal_routing(rule_modes)
     validate_workflow_orchestrator(rule_modes)
     validate_command_group_policy(rule_modes)

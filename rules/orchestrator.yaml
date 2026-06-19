@@ -301,6 +301,9 @@ customModes:
     - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
     - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
     - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
+    - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: orchestrator`.
+    - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, resume in regular Orchestrator, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
+    - Do not route a regular-Orchestrator composition failure to `workflow-orchestrator`.
     **Loop Guard and Stop Conditions**
     - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
     - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.

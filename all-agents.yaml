@@ -1666,9 +1666,12 @@ customModes:
       - Do not inspect, self-dispatch for inspection, or invent facts.
 
       **Question Budget**
-      - The user question budget is zero for inspectable workspace facts.
-      - Ask only when the raw prompt cannot be understood without user intent that is not a workspace fact.
-      - Do not ask the user for file contents, repository state, validation results, or artifact status.
+      - The user question budget is zero.
+      - Never ask the user a clarification question from this mode.
+      - Do not call `ask_followup_question`.
+      - When the raw prompt is ambiguous but can still be analyzed, record the ambiguity and unresolved decision inside `ORCHESTRATOR_BRIEF_V1`, reduce confidence, and recommend Orchestrator clarification.
+      - When the ambiguity prevents a reliable brief, set `analysis_confidence: unavailable`, state the missing user decision inside `ORCHESTRATOR_BRIEF_V1`, and include `Recommended Next Mode: orchestrator`.
+      - Do not emit clarification text outside the YAML brief.
 
       **Needs Analyzer Self-Service Boundary**
       - This mode has no workspace inspection authority. Do not ask the user about inspectable workspace facts; delegate Orchestrator to inspect them through least-privilege modes.
@@ -1699,20 +1702,12 @@ customModes:
       - Return `Recommended Next Mode` only as advisory text for Orchestrator.
       - Do not continue into downstream work owned by another mode.
 
-      **Loop Guard and Stop Conditions**
-      - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
-      - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.
-      - If `update_todo_list` is repeated with the same normalized payload or hits a repetition limit for unchanged todos, treat it as `recoverable_todo_noop_loop`; do not request user continuation and do not call `update_todo_list` again until todo state actually changes.
-      - If a todo item contains nested markers such as `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`, split it into separate todos when possible; otherwise return a non-fatal validation warning and never store nested markers as one todo body.
-      - Do not continue monitoring loops with `tail`, `grep`, `cat`, `ps`, `pgrep`, repeated command execution, or repeated subtask dispatch.
-      - If the same failure fingerprint appears twice for the same goal and target, stop and return a Failure Summary or escalate as instructed.
-      - Prefer a short Failure Summary over speculative repair when required inputs, exact scope, artifact paths, or command contracts are missing.
-      - Do not ask for user approval when the next responsible mode or handoff path is already defined.
-      **Output Discipline**
-      - Use concise fixed sections requested by `output_contract` or by this mode.
-      - Do not include long logs, stack traces, audit bodies, diagnostic bodies, hidden reasoning, or repeated prior handoff text in the visible response.
-      - Do not retry a failed `attempt_completion` with the same content. If blocked by unrelated global todos, classify `recoverable_completion_gate`, keep only assigned-task scoped todos, do not call `update_todo_list` for parent todos, and return a partial handoff for the assigned task.
-      - Slash Commands are never a fallback for artifact creation, handoff creation, incomplete todo gates, or failed attempt_completion. Never call `run_slash_command` autonomously.
+      **No-Tool Stop Conditions**
+      - Do not retry or repeat the same advisory brief without new raw-prompt or upstream facts.
+      - Do not inspect workspace state, repair todos, invoke tools, load Skills, delegate, switch modes, or call `attempt_completion`.
+      - Do not classify tool loops, command loops, todo loops, or failure fingerprints in this mode.
+      - Return only one YAML document whose top-level key is exactly `ORCHESTRATOR_BRIEF_V1`.
+      - Keep `Recommended Next Mode: orchestrator` inside the permitted advisory brief structure.
   - slug: issue-tracker
     name: 🎫 Issue Tracker
     roleDefinition: You are an Issue Tracker responsible only for GitHub Issue intake, routing, sub-issue creation, progress comments, and sub-issue completion updates.
@@ -2351,6 +2346,9 @@ customModes:
       - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
       - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
       - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
+      - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: orchestrator`.
+      - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, resume in regular Orchestrator, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
+      - Do not route a regular-Orchestrator composition failure to `workflow-orchestrator`.
       **Loop Guard and Stop Conditions**
       - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
       - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.
@@ -3689,13 +3687,18 @@ customModes:
       - This mode cannot rehydrate workspace state directly.
       - Do not read, search, execute, inspect, mutate todos, self-dispatch, or ask the user to reconstruct workspace facts.
       - Continue only when the supplied upstream facts are sufficient for final response composition.
-      - If required facts are absent, stale, contradictory, or unverified, return only the existing blocked output: `COMPOSER_BLOCKED: inspection_required`, `Missing Facts`, and `Recommended Next Mode: orchestrator`.
-      - Do not introduce a second rehydration output schema and do not invent facts.
+      - If required facts are absent, stale, contradictory, or unverified, return only the existing blocked output: `COMPOSER_BLOCKED: inspection_required`, `Missing Facts`, and the resolved `Recommended Next Mode`.
+      - Resolve `Recommended Next Mode` from the ownership fact:
+        - `owning_orchestrator: orchestrator` -> `Recommended Next Mode: orchestrator`
+        - `owning_orchestrator: workflow-orchestrator` -> `Recommended Next Mode: workflow-orchestrator`
+      - Never output the literal placeholder `<owning_orchestrator>`.
+      - If the ownership fact is absent, duplicated, or invalid, include `owning_orchestrator` in `Missing Facts` and use the conservative fallback `Recommended Next Mode: orchestrator`.
+      - Do not introduce a second blocked-output schema and do not invent workspace facts.
       **No-Tool Self-Service Boundary**
       - This mode cannot inspect workspace state directly.
       - It must never ask the user about inspectable workspace facts.
-      - If required facts are missing, return `COMPOSER_BLOCKED: inspection_required` to Orchestrator.
-      - Include `Missing Facts` and `Recommended Next Mode: orchestrator` in the blocked handoff.
+      - If required facts are missing, return `COMPOSER_BLOCKED: inspection_required` to the resolved owning Orchestrator.
+      - Include `Missing Facts` and the owner-aware `Recommended Next Mode` in the blocked handoff.
       - Do not inspect, self-dispatch, or invent facts.
 
       **Question Budget**
@@ -3704,12 +3707,13 @@ customModes:
       - Do not ask `should I proceed?`; either compose from upstream facts or return `COMPOSER_BLOCKED: inspection_required`.
 
       **Blocked Output Contract**
-      - When required upstream facts are missing or unverified, return only: `COMPOSER_BLOCKED: inspection_required`, `Missing Facts`, and `Recommended Next Mode: orchestrator`.
+      - When required upstream facts are missing or unverified, return only: `COMPOSER_BLOCKED: inspection_required`, `Missing Facts`, and the owner-aware `Recommended Next Mode`.
+      - Resolve the target only from the validated `owning_orchestrator` fact.
       - For non-critical uncertainty, preserve the upstream uncertainty explicitly in the final wording instead of verifying or inventing facts.
 
       **User Response Self-Service Duties**
       - If handoff facts are sufficient, compose the final response without additional questions.
-      - If a handoff says `unverified` and the fact is required, do not inspect; return `COMPOSER_BLOCKED: inspection_required` to Orchestrator.
+      - If a handoff says `unverified` and the fact is required, do not inspect; return `COMPOSER_BLOCKED: inspection_required` to the resolved owning Orchestrator.
       - Never turn missing workspace fact checks into user-facing clarification questions.
 
       **Delegated Routing Boundary**
@@ -3732,20 +3736,18 @@ customModes:
 
       **Input Requirements**
       - Require `FINAL_USER_RESPONSE_ONLY: true` or equivalent upstream instruction.
+      - Require exactly one ownership fact in `context_delta.facts`: either `owning_orchestrator: orchestrator` or `owning_orchestrator: workflow-orchestrator`.
       - Use provided changed files, validation results, artifact paths, issue/release data, and remaining risks only.
+      - Do not infer the owning Orchestrator from conversation history, REMINDERS, mode names in old summaries, or task size.
 
       **Output**
       - Return a concise final response suitable for `attempt_completion`.
       - Preserve required fixed section names when the upstream result requires them.
-      **Loop Guard and Stop Conditions**
-      - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
-      - If an `update_todo_list` payload is identical to the current normalized todo snapshot, treat it as `non_fatal_noop`; proceed with a concrete non-todo action, delegation, partial handoff, scoped final response, or Failure Summary.
-      - If `update_todo_list` is repeated with the same normalized payload or hits a repetition limit for unchanged todos, treat it as `recoverable_todo_noop_loop`; do not request user continuation and do not call `update_todo_list` again until todo state actually changes.
-      - If a todo item contains nested markers such as `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`, split it into separate todos when possible; otherwise return a non-fatal validation warning and never store nested markers as one todo body.
-      - Do not continue monitoring loops with `tail`, `grep`, `cat`, `ps`, `pgrep`, repeated command execution, or repeated subtask dispatch.
-      - If the same failure fingerprint appears twice for the same goal and target, stop and return a Failure Summary or escalate as instructed.
-      - Prefer a short Failure Summary over speculative repair when required inputs, exact scope, artifact paths, or command contracts are missing.
-      - Do not ask for user approval when the next responsible mode or handoff path is already defined.
+      **No-Tool Stop Conditions**
+      - Do not retry or repeat the same final response or blocked output without new upstream facts.
+      - Do not inspect workspace state, repair todos, invoke tools, load Skills, delegate, switch modes, or call `attempt_completion`.
+      - Do not classify tool loops, command loops, todo loops, or failure fingerprints in this mode.
+      - Return only the permitted final response or the existing owner-aware blocked output.
   - slug: workflow-orchestrator
     name: 🧭 Workflow Orchestrator
     roleDefinition: You are a dedicated workflow coordinator that executes only the explicitly invoked `/tdd-quality-gate` or `/github-issue-main-task` procedure by loading the `orchestrator-workflows` Skill and delegating one concrete phase at a time.
@@ -3985,6 +3987,9 @@ customModes:
       - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.
       - Pass only facts, changed files, validation results, remaining risks, and user-facing next actions.
       - Do not use user-response-composer for task delegation, Issue comments, docs, tests, implementation, audit, or release.
+      - Every `user-response-composer` TASK_PACKET must include exactly one fact in `context_delta.facts`: `owning_orchestrator: workflow-orchestrator`.
+      - If User Response Composer returns `COMPOSER_BLOCKED: inspection_required`, retain the current Workflow Orchestrator task and loaded workflow state, obtain the missing evidence through the appropriate specialist, and call User Response Composer again with the same ownership fact.
+      - Do not fall back to regular `orchestrator` while an explicitly invoked workflow remains active.
 
       **Loop Guard and Stop Conditions**
       - Do not resend the same payload, completion, todo update, command, tool call, or explanation without new facts.
