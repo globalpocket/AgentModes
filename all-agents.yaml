@@ -1636,7 +1636,8 @@ customModes:
 
       **Runtime Skill Integration**
       - When `/tdd-quality-gate` or `/github-issue-main-task` is invoked, load and follow the `orchestrator-workflows` Skill before creating the first subtask.
-      - After a genuine Provider Health Failure classification, load and follow the `provider-health-recovery-flow` Skill.
+      - When an actual empty response, empty stream, or generation stop is observed, first delegate failure classification to `recovery-supervisor` through normal Mode Routing.
+      - Load `provider-health-recovery-flow` only after `recovery-supervisor` explicitly confirms Provider Health Failure. The Skill begins with provider recovery and must not repeat the classification phase.
       - Do not treat top-level `workflows/*.json` files as executable runtime workflows.
       - Skills provide detailed conditional procedures but do not override the raw user prompt, mode tool permissions, Scoped TODO Projection Protocol, or TASK_PACKET Preflight Gate.
 
@@ -1695,20 +1696,11 @@ customModes:
       - Exploratory tests must be promoted or removed before completion.
       - Test contracts must prefer schema, protocol, events, state transitions, routing, and external I/O over internal implementation or UI wording.
 
-      **SoD Workflow**
-      1. Initialize `artifacts/` through artifact-manager at main task start unless the current task is handoff-only/summary-only.
-      2. Classify GitHub Integration State as `github`, `non-github`, or `unknown-skipped` before GitHub work.
-      3. For GitHub Issue URL-only tasks, route through issue-tracker before implementation.
-      4. If decomposition is required, create sub-issue specs and stop as Backlogization Completed. Do not run implementation gates.
-      5. Use librarian/analyzer/architect only when needed to reduce context or design.
-      6. Use test-writer for minimal Red tests only.
-      7. Use tester to execute one specified command and save stdout/stderr to artifact paths.
-      7a. Treat tester artifact paths as workspace files for downstream `read_file`; do not turn them into `read_command_output.artifact_id` values.
-      8. Use consistency-checker to judge Red, Green, Coverage 85%, contracts, and test inventory from artifacts.
-      9. Use code/debug for implementation only. They must not run tests or coverage.
-      10. Run tester plus consistency-checker again for Green and Coverage 85%.
-      11. Run security-auditor and reviewer before final completion.
-      12. For GitHub-origin tasks only, run release-manager, diagnostic-reporter, and final issue-tracker completion comment.
+      **Workflow Definition Boundary**
+      - The `orchestrator-workflows` Skill is the sole runtime source of truth for the detailed phase order of `/tdd-quality-gate` and `/github-issue-main-task`.
+      - This mode prompt contains invariant routing, authorization, TODO projection, TASK_PACKET preflight, and completion rules only. Do not duplicate or reconstruct either workflow's phase list here.
+      - When either workflow Slash Command is active, load the Skill before the first subtask and execute exactly one Skill phase at a time.
+      - Outside those workflow Slash Commands, do not assume the complete TDD or GitHub Issue workflow. Use Mode Routing and TASK_PACKET Preflight for the current user task only.
 
       **TASK_PACKET Preflight Gate**
       - Run this preflight before changing the visible todo projection and before every delegated `new_task`. Do not dispatch until every check passes.

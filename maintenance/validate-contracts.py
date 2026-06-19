@@ -140,6 +140,18 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     text = instructions(modes["orchestrator"])
     require_contains("orchestrator", text, "Tester Artifact Materialization Authority exception")
     require_contains("orchestrator", text, "Tester artifact authority")
+    require_contains(
+        "orchestrator",
+        text,
+        "**Workflow Definition Boundary**",
+    )
+    require_contains(
+        "orchestrator",
+        text,
+        "sole runtime source of truth for the detailed phase order",
+    )
+    if "**SoD Workflow**" in text:
+        fail("orchestrator: duplicated SoD Workflow phase list remains")
     require_regex(
         "orchestrator",
         text,
@@ -508,7 +520,7 @@ def validate_skill_frontmatter() -> None:
         },
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
             "name": "provider-health-recovery-flow",
-            "modeSlugs": ["recovery-supervisor", "orchestrator"],
+            "modeSlugs": ["orchestrator"],
             "description_contains": [],
         },
         ROOT / "skills" / "provider-health-recovery" / "SKILL.md": {
@@ -529,6 +541,59 @@ def validate_skill_frontmatter() -> None:
         for needle in spec["description_contains"]:
             if needle not in description:
                 fail(f"{relative(path)} frontmatter description must mention {needle!r}")
+
+
+def validate_runtime_skill_semantics() -> None:
+    workflow_path = ROOT / "skills" / "orchestrator-workflows" / "SKILL.md"
+    provider_path = ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md"
+
+    workflow_text = workflow_path.read_text(encoding="utf-8")
+    provider_text = provider_path.read_text(encoding="utf-8")
+
+    required_workflow = [
+        "sole runtime source of truth for the phase order of both workflows",
+        "Workflow names are procedures, not mode slugs.",
+        "Assigned Mode: `orchestrator`",
+        "Procedure: Execute `## Workflow: tdd-quality-gate` in this same Skill",
+        "Never set `TASK_PACKET_V1.assigned_mode` to `workflow`",
+    ]
+    for needle in required_workflow:
+        if needle not in workflow_text:
+            fail(f"orchestrator-workflows: missing runtime semantic text: {needle}")
+
+    if "Assigned Mode: Workflow" in workflow_text:
+        fail("orchestrator-workflows: workflow name is still used as Assigned Mode")
+
+    provider_frontmatter = markdown_frontmatter(provider_path)
+    if provider_frontmatter.get("modeSlugs") != ["orchestrator"]:
+        fail(
+            "provider-health-recovery-flow: modeSlugs must be exactly "
+            "['orchestrator']"
+        )
+
+    required_provider = [
+        "This Skill does not classify provider failures",
+        "## Phase 1: provider-recovery",
+        "## Phase 2: resume-after-recovery",
+        "Provider Health Failure has already been explicitly confirmed",
+    ]
+    for needle in required_provider:
+        if needle not in provider_text:
+            fail(
+                "provider-health-recovery-flow: "
+                f"missing runtime semantic text: {needle}"
+            )
+
+    forbidden_provider = [
+        "provider-failure-classification",
+        "Assigned Mode: `recovery-supervisor`",
+    ]
+    for needle in forbidden_provider:
+        if needle in provider_text:
+            fail(
+                "provider-health-recovery-flow: "
+                f"stale classification phase remains: {needle}"
+            )
 
 
 def validate_command_frontmatter() -> None:
@@ -613,6 +678,7 @@ def main() -> None:
     validate_scenarios(rule_modes)
     validate_runtime_layout()
     validate_skill_frontmatter()
+    validate_runtime_skill_semantics()
     validate_command_frontmatter()
     validate_stale_runtime_references()
 

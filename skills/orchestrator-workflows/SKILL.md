@@ -11,6 +11,7 @@ modeSlugs:
 
 - The raw user prompt is the source of truth.
 - This Skill provides runtime workflow procedure only and never overrides the raw user prompt.
+- This Skill is the sole runtime source of truth for the phase order of both workflows. The Orchestrator mode prompt must not contain a duplicate phase list.
 - Apply `Scoped TODO Projection Protocol` before every delegation.
 - Keep the visible TODO list to exactly the current single task.
 - Do not call `new_task` before `TASK_PACKET Preflight Gate` passes.
@@ -25,6 +26,8 @@ modeSlugs:
 
 - Use `Workflow: tdd-quality-gate` when `/tdd-quality-gate` is invoked.
 - Use `Workflow: github-issue-main-task` when `/github-issue-main-task` is invoked.
+- Workflow names are procedures, not mode slugs.
+- Never write `workflow`, `tdd-quality-gate`, `github-issue-main-task`, or any workflow name into `TASK_PACKET_V1.assigned_mode`.
 - Preserve the slash-command argument as raw workflow input.
 - Use one delegated `TASK_PACKET_V1` per phase when delegation is required.
 
@@ -180,10 +183,12 @@ modeSlugs:
 - Next Phase: `tdd-quality-gate`
 
 ### Phase: tdd-quality-gate
-- Assigned Mode: Workflow `tdd-quality-gate`
+- Assigned Mode: `orchestrator`
+- Procedure: Execute `## Workflow: tdd-quality-gate` in this same Skill, beginning at its `artifact-initialize` phase.
 - Entry Condition: Implementation is required for the active issue.
 - Required Input: Active issue context and acceptance criteria.
 - Required Output: Completed local quality workflow with tests, coverage, security audit, and reviewer result.
+- Delegation Rule: Never set `TASK_PACKET_V1.assigned_mode` to `workflow`, `tdd-quality-gate`, or another workflow name. Each nested phase delegates only to the concrete mode declared by that nested phase.
 - Next Phase: `version-tag-push-conditional`
 
 ### Phase: version-tag-push-conditional

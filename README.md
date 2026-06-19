@@ -109,10 +109,11 @@ top-level `workflows/` は使用しません。Skill は必要時にオンデマ
 | `commands/tdd-quality-gate.md` | Slash Command | 軽量TDD Workflowの明示的entrypoint |
 | `commands/github-issue-main-task.md` | Slash Command | GitHub Issue Workflowの明示的entrypoint |
 | `skills/orchestrator-workflows/SKILL.md` | Skill | 上記2 Workflowの詳細phase定義 |
-| `skills/provider-health-recovery-flow/SKILL.md` | Skill | Provider復旧の分類・委任・再開フロー |
+| `skills/provider-health-recovery-flow/SKILL.md` | Skill | Provider Health Failure分類済み後の復旧委任・再開フロー |
 | `skills/provider-health-recovery/SKILL.md` | Skill | Segregated DevOpsによる実際のProvider復旧手順 |
 
 固定手順は JSON workflow ではなく Slash Command と Skill に分けて管理します。ユーザーが Slash Command で workflow を開始し、Orchestrator は対応する Skill をロードして phase 順序、TASK_PACKET preflight、Scoped TODO Projection、条件付き品質ゲートを適用します。
+Workflowの詳細phase順序は `skills/orchestrator-workflows/SKILL.md` だけをsource of truthとし、Orchestrator mode promptには常時必須のinvariantだけを保持します。
 
 ## 代替割り当て方針
 
