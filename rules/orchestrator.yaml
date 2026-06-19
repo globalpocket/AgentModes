@@ -132,6 +132,7 @@ customModes:
     - The `orchestrator-workflows` Skill is the sole runtime source of truth for the detailed phase order of `/tdd-quality-gate` and `/github-issue-main-task`.
     - This mode prompt contains invariant routing, authorization, TODO projection, TASK_PACKET preflight, and completion rules only. Do not duplicate or reconstruct either workflow's phase list here.
     - When either workflow Slash Command is active, load the Skill before the first subtask and execute exactly one Skill phase at a time.
+    - A Skill workflow phase owned by the current Orchestrator is executed in the current task. Do not create a wrapper `new_task` targeting `orchestrator`; delegate only phases owned by concrete specialist modes.
     - Outside those workflow Slash Commands, do not assume the complete TDD or GitHub Issue workflow. Use Mode Routing and TASK_PACKET Preflight for the current user task only.
 
     **TASK_PACKET Preflight Gate**

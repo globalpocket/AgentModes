@@ -10,6 +10,7 @@ modeSlugs:
 ## Entry Contract
 
 - Load this Skill only after `recovery-supervisor` explicitly returns `Provider Health Failure: confirmed` or an equivalent explicit confirmation.
+- `provider-health-recovery-flow` is an Orchestrator coordination Skill; `provider-health-recovery` is a Segregated DevOps operational Skill.
 - This Skill does not classify provider failures and must not repeat the classification phase.
 - The observed symptom must be an actual empty response, empty stream, or generation stop.
 - Tool errors, failed tests, incomplete todos, task confusion, and slash command mismatch are not valid entry conditions.
@@ -22,7 +23,8 @@ modeSlugs:
 - Entry Condition: Provider Health Failure has already been explicitly confirmed by `recovery-supervisor`.
 - Required Input: Explicit Provider Recovery Contract including provider name, exact target terminal or process identifier, stop method, start command, health check, and minimal non-empty generation check.
 - Required Output: Provider recovery result and minimal verification metadata.
-- Required Skill: Load and follow `provider-health-recovery`.
+- Delegated Mode Requirement: The `segregated-devops` subtask must load and follow the `provider-health-recovery` Skill before performing any provider operation.
+- Ownership Boundary: Orchestrator coordinates this flow but must not load or execute the operational `provider-health-recovery` Skill itself.
 - Next Phase: `resume-after-recovery` only when recovery succeeds.
 - Terminal Failure: If the Provider Recovery Contract is missing or recovery fails, stop with workflow failure. Do not return to Code mode.
 

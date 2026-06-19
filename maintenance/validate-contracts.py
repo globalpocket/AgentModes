@@ -143,6 +143,11 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "orchestrator",
         text,
+        "Do not create a wrapper `new_task` targeting `orchestrator`",
+    )
+    require_contains(
+        "orchestrator",
+        text,
         "**Workflow Definition Boundary**",
     )
     require_contains(
@@ -553,16 +558,34 @@ def validate_runtime_skill_semantics() -> None:
     required_workflow = [
         "sole runtime source of truth for the phase order of both workflows",
         "Workflow names are procedures, not mode slugs.",
-        "Assigned Mode: `orchestrator`",
+        "Execution Owner: Current Orchestrator.",
         "Procedure: Execute `## Workflow: tdd-quality-gate` in this same Skill",
         "Never set `TASK_PACKET_V1.assigned_mode` to `workflow`",
+        "Do not create a wrapper `new_task` targeting `orchestrator`",
+        "Backlogization Completed",
+        "do not continue from successful sub-issue creation",
+        "rerun the `issue-intake-routing` procedure",
+        "select the open sub-issue with the lowest Issue number",
+        "`issue-intake-routing` when at least one unhandled open sub-issue remains",
     ]
     for needle in required_workflow:
         if needle not in workflow_text:
             fail(f"orchestrator-workflows: missing runtime semantic text: {needle}")
 
-    if "Assigned Mode: Workflow" in workflow_text:
-        fail("orchestrator-workflows: workflow name is still used as Assigned Mode")
+    forbidden_workflow = [
+        "Assigned Mode: Workflow",
+        "### Phase: tdd-quality-gate\n- Assigned Mode: `orchestrator`",
+        "### Phase: return-to-parent-routing-conditional\n"
+        "- Assigned Mode: `issue-tracker`\n"
+        "- Entry Condition: Active issue is a sub-issue and parent routing is required.",
+    ]
+
+    for needle in forbidden_workflow:
+        if needle in workflow_text:
+            fail(
+                "orchestrator-workflows: "
+                f"stale or ambiguous workflow text remains: {needle}"
+            )
 
     provider_frontmatter = markdown_frontmatter(provider_path)
     if provider_frontmatter.get("modeSlugs") != ["orchestrator"]:
@@ -576,6 +599,9 @@ def validate_runtime_skill_semantics() -> None:
         "## Phase 1: provider-recovery",
         "## Phase 2: resume-after-recovery",
         "Provider Health Failure has already been explicitly confirmed",
+        "`segregated-devops` subtask must load and follow the `provider-health-recovery` Skill",
+        "Orchestrator coordinates this flow but must not load or execute the operational `provider-health-recovery` Skill itself",
+        "`provider-health-recovery-flow` is an Orchestrator coordination Skill",
     ]
     for needle in required_provider:
         if needle not in provider_text:
@@ -587,6 +613,7 @@ def validate_runtime_skill_semantics() -> None:
     forbidden_provider = [
         "provider-failure-classification",
         "Assigned Mode: `recovery-supervisor`",
+        "- Required Skill: Load and follow `provider-health-recovery`.",
     ]
     for needle in forbidden_provider:
         if needle in provider_text:

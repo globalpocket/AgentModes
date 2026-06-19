@@ -170,10 +170,14 @@ modeSlugs:
 
 ### Phase: sub-issue-create-conditional
 - Assigned Mode: `issue-tracker`
-- Entry Condition: Sub-issue specifications exist.
+- Entry Condition: Sub-issue specifications exist because `decomposition_required` is true.
 - Required Input: Parent issue and sub-issue specifications.
-- Required Output: Created sub-issues with link status and inherited assignees, or explicit skip.
-- Next Phase: `delegation-comment-conditional`
+- Required Output: Created sub-issues with link status and inherited assignees, followed by `Backlogization Completed`, or explicit skip when decomposition is not required.
+- Terminal Outcome: When `decomposition_required` is true and sub-issues are successfully created, return `Backlogization Completed` and stop this Workflow.
+- Stop Rule: In the same run, do not continue from successful sub-issue creation to `delegation-comment-conditional`, `tdd-quality-gate`, release, diagnostic, completion-comment, or implementation phases.
+- Next Phase:
+  - Workflow completion after successful sub-issue creation.
+  - `delegation-comment-conditional` only when this phase is explicitly skipped because decomposition is not required and an executable active issue is already selected.
 
 ### Phase: delegation-comment-conditional
 - Assigned Mode: `issue-tracker`
@@ -183,12 +187,13 @@ modeSlugs:
 - Next Phase: `tdd-quality-gate`
 
 ### Phase: tdd-quality-gate
-- Assigned Mode: `orchestrator`
+- Execution Owner: Current Orchestrator.
 - Procedure: Execute `## Workflow: tdd-quality-gate` in this same Skill, beginning at its `artifact-initialize` phase.
 - Entry Condition: Implementation is required for the active issue.
 - Required Input: Active issue context and acceptance criteria.
 - Required Output: Completed local quality workflow with tests, coverage, security audit, and reviewer result.
-- Delegation Rule: Never set `TASK_PACKET_V1.assigned_mode` to `workflow`, `tdd-quality-gate`, or another workflow name. Each nested phase delegates only to the concrete mode declared by that nested phase.
+- Wrapper Rule: Do not create a wrapper `new_task` targeting `orchestrator` for this phase. Enter the nested workflow directly in the current Orchestrator task.
+- Delegation Rule: Never set `TASK_PACKET_V1.assigned_mode` to `workflow`, `orchestrator`, `tdd-quality-gate`, or another workflow name for the wrapper phase. Delegate only the concrete nested phases to the concrete modes declared by those phases.
 - Next Phase: `version-tag-push-conditional`
 
 ### Phase: version-tag-push-conditional
@@ -214,14 +219,21 @@ modeSlugs:
 
 ### Phase: return-to-parent-routing-conditional
 - Assigned Mode: `issue-tracker`
-- Entry Condition: Active issue is a sub-issue and parent routing is required.
+- Entry Condition: Active issue is a completed sub-issue and parent routing is required.
 - Required Input: Parent issue, completed sub-issue, and remaining open sub-issues.
-- Required Output: Parent routing context or explicit skip.
-- Next Phase: Workflow completion.
+- Required Output: Parent routing context, the next selected open sub-issue when one exists, or explicit completion when none remain.
+- Routing Rule: Return to the parent Issue and rerun the `issue-intake-routing` procedure against current GitHub state.
+- Selection Rule: When multiple unhandled open sub-issues remain, select the open sub-issue with the lowest Issue number.
+- Parent Rule: Do not close the parent Issue in this phase.
+- Next Phase:
+  - `issue-intake-routing` when at least one unhandled open sub-issue remains.
+  - Workflow completion when no unhandled open sub-issue remains.
 
 ## Completion and Failure
 
 - When a next phase exists, project only that phase into the visible TODO list.
+- `Backlogization Completed` is a successful terminal outcome and must not enter implementation or quality-gate phases in the same run.
+- Returning from a completed sub-issue to `issue-intake-routing` is a workflow loop, not a new wrapper Orchestrator task.
 - On successful workflow completion with no next phase, set the visible TODO to `[x] workflow: completed`.
 - On terminal failure, set the visible TODO to `[x] workflow: failed`.
 - `WAITING_EXTERNAL` is not terminal.
