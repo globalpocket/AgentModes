@@ -442,7 +442,8 @@ def validate_patch_recovery_skill(modes: dict[str, dict]) -> None:
     for slug in ["code", "debug", "refactorer", "test-writer"]:
         text = instructions(modes[slug])
         require_contains(slug, text, "**Patch Application Contract**")
-        require_contains(slug, text, "Before the first `apply_diff`, load `apply-diff-recovery`")
+        require_contains(slug, text, "do not load `apply-diff-recovery` on a normal first patch")
+        require_contains(slug, text, "Load `apply-diff-recovery` only after the first patch mismatch")
         require_contains(slug, text, "Do not call `execute_command`.")
 
 
@@ -931,6 +932,20 @@ def validate_no_tool_modes(modes: dict[str, dict]) -> None:
         require_regex(slug, text, r"Do not ask the user|must never ask the user", "no user questions for workspace facts")
 
 
+def validate_readme_model_allocation() -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    for needle in [
+        "| `gpt-oss-intake-supervisor` |",
+        "| `gpt-oss-needs-analyzer` |",
+        "dispatchしない純粋分析worker",
+        "| `epoch-orchestrator` | `Qwen3.5-122B`",
+        "| `orchestrator` | `Qwen3.6-9B`",
+        "| `workflow-orchestrator` | `Qwen3.6-9B`",
+    ]:
+        if needle not in text:
+            fail(f"README model allocation missing: {needle}")
+
+
 def validate_durable_architecture_modes(modes: dict[str, dict]) -> None:
     required = {
         "gpt-oss-intake-supervisor",
@@ -1318,6 +1333,7 @@ def main() -> None:
     validate_ask(rule_modes)
     validate_documenter(rule_modes)
     validate_no_tool_modes(rule_modes)
+    validate_readme_model_allocation()
     validate_durable_architecture_modes(rule_modes)
     validate_atomic_first_wave_modes(rule_modes)
     validate_atomic_second_wave_modes(rule_modes)

@@ -12,12 +12,12 @@ modeSlugs:
 
 ## Trigger
 
-- Use this Skill before code or test edits that rely on `apply_diff`.
-- Use this Skill immediately after an `apply_diff` mismatch, partial-match failure, or stale block suspicion.
+- Do not load this Skill before a normal first `apply_diff`.
+- Load this Skill only after an `apply_diff` mismatch, partial-match failure, or stale block suspicion.
 
 ## Before First Patch
 
-- Before the first `apply_diff`, read the exact current target block.
+- Before the first `apply_diff`, the editing mode must read the exact current target block without loading this Skill.
 - Do not use stale line numbers or a block copied from a condensed summary.
 - Confirm the target file, symbol, imports, variants, fields, traits, and surrounding anchors from current workspace content.
 

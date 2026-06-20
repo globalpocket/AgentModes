@@ -48,7 +48,9 @@ python maintenance/validate-contracts.py
 |---|---|---|---|
 | `orchestrator` | `Qwen3.6-9B` | オン / 中 | 長寿命のdurable continuity supervisorとしてcursor管理とepoch dispatchに限定するため |
 | `workflow-orchestrator` | `Qwen3.6-9B` | オン / 中 | 明示Workflowのcursor管理に限定し、高推論分解は短命epochへ委譲するため |
-| `gpt-oss-needs-analyzer` | `GPT-OSS-120B` | オン / 最高 | raw user prompt を深く分析し、Orchestrator向け advisory brief を生成する専用前段 |
+| `gpt-oss-intake-supervisor` | `GPT-OSS-120B` | オン / 最高 | 通常入力を分類し、intake ledger永続化とpath-only SESSION_STARTを起動する短命前段 |
+| `gpt-oss-needs-analyzer` | `GPT-OSS-120B` | オン / 最高 | dispatchしない純粋分析worker。取得済み事実から ORCHESTRATOR_BRIEF_V1 だけを生成 |
+| `epoch-orchestrator` | `Qwen3.5-122B` | オン / 高 | 1 epoch / 1 invariantの高密度分解を短命で担当 |
 | `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
 | `recovery-supervisor` | `GPT-OSS-120B` | オン / 最高 | ループ脱出、失敗分類、再委任設計、停止条件判断が最も重い |
 | `reviewer` | `GPT-OSS-120B` | オン / 高 | 最終品質レビュー、設計整合性、保守性、性能、残リスク判断が必要 |
