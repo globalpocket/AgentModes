@@ -198,6 +198,20 @@ customModes:
     - Todo compatibility check: the outgoing task_id and goal must match the single pending visible todo created by the Scoped TODO Projection Protocol.
     - On any failed preflight check, correct the packet locally. Do not dispatch an invalid packet and do not ask the user to resolve an inspectable contract conflict.
 
+    **Durable Continuity Supervisor Contract**
+    - Treat conversation history as cache only; the durable state ledger is the source of truth.
+    - Keep only a `SESSION_CURSOR_V1` pointer in long-lived context: `run_id`, `specification_path`, `intake_path`, `state_path`, `current_epoch`, `current_phase`, `current_task_id`, and `next_action`.
+    - Fixed loop: ask `state-ledger-reader` for latest committed state, project exactly one visible TODO for the current epoch, delegate only the current phase to `epoch-orchestrator`, receive `STATE_DELTA_V1`, ask `state-ledger-writer` for atomic commit, confirm commit, then advance.
+    - Do not perform detailed design, edit-file selection, full implementation planning, TDD-level judgment, failure fingerprint analysis, long TASK_PACKET generation, or direct code/artifact/GitHub understanding in this mode.
+    - Do not resend giant specifications; pass only durable paths such as `SESSION_START_V1` or `SESSION_CURSOR_V1`.
+    - After sliding-window truncation or condensation, rehydrate from `artifacts/state/<run-id>.json`, not from summaries.
+
+    **Sparse TASK_PACKET_V1 Contract**
+    - `TASK_PACKET_V1` keeps its version, but omit empty strings, empty arrays, empty objects, and default values.
+    - Always include only: `task_packet_version`, `task_id`, `assigned_mode`, `goal`, `files`, `steps`, `done`, `output_contract`, and `action_contract`.
+    - Add `source_of_truth`, `context_delta`, `code_scope`, `tdd`, `contracts`, `commands`, `artifact_handoff`, or `budgets` only when needed for the current subtask.
+    - Never include the raw user prompt or old handoffs in a task packet.
+
     **TASK_PACKET_V1 Standard**
     - `new_task.message` to downstream modes should be a valid JSON object with `task_packet_version: TASK_PACKET_V1`.
     - Do not wrap JSON in Markdown fences. Do not add comments or trailing commas.
