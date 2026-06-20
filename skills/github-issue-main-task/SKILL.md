@@ -1,3 +1,10 @@
+---
+name: github-issue-main-task
+description: Workflow-specific Skill for the `/github-issue-main-task` entrypoint; defines GitHub Issue intake and routing phases for workflow-orchestrator.
+modeSlugs:
+  - workflow-orchestrator
+---
+
 # GitHub Issue Main Task Workflow Skill
 
 Use only after the user explicitly invokes `/github-issue-main-task`.

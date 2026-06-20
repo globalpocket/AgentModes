@@ -250,7 +250,7 @@ def validate_orchestrator(modes: dict[str, dict]) -> None:
     require_contains(
         "orchestrator",
         text,
-        "Regular Orchestrator must not load `orchestrator-workflows`",
+        "Regular Orchestrator must not load workflow Skills (`tdd-quality-gate`, `github-issue-main-task`, or the legacy `orchestrator-workflows` shim).",
     )
     require_contains("orchestrator", text, "**Explicit First-Step Fidelity**")
     require_contains("orchestrator", text, "**Large Task Admission Control**")
@@ -977,6 +977,16 @@ def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
         fail("artifact-materializer: must have edit group")
 
 
+def validate_github_atomic_permissions(modes: dict[str, dict]) -> None:
+    for slug in ["issue-comment-writer", "sub-issue-creator", "issue-closer"]:
+        groups = modes[slug].get("groups", [])
+        if not group_contains(groups, "mcp") or group_contains(groups, "edit"):
+            fail(f"{slug}: GitHub mutation worker must use read+mcp and must not use edit")
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**GitHub Mutation Worker Kernel**")
+        require_contains(slug, text, "Do not edit workspace files.")
+
+
 def validate_phase_eight_modes(modes: dict[str, dict]) -> None:
     required = {
         "context-metrics-reader",
@@ -1078,6 +1088,8 @@ def validate_runtime_layout() -> None:
         ROOT / "maintenance" / "validate-yaml.py",
         ROOT / "maintenance" / "validate-contracts.py",
         ROOT / "skills" / "orchestrator-workflows" / "SKILL.md",
+        ROOT / "skills" / "tdd-quality-gate" / "SKILL.md",
+        ROOT / "skills" / "github-issue-main-task" / "SKILL.md",
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md",
         ROOT / "skills" / "provider-health-recovery" / "SKILL.md",
         ROOT / "commands" / "tdd-quality-gate.md",
@@ -1091,7 +1103,17 @@ def validate_skill_frontmatter() -> None:
         ROOT / "skills" / "orchestrator-workflows" / "SKILL.md": {
             "name": "orchestrator-workflows",
             "modeSlugs": ["workflow-orchestrator"],
-            "description_contains": ["tdd-quality-gate", "github-issue-main-task"],
+            "description_contains": ["Compatibility shim", "tdd-quality-gate", "github-issue-main-task"],
+        },
+        ROOT / "skills" / "tdd-quality-gate" / "SKILL.md": {
+            "name": "tdd-quality-gate",
+            "modeSlugs": ["workflow-orchestrator"],
+            "description_contains": ["tdd-quality-gate"],
+        },
+        ROOT / "skills" / "github-issue-main-task" / "SKILL.md": {
+            "name": "github-issue-main-task",
+            "modeSlugs": ["workflow-orchestrator"],
+            "description_contains": ["github-issue-main-task"],
         },
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
             "name": "provider-health-recovery-flow",
@@ -1119,43 +1141,38 @@ def validate_skill_frontmatter() -> None:
 
 
 def validate_runtime_skill_semantics() -> None:
-    workflow_path = ROOT / "skills" / "orchestrator-workflows" / "SKILL.md"
+    shim_path = ROOT / "skills" / "orchestrator-workflows" / "SKILL.md"
+    tdd_path = ROOT / "skills" / "tdd-quality-gate" / "SKILL.md"
+    issue_path = ROOT / "skills" / "github-issue-main-task" / "SKILL.md"
     provider_path = ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md"
 
-    workflow_text = workflow_path.read_text(encoding="utf-8")
+    shim_text = shim_path.read_text(encoding="utf-8")
+    tdd_text = tdd_path.read_text(encoding="utf-8")
+    issue_text = issue_path.read_text(encoding="utf-8")
     provider_text = provider_path.read_text(encoding="utf-8")
 
-    required_workflow = [
+    for needle in [
+        "Compatibility Shim",
+        "not the sole runtime source of truth",
+        "Do not duplicate full phase lists here.",
+        "immediately load `tdd-quality-gate`",
+        "immediately load `github-issue-main-task`",
+    ]:
+        if needle not in shim_text:
+            fail(f"orchestrator-workflows shim: missing text: {needle}")
+    for forbidden in [
+        "## Workflow: tdd-quality-gate",
+        "## Workflow: github-issue-main-task",
         "sole runtime source of truth for the phase order of both workflows",
-        "Workflow names are procedures, not mode slugs.",
-        "Execution Owner: Current Orchestrator.",
-        "Procedure: Execute `## Workflow: tdd-quality-gate` in this same Skill",
-        "Never set `TASK_PACKET_V1.assigned_mode` to `workflow`",
-        "Do not create a wrapper `new_task` targeting `orchestrator`",
-        "Backlogization Completed",
-        "do not continue from successful sub-issue creation",
-        "rerun the `issue-intake-routing` procedure",
-        "select the open sub-issue with the lowest Issue number",
-        "`issue-intake-routing` when at least one unhandled open sub-issue remains",
-    ]
-    for needle in required_workflow:
-        if needle not in workflow_text:
-            fail(f"orchestrator-workflows: missing runtime semantic text: {needle}")
-
-    forbidden_workflow = [
-        "Assigned Mode: Workflow",
-        "### Phase: tdd-quality-gate\n- Assigned Mode: `orchestrator`",
-        "### Phase: return-to-parent-routing-conditional\n"
-        "- Assigned Mode: `issue-tracker`\n"
-        "- Entry Condition: Active issue is a sub-issue and parent routing is required.",
-    ]
-
-    for needle in forbidden_workflow:
-        if needle in workflow_text:
-            fail(
-                "orchestrator-workflows: "
-                f"stale or ambiguous workflow text remains: {needle}"
-            )
+    ]:
+        if forbidden in shim_text:
+            fail(f"orchestrator-workflows shim: stale workflow authority remains: {forbidden}")
+    for needle in ["Load this Skill at workflow entry", "STATE_DELTA_V1", "state-ledger-writer"]:
+        if needle not in tdd_text:
+            fail(f"tdd-quality-gate: missing runtime semantic text: {needle}")
+    for needle in ["Load this Skill first", "issue-reader", "Do not load TDD workflow instructions until the implementation phase"]:
+        if needle not in issue_text:
+            fail(f"github-issue-main-task: missing runtime semantic text: {needle}")
 
     provider_frontmatter = markdown_frontmatter(provider_path)
     if sorted(provider_frontmatter.get("modeSlugs") or []) != ["orchestrator", "workflow-orchestrator"]:
@@ -1286,6 +1303,7 @@ def main() -> None:
     validate_durable_architecture_modes(rule_modes)
     validate_atomic_first_wave_modes(rule_modes)
     validate_atomic_second_wave_modes(rule_modes)
+    validate_github_atomic_permissions(rule_modes)
     validate_phase_eight_modes(rule_modes)
     validate_phase_docs()
     validate_sync(rule_modes, all_modes)

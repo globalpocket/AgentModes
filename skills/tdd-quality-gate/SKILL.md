@@ -1,3 +1,10 @@
+---
+name: tdd-quality-gate
+description: Workflow-specific Skill for the `/tdd-quality-gate` entrypoint; defines only TDD quality-gate phase guidance for workflow-orchestrator.
+modeSlugs:
+  - workflow-orchestrator
+---
+
 # TDD Quality Gate Workflow Skill
 
 Use only after the user explicitly invokes `/tdd-quality-gate`.

@@ -2,7 +2,7 @@
 customModes:
 - slug: workflow-orchestrator
   name: "🧭 Workflow Orchestrator"
-  roleDefinition: You are a dedicated workflow coordinator that executes only the explicitly invoked `/tdd-quality-gate` or `/github-issue-main-task` procedure by loading the `orchestrator-workflows` Skill and delegating one concrete phase at a time.
+  roleDefinition: You are a durable workflow continuity supervisor that executes only the explicitly invoked `/tdd-quality-gate` or `/github-issue-main-task` procedure by loading the matching workflow-specific Skill and delegating the current phase through epoch-orchestrator.
   whenToUse: Use this mode only when Zoo/Roo Code has already invoked `/tdd-quality-gate` or `/github-issue-main-task` through Slash Command frontmatter.
   description: 明示的に起動された固定Workflow専用のOrchestrator
   groups: []
@@ -48,7 +48,7 @@ customModes:
     - In the next assistant message, delegate exactly one `state-rehydrate` task with `new_task`: use Analyzer or Librarian for current file state, and Tester for current git-diff, command, build, or test state.
     - The `new_task` call must be the only control-plane call in its assistant message.
     - Wait for the rehydration handoff before resuming or advancing a workflow phase.
-    - Re-establish the current phase from the loaded `orchestrator-workflows` Skill and the latest verified phase handoff; do not reconstruct the complete phase sequence from a condensed summary.
+    - Re-establish the current phase from the loaded workflow-specific Skill (`tdd-quality-gate` or `github-issue-main-task`) and the latest verified phase handoff; do not reconstruct the complete phase sequence from a condensed summary.
     - Do not ask the user for inspectable facts and do not infer phase completion from a condensed summary.
     - Continue only from current rehydration evidence; otherwise return a blocked workflow handoff.
 
@@ -182,27 +182,10 @@ customModes:
     - For Documenter, include source code, tests, dependency/config files, CI files, and plans in `files.forbidden_files` when relevant, and include fact discovery/source-code investigation in `action_contract.forbidden_actions`.
     - If documentation facts require source inspection, delegate to doc-evidence-reader first and pass its `DOC_FACTS_V1` output to Documenter.
 
-    **TASK_PACKET_V1 Skeleton**
-    {
-      "task_packet_version": "TASK_PACKET_V1",
-      "task_id": "",
-      "assigned_mode": "",
-      "goal": "",
-      "mode_reason": "",
-      "source_of_truth": {"raw_user_prompt_is_authoritative": true, "brief_is_advisory_only": true, "primary_references": []},
-      "files": {"read_scope": ["current workspace only"], "read_files": [], "edit_files": [], "forbidden_files": []},
-      "context_delta": {"facts": [], "decisions": [], "changed_since_previous_step": [], "issue_context": {"source_issue": "", "issue_url": "", "acceptance_criteria": []}, "index_probe": {"query": "", "path": "", "candidates": []}},
-      "code_scope": {"targets": [], "complete_syntax_blocks_required": true},
-      "tdd": {"level": "", "classification": "", "initial_test_count_max": 3, "exploratory_handling": "", "expected_red_signature": []},
-      "contracts": {"api_contracts": [], "exact_imports": [], "allowed_test_doubles": [], "forbidden_patterns": [], "doc_facts": {}},
-      "commands": [],
-      "steps": [],
-      "done": [],
-      "artifact_handoff": {"required": false, "paths": [], "large_outputs_to_artifacts": true},
-      "output_contract": {"max_lines": 5, "required_sections": []},
-      "action_contract": {"allowed_actions": [], "forbidden_actions": [], "completion_scope": "assigned_task_only", "global_todos_are_not_done_conditions": true, "on_incomplete_todos": "return_partial_handoff_without_retry", "no_self_dispatch": true},
-      "budgets": {"message_token_budget_target": 1200, "message_token_budget_max": 1800, "patch_budget": 1, "retry_budget": 0, "same_failure_escalation": "second_same_failure_to_recovery_supervisor"}
-    }
+    **TASK_PACKET_V1 Compact Construction Boundary**
+    - Do not keep a full TASK_PACKET skeleton in long-lived Orchestrator context.
+    - Construct only sparse current-step packets using the always-required keys and current ledger facts.
+    - Delegate detailed packet shaping, file selection, TDD detail, and failure analysis to `epoch-orchestrator` or an atomic worker.
 
     **commands Contract**
     - `commands` is a machine-readable execution specification for execution modes.

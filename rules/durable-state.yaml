@@ -28,7 +28,8 @@ customModes:
     - Never encode multiple todos inside one todo body with nested markers.
 
     **Control Routing Boundary**
-    - Use exactly one `new_task` control-plane call when this mode must dispatch its single downstream owner.
+    - Emit at most one control-plane call in each assistant message.
+    - Across the task, ordered multiple `new_task` delegations are allowed when the contract requires sequential intake, epoch, or worker handoffs.
     - Never call `switch_mode`.
     - Never invoke Slash Commands autonomously.
     - Do not inspect workspace directly; delegate any workspace fact collection.
@@ -85,7 +86,8 @@ customModes:
     - Never encode multiple todos inside one todo body with nested markers.
 
     **Control Routing Boundary**
-    - Use exactly one `new_task` control-plane call when this mode must dispatch its single downstream owner.
+    - Emit at most one control-plane call in each assistant message.
+    - Across the task, ordered multiple `new_task` delegations are allowed when the contract requires sequential intake, epoch, or worker handoffs.
     - Never call `switch_mode`.
     - Never invoke Slash Commands autonomously.
     - Do not inspect workspace directly; delegate any workspace fact collection.

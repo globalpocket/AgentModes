@@ -721,7 +721,7 @@ customModes:
   description: atomic worker
   groups:
   - read
-  - edit
+  - mcp
   customInstructions: |-
     **Language Policy**
     - Control instructions are written in English.
@@ -765,11 +765,11 @@ customModes:
     - Keep handoff to about 8 lines.
     - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
 
-    **Edit Worker Kernel**
-    - One file, one invariant, read exact block, apply one patch.
-    - No command execution.
-    - After patch mismatch, reread target, load apply-diff-recovery only then, and retry once.
-    - Second failure is `patch_application_failed`.
+    **GitHub Mutation Worker Kernel**
+    - Mutate only the specified GitHub Issue resource through MCP-authorized actions.
+    - Do not edit workspace files.
+    - Do not close or comment on any issue unless the packet explicitly names that issue and mutation.
+    - Return GitHub mutation status, issue URL/number, and unresolved risks only in `STATE_DELTA_V1`.
 - slug: sub-issue-creator
   name: "📝 sub-issue-creator"
   roleDefinition: Atomic worker for sub-issue-creator.
@@ -777,7 +777,7 @@ customModes:
   description: atomic worker
   groups:
   - read
-  - edit
+  - mcp
   customInstructions: |-
     **Language Policy**
     - Control instructions are written in English.
@@ -821,11 +821,11 @@ customModes:
     - Keep handoff to about 8 lines.
     - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
 
-    **Edit Worker Kernel**
-    - One file, one invariant, read exact block, apply one patch.
-    - No command execution.
-    - After patch mismatch, reread target, load apply-diff-recovery only then, and retry once.
-    - Second failure is `patch_application_failed`.
+    **GitHub Mutation Worker Kernel**
+    - Mutate only the specified GitHub Issue resource through MCP-authorized actions.
+    - Do not edit workspace files.
+    - Do not close or comment on any issue unless the packet explicitly names that issue and mutation.
+    - Return GitHub mutation status, issue URL/number, and unresolved risks only in `STATE_DELTA_V1`.
 - slug: issue-closer
   name: "📝 issue-closer"
   roleDefinition: Atomic worker for issue-closer.
@@ -833,7 +833,7 @@ customModes:
   description: atomic worker
   groups:
   - read
-  - edit
+  - mcp
   customInstructions: |-
     **Language Policy**
     - Control instructions are written in English.
@@ -877,11 +877,11 @@ customModes:
     - Keep handoff to about 8 lines.
     - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
 
-    **Edit Worker Kernel**
-    - One file, one invariant, read exact block, apply one patch.
-    - No command execution.
-    - After patch mismatch, reread target, load apply-diff-recovery only then, and retry once.
-    - Second failure is `patch_application_failed`.
+    **GitHub Mutation Worker Kernel**
+    - Mutate only the specified GitHub Issue resource through MCP-authorized actions.
+    - Do not edit workspace files.
+    - Do not close or comment on any issue unless the packet explicitly names that issue and mutation.
+    - Return GitHub mutation status, issue URL/number, and unresolved risks only in `STATE_DELTA_V1`.
 - slug: exact-command-runner
   name: "▶️ exact-command-runner"
   roleDefinition: Atomic worker for exact-command-runner.
