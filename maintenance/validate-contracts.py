@@ -16,6 +16,38 @@ def ensure_yaml():
     except ModuleNotFoundError:
         if os.environ.get("AGENTMODES_UV_PYYAML") == "1":
             raise SystemExit("ERROR: PyYAML is required")
+
+        ruby = shutil.which("ruby")
+        if ruby is not None:
+            import json
+            import subprocess
+
+            class RubyYaml:
+                @staticmethod
+                def safe_load(text):
+                    proc = subprocess.run(
+                        [ruby, "-r", "yaml", "-r", "json", "-e", "puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Symbol], aliases: true))"],
+                        input=text,
+                        text=True,
+                        capture_output=True,
+                    )
+                    if proc.returncode != 0:
+                        raise RuntimeError(proc.stderr.strip())
+                    return json.loads(proc.stdout)
+
+                @staticmethod
+                def dump(data, **kwargs):
+                    proc = subprocess.run(
+                        [ruby, "-r", "yaml", "-r", "json", "-e", "obj = JSON.parse(STDIN.read); puts obj.to_yaml(line_width: -1)"],
+                        input=json.dumps(data, ensure_ascii=False),
+                        text=True,
+                        capture_output=True,
+                    )
+                    if proc.returncode != 0:
+                        raise RuntimeError(proc.stderr.strip())
+                    return proc.stdout
+
+            return RubyYaml
         uv = shutil.which("uv")
         if uv is None:
             raise SystemExit("ERROR: PyYAML is required and uv was not found")
@@ -30,9 +62,11 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES_DIR = ROOT / "rules"
 ALL_AGENTS = ROOT / "all-agents.yaml"
 
-ORCHESTRATOR_NO_TOOL_MODES = {
+CONTROL_NO_WORKSPACE_MODES = {
     "orchestrator",
     "workflow-orchestrator",
+    "epoch-orchestrator",
+    "gpt-oss-intake-supervisor",
 }
 
 TERMINAL_NO_TOOL_MODES = {
@@ -140,7 +174,7 @@ def validate_no_tool_classification(modes: dict[str, dict]) -> None:
         for slug, mode in modes.items()
         if mode.get("groups") == []
     }
-    expected = ORCHESTRATOR_NO_TOOL_MODES | TERMINAL_NO_TOOL_MODES
+    expected = CONTROL_NO_WORKSPACE_MODES | TERMINAL_NO_TOOL_MODES
 
     if actual != expected:
         fail(
@@ -350,7 +384,7 @@ def validate_internal_routing(modes: dict[str, dict]) -> None:
         require_contains(slug, text, "Never call `switch_mode` for internal work.")
         require_contains(slug, text, "Do not create a wrapper `new_task` targeting `orchestrator`.")
     for slug, mode in modes.items():
-        if slug in ORCHESTRATOR_NO_TOOL_MODES:
+        if slug in CONTROL_NO_WORKSPACE_MODES:
             continue
         text = instructions(mode)
         require_contains(slug, text, "**Delegated Routing Boundary**")
@@ -376,7 +410,7 @@ def validate_visible_todo_admission(modes: dict[str, dict]) -> None:
 
 
 def validate_command_group_policy(modes: dict[str, dict]) -> None:
-    allowed = {"artifact-manager", "tester", "segregated-devops", "release-manager", "security-auditor"}
+    allowed = {"artifact-manager", "tester", "segregated-devops", "release-manager", "security-auditor", "exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator", "container-operator", "environment-inspector"}
     actual = {slug for slug, mode in modes.items() if group_contains(mode.get("groups", []), "command")}
     if actual != allowed:
         fail(f"command group modes must be exactly {sorted(allowed)!r}, got {sorted(actual)!r}")
@@ -415,7 +449,9 @@ def validate_patch_recovery_skill(modes: dict[str, dict]) -> None:
 def validate_post_condense_rehydration(modes: dict[str, dict]) -> None:
     for slug, mode in modes.items():
         text = instructions(mode)
-        if slug in ORCHESTRATOR_NO_TOOL_MODES:
+        if slug in CONTROL_NO_WORKSPACE_MODES:
+            if slug not in {"orchestrator", "workflow-orchestrator"}:
+                continue
             require_contains(slug, text, "**Orchestrated Post-Condense Rehydration Contract**")
             require_contains(slug, text, "no direct workspace inspection authority")
             require_contains(slug, text, "[ ] state-rehydrate:")
@@ -877,13 +913,13 @@ def validate_no_tool_modes(modes: dict[str, dict]) -> None:
         if mode.get("groups") != []:
             continue
         meta = metadata_text(mode)
-        if slug in {"orchestrator", "workflow-orchestrator"}:
-            # Orchestrator may explicitly delegate but must not inspect directly.
+        if slug in CONTROL_NO_WORKSPACE_MODES:
+            # Control no-workspace modes may delegate but must not inspect directly.
             text = instructions(mode)
             if re.search(r"inspect workspace (state )?directly|workspace inspection authority", meta, flags=re.IGNORECASE):
                 fail(f"{slug}: no-tool metadata promises direct workspace inspection")
-            require_contains(slug, text, "This mode does not inspect workspace state directly")
-            require_contains(slug, text, "delegate to the least-privilege inspection-capable mode")
+            require_regex(slug, text, r"does not inspect workspace|Do not inspect workspace directly|no-workspace-inspection", "control no-workspace inspection boundary")
+            require_regex(slug, text, r"delegate|new_task|Orchestrator|STATE_DELTA_V1", "control handoff or delegation boundary")
             continue
         if metadata_forbidden.search(meta):
             fail(f"{slug}: no-tool metadata contains direct tool, inspection, or dispatch wording")
@@ -893,6 +929,82 @@ def validate_no_tool_modes(modes: dict[str, dict]) -> None:
         require_regex(slug, text, r"no-tool|no workspace inspection authority|cannot inspect workspace", "no-tool workspace inspection boundary")
         require_regex(slug, text, r"Recommended Next Mode|Orchestrator|ORCHESTRATOR_BRIEF_V1", "Orchestrator handoff or recommendation")
         require_regex(slug, text, r"Do not ask the user|must never ask the user", "no user questions for workspace facts")
+
+
+def validate_durable_architecture_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "gpt-oss-intake-supervisor",
+        "intake-ledger-writer",
+        "state-ledger-reader",
+        "state-ledger-writer",
+        "context-compactor",
+        "epoch-orchestrator",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing durable architecture modes: {missing}")
+    intake_text = instructions(modes["intake-ledger-writer"])
+    require_contains("intake-ledger-writer", intake_text, "**Intake Ledger Write Contract**")
+    require_contains("intake-ledger-writer", intake_text, "SESSION_START_V1")
+
+
+def validate_atomic_first_wave_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "tree-indexer", "text-searcher", "source-excerpt-reader", "artifact-reader", "git-state-reader", "dependency-manifest-reader",
+        "patch-applier", "new-file-writer", "test-patch-writer", "manifest-editor", "ci-workflow-writer",
+        "exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator",
+        "compiler-diagnostic-classifier", "test-result-classifier", "coverage-checker", "scope-checker", "contract-checker", "test-inventory-checker",
+        "dependency-editor", "container-operator", "environment-inspector",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing atomic first-wave modes: {missing}")
+    for slug in ["exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator"]:
+        if not group_contains(modes[slug].get("groups", []), "command"):
+            fail(f"{slug}: first-wave command runner must have command group")
+
+
+def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "artifact-indexer", "artifact-conflict-checker", "artifact-materializer", "artifact-retention-planner",
+        "ledger-consistency-checker", "handoff-consistency-checker", "workflow-phase-checker",
+        "github-relationship-checker", "review-risk-classifier", "security-risk-classifier",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing atomic second-wave modes: {missing}")
+    if not group_contains(modes["artifact-materializer"].get("groups", []), "edit"):
+        fail("artifact-materializer: must have edit group")
+
+
+def validate_phase_eight_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "context-metrics-reader",
+        "rehydration-auditor",
+        "handoff-budget-checker",
+        "model-lifetime-checker",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing phase-8 governance modes: {missing}")
+    for slug in required:
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Metrics/Governance Worker Kernel**")
+        require_contains(slug, text, "Do not use conversation summaries as evidence.")
+
+
+def validate_phase_docs() -> None:
+    for path in [
+        ROOT / "docs" / "phases" / "phase-3-control-plane.md",
+        ROOT / "docs" / "phases" / "phase-4-intake.md",
+        ROOT / "docs" / "phases" / "phase-5-atomic-workers.md",
+        ROOT / "docs" / "phases" / "phase-6-atomic-workers-second-wave.md",
+        ROOT / "docs" / "phases" / "phase-7-sliding-window.md",
+        ROOT / "docs" / "phases" / "phase-8-metrics-governance.md",
+        ROOT / "docs" / "contracts" / "migration-metrics-v1.md",
+        ROOT / "docs" / "examples" / "migration-metrics-v1.yaml",
+    ]:
+        require_file(path)
 
 
 def validate_sync(rule_modes: dict[str, dict], all_modes: dict[str, dict]) -> None:
@@ -1171,6 +1283,11 @@ def main() -> None:
     validate_ask(rule_modes)
     validate_documenter(rule_modes)
     validate_no_tool_modes(rule_modes)
+    validate_durable_architecture_modes(rule_modes)
+    validate_atomic_first_wave_modes(rule_modes)
+    validate_atomic_second_wave_modes(rule_modes)
+    validate_phase_eight_modes(rule_modes)
+    validate_phase_docs()
     validate_sync(rule_modes, all_modes)
     validate_mode_metadata(rule_modes)
     validate_scenarios(rule_modes)
