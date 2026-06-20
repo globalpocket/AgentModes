@@ -331,6 +331,7 @@ customModes:
   description: atomic worker
   groups:
   - read
+  - mcp
   customInstructions: |-
     **Language Policy**
     - Control instructions are written in English.

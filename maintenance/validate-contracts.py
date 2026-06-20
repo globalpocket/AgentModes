@@ -977,7 +977,19 @@ def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
         fail("artifact-materializer: must have edit group")
 
 
+def validate_sparse_task_packet_wording(modes: dict[str, dict]) -> None:
+    for slug in ["orchestrator", "workflow-orchestrator"]:
+        text = instructions(modes[slug])
+        require_contains(slug, text, "Always include only these required keys")
+        require_contains(slug, text, "Omit empty strings, empty arrays, empty objects, and default values")
+        for forbidden in ["Keep keys exactly", "Use `[]` or `""` for unknown values", "**TASK_PACKET_V1 Skeleton**"]:
+            if forbidden in text:
+                fail(f"{slug}: stale full TASK_PACKET wording remains: {forbidden}")
+
+
 def validate_github_atomic_permissions(modes: dict[str, dict]) -> None:
+    if not group_contains(modes["issue-reader"].get("groups", []), "mcp"):
+        fail("issue-reader: GitHub Issue reader must use read+mcp")
     for slug in ["issue-comment-writer", "sub-issue-creator", "issue-closer"]:
         groups = modes[slug].get("groups", [])
         if not group_contains(groups, "mcp") or group_contains(groups, "edit"):
@@ -1090,6 +1102,7 @@ def validate_runtime_layout() -> None:
         ROOT / "skills" / "orchestrator-workflows" / "SKILL.md",
         ROOT / "skills" / "tdd-quality-gate" / "SKILL.md",
         ROOT / "skills" / "github-issue-main-task" / "SKILL.md",
+        ROOT / "skills" / "orchestrator-delegation-guardrails" / "SKILL.md",
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md",
         ROOT / "skills" / "provider-health-recovery" / "SKILL.md",
         ROOT / "commands" / "tdd-quality-gate.md",
@@ -1114,6 +1127,11 @@ def validate_skill_frontmatter() -> None:
             "name": "github-issue-main-task",
             "modeSlugs": ["workflow-orchestrator"],
             "description_contains": ["github-issue-main-task"],
+        },
+        ROOT / "skills" / "orchestrator-delegation-guardrails" / "SKILL.md": {
+            "name": "orchestrator-delegation-guardrails",
+            "modeSlugs": ["orchestrator", "workflow-orchestrator", "epoch-orchestrator"],
+            "description_contains": ["guardrails"],
         },
         ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
             "name": "provider-health-recovery-flow",
@@ -1303,6 +1321,7 @@ def main() -> None:
     validate_durable_architecture_modes(rule_modes)
     validate_atomic_first_wave_modes(rule_modes)
     validate_atomic_second_wave_modes(rule_modes)
+    validate_sparse_task_packet_wording(rule_modes)
     validate_github_atomic_permissions(rule_modes)
     validate_phase_eight_modes(rule_modes)
     validate_phase_docs()

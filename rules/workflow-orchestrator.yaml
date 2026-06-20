@@ -158,79 +158,25 @@ customModes:
     - Never include the raw user prompt or old handoffs in a task packet.
 
     **TASK_PACKET_V1 Standard**
-    - `new_task.message` to downstream modes should be a valid JSON object with `task_packet_version: TASK_PACKET_V1`.
+    - `new_task.message` to downstream modes must be a valid JSON object with `task_packet_version: TASK_PACKET_V1`.
     - Do not wrap JSON in Markdown fences. Do not add comments or trailing commas.
-    - Keep keys exactly: `task_packet_version`, `task_id`, `assigned_mode`, `goal`, `mode_reason`, `source_of_truth`, `files`, `context_delta`, `code_scope`, `tdd`, `contracts`, `commands`, `steps`, `done`, `artifact_handoff`, `output_contract`, `action_contract`, `budgets`.
-    - Use `[]` or `""` for unknown values. Do not invent requirements.
-    - Include only current-step facts. Exclude long logs, long diffs, old handoffs, old completions, and hidden reasoning.
-    - `files.read_scope` defaults to `["current workspace only"]`.
-    - Separate `read_files`, `edit_files`, and `forbidden_files`.
-    - `action_contract.completion_scope` defaults to `assigned_task_only`.
-    - `action_contract.global_todos_are_not_done_conditions` must be `true`.
-    - `action_contract.on_incomplete_todos` defaults to `return_partial_handoff_without_retry`.
-    - If `artifact_handoff.required` is true, validate before delegation that `artifact_handoff.paths` is non-empty, every path is workspace-relative under `artifacts/`, the assigned mode can create the artifact content or a separate artifact-manager/write-capable task is planned, and `action_contract.allowed_actions` includes the required artifact/write/create/edit operation unless the Tester Artifact Materialization Authority exception applies.
-    - Do not create a `TASK_PACKET_V1` whose `action_contract.allowed_actions` conflicts with `artifact_handoff.required`.
-    - Tester Artifact Materialization Authority exception: for `assigned_mode: tester`, `artifact_handoff.required: true` is valid without `write_artifact` when `action_contract.allowed_actions` includes `execute_command`, `commands[0].artifact_path` exactly matches an `artifact_handoff.paths` entry, that path is canonical and under `artifacts/`, and `commands[0].command` writes stdout/stderr to that exact path using `tee` or redirection while preserving the original command exit status with `set -o pipefail` or equivalent when a pipe is used. The tester packet must execute the specified command once and must not rerun it.
-    - For subtasks, `done` must contain only conditions the assigned mode can satisfy; do not include parent workflow todos, later-mode work, README updates, final review, release, diagnostics, or user response unless that mode owns them.
-    - For read-only modes, set `artifact_handoff.required` to false by default and receive a compact inline handoff within `output_contract.max_lines`.
-    - If a read-only result must become an artifact, split the work: ask the read-only mode for key facts inline, then delegate artifact path preparation or content writing to an explicitly artifact-capable mode. Do not ask the read-only mode to create artifact content.
-    - `artifact_handoff.paths` are canonical workspace-relative paths that are created only when permissions and steps are valid; they are not optional save-location suggestions.
-    - When delegating to Documenter, provide `DOC_FACTS_V1` through `contracts.doc_facts`, `artifact_handoff.paths`, `source_of_truth.primary_references`, or short explicit `context_delta.facts`.
-    - For Documenter, `files.edit_files` must be `README.md` or `docs/**/*.md` only.
-    - Do not assign `plans/**/*.md` or arbitrary Markdown paths to Documenter; planning documents remain Architect-owned unless a separate planning documentation mode is introduced.
-    - For Documenter, assign only allowed Markdown target files as `files.edit_files`; do not assign implementation code, tests, config, CI, or plans as read files.
-    - For Documenter, include source code, tests, dependency/config files, CI files, and plans in `files.forbidden_files` when relevant, and include fact discovery/source-code investigation in `action_contract.forbidden_actions`.
-    - If documentation facts require source inspection, delegate to doc-evidence-reader first and pass its `DOC_FACTS_V1` output to Documenter.
+    - Always include only these required keys: `task_packet_version`, `task_id`, `assigned_mode`, `goal`, `files`, `steps`, `done`, `output_contract`, and `action_contract`.
+    - Add optional keys only when they carry non-empty current-task facts: `source_of_truth`, `context_delta`, `code_scope`, `tdd`, `contracts`, `commands`, `artifact_handoff`, and `budgets`.
+    - Omit empty strings, empty arrays, empty objects, and default values; never add placeholder `[]` or `""` solely to satisfy an old skeleton.
+    - Include only current-step facts. Exclude raw user prompts, long logs, long diffs, old handoffs, old completions, and hidden reasoning.
+    - If optional packet shaping becomes detailed, delegate packet shaping to `epoch-orchestrator` rather than expanding long-lived Orchestrator context.
 
     **TASK_PACKET_V1 Compact Construction Boundary**
     - Do not keep a full TASK_PACKET skeleton in long-lived Orchestrator context.
     - Construct only sparse current-step packets using the always-required keys and current ledger facts.
     - Delegate detailed packet shaping, file selection, TDD detail, and failure analysis to `epoch-orchestrator` or an atomic worker.
 
-    **commands Contract**
-    - `commands` is a machine-readable execution specification for execution modes.
-    - Each command object should include `id`, `purpose`, `command`, `cwd`, `artifact_path`, `coverage_artifact_path`, `expected_exit_status`, `pipefail_required`, `timeout_policy`, `on_still_running`, `allow_rerun`, `allow_polling`, and `allowed_after_completion`.
-    - `cwd` must be `.` or a workspace-relative path. Absolute paths, home paths, and workspace escapes are forbidden.
-    - `action_contract.allowed_actions` and `action_contract.forbidden_actions` are tool/action names, not shell command substrings; never use ambiguous values such as `test` or `build`. Prefer explicit names such as `execute_command`, `read_file`, `search_files`, `edit_files`, `modify_source`, `delegate_task`, `self_dispatch`, or `write_artifact`.
-    - `artifact_path` and non-empty `coverage_artifact_path` are canonical workspace-relative paths under `artifacts/`.
-    - `artifact_path`, `coverage_artifact_path`, and `artifact_handoff.paths` are workspace file paths, not command-output artifact IDs.
-    - `read_command_output.artifact_id` may only be the exact `cmd-{timestamp}.txt` ID returned by `execute_command`, matching `^cmd-[0-9]+\.txt$`; never synthesize it from `commands[*].id`, file paths, `cmd-*`, `cmd-*/...`, globs, or `artifacts/...`.
-    - If a command redirects stdout/stderr/logs to `artifact_path`, downstream readers must use `read_file` on that workspace path.
-    - execute_command output is not automatically an artifact. When tester must produce `artifact_path`, normalize the shell command to write stdout/stderr to that path with an exit-status-preserving mechanism such as `tee` plus pipefail when required.
-    - `allow_rerun: false` means the command must not be rerun; `allow_polling: false` means the delegated mode must not tail, grep, cat, ps, pgrep, or otherwise poll; `on_still_running` defines whether to return `WAITING_EXTERNAL` or continue without additional checks.
-    - Command-local save paths inside `commands[*].command` may be relative to `cwd`, but returned paths and `artifact_handoff.paths` must use canonical workspace-relative paths.
-    - For tester, normally provide exactly one command per task. Red, Green, and Coverage are separate tasks. Integrated Coverage may run a whole suite only after unit Green checks.
-
-    **Artifact Handoff**
-    - Outputs longer than 5 lines must go to `artifacts/` and be passed by path.
-    - Artifact Handoff paths are canonical workspace-relative paths and must remain separate from ZooCode command-output artifact IDs.
-    - Before setting `artifact_handoff.required` to true, verify the delegated mode has artifact creation authority and the packet allows artifact/write/create/edit actions, except for tester packets that satisfy the Tester Artifact Materialization Authority exception.
-    - Read-only modes such as analyzer normally receive `artifact_handoff.required=false`; their result should be an inline handoff.
-    - If artifact content is required from read-only analysis, Orchestrator must create a separate task for artifact-manager or another write-capable mode. Artifact-manager may initialize, prepare, or verify paths only unless its own contract explicitly allows content writing.
-    - Orchestrator must not ingest full logs, audit bodies, diagnostic bodies, or old completion text.
-    - Judge artifacts through consistency-checker using provided paths and criteria.
-
-    **WAITING_EXTERNAL**
-    - Use task states `PENDING`, `RUNNING`, `WAITING_EXTERNAL`, `COMPLETED`, and `FAILED` only.
-    - If a command or MCP operation is still running, transition to `WAITING_EXTERNAL`.
-    - While waiting, do not poll with `tail`, `grep`, `cat`, `ps`, `pgrep`, artifact reads, or repeated command/subtask execution.
-    - After completion notification, collect only specified metadata and continue to the next predefined gate.
-
-    **GitHub Gates**
-    - Only classify GitHub state as `github` when the input is a GitHub Issue URL or explicit owner/repo is provided.
-    - For `non-github` or `unknown-skipped`, skip issue-tracker, release-manager, diagnostic-reporter, GitHub MCP, GitHub comments, and tag push. Continue local quality gates when implementation is needed.
-    - Orchestrator must never directly use GitHub MCP, GitHub CLI, `git push`, `git tag`, browser automation, or direct HTTP.
-
-    **Release and Diagnostic Gates**
-    - Only after tests, Coverage 85%, security-auditor, and reviewer pass for a GitHub-origin task, delegate version bump/tag/push to release-manager.
-    - Only after release-manager succeeds, delegate final diagnostic Issue creation to diagnostic-reporter.
-    - Diagnostic Issue user-visible title/body must follow runtime language policy; fallback is Japanese.
-
-    **Failure Handling**
-    - Normalize failures into a Failure Fingerprint: Goal Key, Mode Key, Target Key, Failure Kind, Failure Signature, Expected Red Match.
-    - Do not count Expected Red Signature matches as test-writer failures.
-    - First failure may return to the same responsible mode. Second same failure goes to recovery-supervisor. Third same failure goes to architect for redesign.
-    - Dependency and provider failures are environment tasks, not implementation failures.
+    **Delegation Guardrails Pointer**
+    - Detailed command schemas, artifact conflict examples, GitHub/release gates, failure fingerprints, and regression examples are not kept in long-lived Orchestrator context.
+    - Load `orchestrator-delegation-guardrails` only when a short-lived epoch or planning step needs those examples.
+    - Tester Artifact Materialization Authority exception remains a delegated packet concern. Tester artifact authority: example: `assigned_mode=tester`, `allowed_actions=[execute_command]`, and `cargo test 2>&1 | tee artifacts/test-results/test.txt` do not classify `artifact_permission_conflict` when the tester command writes the artifact.
+    - Librarian packet conflict examples live in `orchestrator-delegation-guardrails`.
+    - Documentation presence routing remains: use doc-evidence-reader first, then analyzer, then librarian; do not send standalone documentation presence inspection to Documenter.
 
     **Final Response Gate**
     - Use user-response-composer only immediately before final `attempt_completion`, after all actual work and final gates are completed or skipped.

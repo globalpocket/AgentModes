@@ -114,6 +114,7 @@ top-level `workflows/` は使用しません。Skill は必要時にオンデマ
 | `skills/tdd-quality-gate/SKILL.md` | Skill | `/tdd-quality-gate` 専用phase定義 |
 | `skills/github-issue-main-task/SKILL.md` | Skill | `/github-issue-main-task` 専用phase定義 |
 | `skills/orchestrator-workflows/SKILL.md` | Skill | 旧参照向け互換shim。詳細phase定義のsource of truthではない |
+| `skills/orchestrator-delegation-guardrails/SKILL.md` | Skill | 長寿命Orchestratorから外した詳細packet / command / artifact / GitHub / failure例の遅延ロード先 |
 | `skills/provider-health-recovery-flow/SKILL.md` | Skill | Provider Health Failure分類済み後の復旧委任・再開フロー |
 | `skills/provider-health-recovery/SKILL.md` | Skill | Segregated DevOpsによる実際のProvider復旧手順 |
 
