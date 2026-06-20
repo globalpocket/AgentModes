@@ -977,6 +977,22 @@ def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
         fail("artifact-materializer: must have edit group")
 
 
+def validate_phase_eight_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "context-metrics-reader",
+        "rehydration-auditor",
+        "handoff-budget-checker",
+        "model-lifetime-checker",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing phase-8 governance modes: {missing}")
+    for slug in required:
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Metrics/Governance Worker Kernel**")
+        require_contains(slug, text, "Do not use conversation summaries as evidence.")
+
+
 def validate_phase_docs() -> None:
     for path in [
         ROOT / "docs" / "phases" / "phase-3-control-plane.md",
@@ -984,6 +1000,9 @@ def validate_phase_docs() -> None:
         ROOT / "docs" / "phases" / "phase-5-atomic-workers.md",
         ROOT / "docs" / "phases" / "phase-6-atomic-workers-second-wave.md",
         ROOT / "docs" / "phases" / "phase-7-sliding-window.md",
+        ROOT / "docs" / "phases" / "phase-8-metrics-governance.md",
+        ROOT / "docs" / "contracts" / "migration-metrics-v1.md",
+        ROOT / "docs" / "examples" / "migration-metrics-v1.yaml",
     ]:
         require_file(path)
 
@@ -1267,6 +1286,7 @@ def main() -> None:
     validate_durable_architecture_modes(rule_modes)
     validate_atomic_first_wave_modes(rule_modes)
     validate_atomic_second_wave_modes(rule_modes)
+    validate_phase_eight_modes(rule_modes)
     validate_phase_docs()
     validate_sync(rule_modes, all_modes)
     validate_mode_metadata(rule_modes)
