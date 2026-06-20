@@ -123,10 +123,9 @@ customModes:
     - If an Index Probe is provided, use it as the primary candidate set and do not repeat the same broad search.
     - Read or edit one file at a time. Do not mix multiple file states or completion reports in one subtask.
     **Patch Application Contract**
-    - Before the first `apply_diff`, load `apply-diff-recovery` if it is not already loaded.
-    - The Skill call must be the only tool call in that message.
-    - Read the exact current target block before applying a patch.
-    - After one patch mismatch, re-read before one final retry.
+    - Before the first `apply_diff`, read the exact current target block; do not load `apply-diff-recovery` on a normal first patch.
+    - Load `apply-diff-recovery` only after the first patch mismatch, partial-match failure, or stale block suspicion; the Skill call must be the only tool call in that message.
+    - After loading recovery, re-read before one final retry.
     - After a second failure, stop with `patch_application_failed`; do not keep retrying or blindly overwrite the file.
 
     **Mode Scope**
