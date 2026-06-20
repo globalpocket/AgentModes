@@ -1,0 +1,18 @@
+{
+  "version": "RUN_STATE_V1",
+  "run_id": "example-run",
+  "specification_path": "docs/tasks/example-run.md",
+  "epoch": 1,
+  "phase": "initial-invariant",
+  "status": "prepared",
+  "current_invariant": "one-observable-change",
+  "active_files": [],
+  "completed_invariants": [],
+  "task_id": "epoch-1",
+  "input_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "attempt": 1,
+  "result_hash": "",
+  "last_committed_task_id": "",
+  "next_mode": "epoch-orchestrator",
+  "checksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}

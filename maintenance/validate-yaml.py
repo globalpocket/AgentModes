@@ -16,6 +16,38 @@ def ensure_yaml():
     except ModuleNotFoundError:
         if os.environ.get("AGENTMODES_UV_PYYAML") == "1":
             raise SystemExit("ERROR: PyYAML is required")
+
+        ruby = shutil.which("ruby")
+        if ruby is not None:
+            import json
+            import subprocess
+
+            class RubyYaml:
+                @staticmethod
+                def safe_load(text):
+                    proc = subprocess.run(
+                        [ruby, "-r", "yaml", "-r", "json", "-e", "puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Symbol], aliases: true))"],
+                        input=text,
+                        text=True,
+                        capture_output=True,
+                    )
+                    if proc.returncode != 0:
+                        raise RuntimeError(proc.stderr.strip())
+                    return json.loads(proc.stdout)
+
+                @staticmethod
+                def dump(data, **kwargs):
+                    proc = subprocess.run(
+                        [ruby, "-r", "yaml", "-r", "json", "-e", "obj = JSON.parse(STDIN.read); puts obj.to_yaml(line_width: -1)"],
+                        input=json.dumps(data, ensure_ascii=False),
+                        text=True,
+                        capture_output=True,
+                    )
+                    if proc.returncode != 0:
+                        raise RuntimeError(proc.stderr.strip())
+                    return proc.stdout
+
+            return RubyYaml
         uv = shutil.which("uv")
         if uv is None:
             raise SystemExit("ERROR: PyYAML is required and uv was not found")

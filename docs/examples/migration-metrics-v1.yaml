@@ -1,0 +1,20 @@
+MIGRATION_METRICS_V1:
+  run_id: example-run
+  state_path: artifacts/state/example-run.json
+  measured_at: "2026-06-20T00:00:00Z"
+  mode_instruction_tokens:
+    orchestrator: 1200
+    workflow-orchestrator: 1250
+  skill_loaded_max_tokens: 1800
+  worker_tool_calls:
+    epoch-1: 3
+  handoff_line_counts:
+    epoch-1: 7
+  parent_return_chars:
+    epoch-1: 420
+  context_condensation_count: 0
+  sliding_window_truncation_count: 1
+  state_rehydration_success_rate: 1.0
+  duplicate_task_execution_count: 0
+  epoch_average_duration_ms: 90000
+  large_model_compression_count: 0
