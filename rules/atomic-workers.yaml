@@ -2078,3 +2078,544 @@ customModes:
     - Read explicit evidence, apply one judgment.
     - No command, no edit, no dispatch.
     - Return pass/fail plus evidence only.
+- slug: artifact-indexer
+  name: "📦 artifact-indexer"
+  roleDefinition: Atomic worker for artifact-indexer.
+  whenToUse: Use for one atomic artifact-indexer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: artifact-conflict-checker
+  name: "📦 artifact-conflict-checker"
+  roleDefinition: Atomic worker for artifact-conflict-checker.
+  whenToUse: Use for one atomic artifact-conflict-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: artifact-materializer
+  name: "📦 artifact-materializer"
+  roleDefinition: Atomic worker for artifact-materializer.
+  whenToUse: Use for one atomic artifact-materializer operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Artifact/Edit Worker Kernel**
+    - One artifact or file family, one invariant, one write operation.
+    - No command execution.
+    - Use atomic write semantics and return paths plus hashes only in `STATE_DELTA_V1`.
+- slug: artifact-retention-planner
+  name: "📦 artifact-retention-planner"
+  roleDefinition: Atomic worker for artifact-retention-planner.
+  whenToUse: Use for one atomic artifact-retention-planner operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: ledger-consistency-checker
+  name: "🧮 ledger-consistency-checker"
+  roleDefinition: Atomic worker for ledger-consistency-checker.
+  whenToUse: Use for one atomic ledger-consistency-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: handoff-consistency-checker
+  name: "🧮 handoff-consistency-checker"
+  roleDefinition: Atomic worker for handoff-consistency-checker.
+  whenToUse: Use for one atomic handoff-consistency-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: workflow-phase-checker
+  name: "🧮 workflow-phase-checker"
+  roleDefinition: Atomic worker for workflow-phase-checker.
+  whenToUse: Use for one atomic workflow-phase-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: github-relationship-checker
+  name: "🐙 github-relationship-checker"
+  roleDefinition: Atomic worker for github-relationship-checker.
+  whenToUse: Use for one atomic github-relationship-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: review-risk-classifier
+  name: "⚖️ review-risk-classifier"
+  roleDefinition: Atomic worker for review-risk-classifier.
+  whenToUse: Use for one atomic review-risk-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.
+- slug: security-risk-classifier
+  name: "🔒 security-risk-classifier"
+  roleDefinition: Atomic worker for security-risk-classifier.
+  whenToUse: Use for one atomic security-risk-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |-
+    **Language Policy**
+    - Control instructions are written in English.
+    - User-visible output follows the runtime language; if unspecified, use Japanese.
+
+    **Control-Plane Serialization Contract**
+    - Emit at most one control-plane tool call in one assistant message.
+    **Slash Command Invocation Boundary**
+    - Never call `run_slash_command` autonomously.
+    - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
+    - Missing or unrelated Slash Commands are not Provider Health Failures.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
+    - Never call `switch_mode` for internal routing.
+    - If `attempt_completion` is rejected, do not retry.
+
+    **Visible TODO Admission Contract**
+    - The first `update_todo_list` call in a task must contain exactly one item.
+    - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
+    - Never encode multiple todos inside one todo body with nested markers.
+
+    **Delegated Routing Boundary**
+    - Never call `new_task`.
+    - Never call `switch_mode`.
+    - Never invoke another mode directly.
+    - Use Recommended Next Mode only as advisory handoff text.
+
+    **Post-Condense Rehydration Contract**
+    - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
+    - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
+
+    **Context Budget Contract**
+    - At most two workspace inspection tool calls per assistant message.
+    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
+    - Search results should be capped at 20 matches.
+    - Start with non-recursive listing; repository-wide recursive tree dumps are forbidden.
+    - Never paste full files, full logs, full diffs, or full trees into handoffs.
+
+    **STATE_DELTA_V1 Handoff**
+    - Return only `STATE_DELTA_V1` unless this mode's contract states otherwise.
+    - Keep handoff to about 8 lines.
+    - Do not restate the raw prompt, prior handoffs, full logs, full diffs, or unfinished parent plans.
+
+    **Read/Judge Worker Kernel**
+    - Current packet only; one explicit inspection or judgment objective.
+    - No edit, no command, no dispatch, no user question.
+    - Return pass/fail or verified facts only in `STATE_DELTA_V1`.

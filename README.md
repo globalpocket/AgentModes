@@ -195,7 +195,9 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 - Phase 3 control-plane recomposition is represented by durable-continuity Orchestrator contracts and `epoch-orchestrator` delegation boundaries.
 - Phase 4 intake recomposition is represented by `gpt-oss-intake-supervisor`, `intake-ledger-writer`, and path-only `SESSION_START_V1` handoff rules.
 - Phase 5 atomic-worker first wave is represented by read workers, edit workers, command runners, result classifiers, and the initial DevOps split in `rules/atomic-workers.yaml`.
-- Later phases remain artifact-manager, consistency-checker, GitHub, security, review, and sliding-window operationalization work.
+- Phase 6 atomic-worker second wave is represented by artifact, consistency, GitHub relationship, security-risk, and review-risk split workers.
+- Phase 7 sliding-window operation is represented by `/continue-from-state`, durable rehydration rules, root task rotation triggers, and no-summary ledger recovery policy.
+- Remaining work is runtime integration and measuring the phase metrics against real Zoo/Roo sessions.
 
 | Contract | Path | Purpose |
 | --- | --- | --- |
@@ -206,3 +208,5 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 | Phase 3 | `docs/phases/phase-3-control-plane.md` | Control-plane recomposition scope |
 | Phase 4 | `docs/phases/phase-4-intake.md` | Intake ledger path and artifact rules |
 | Phase 5 | `docs/phases/phase-5-atomic-workers.md` | Atomic worker first-wave registry |
+| Phase 6 | `docs/phases/phase-6-atomic-workers-second-wave.md` | Artifact, consistency, issue, security, and review split registry |
+| Phase 7 | `docs/phases/phase-7-sliding-window.md` | Sliding-window, rehydration, and root-task rotation policy |

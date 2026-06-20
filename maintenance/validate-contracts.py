@@ -964,6 +964,30 @@ def validate_atomic_first_wave_modes(modes: dict[str, dict]) -> None:
             fail(f"{slug}: first-wave command runner must have command group")
 
 
+def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
+    required = {
+        "artifact-indexer", "artifact-conflict-checker", "artifact-materializer", "artifact-retention-planner",
+        "ledger-consistency-checker", "handoff-consistency-checker", "workflow-phase-checker",
+        "github-relationship-checker", "review-risk-classifier", "security-risk-classifier",
+    }
+    missing = sorted(required - set(modes))
+    if missing:
+        fail(f"missing atomic second-wave modes: {missing}")
+    if not group_contains(modes["artifact-materializer"].get("groups", []), "edit"):
+        fail("artifact-materializer: must have edit group")
+
+
+def validate_phase_docs() -> None:
+    for path in [
+        ROOT / "docs" / "phases" / "phase-3-control-plane.md",
+        ROOT / "docs" / "phases" / "phase-4-intake.md",
+        ROOT / "docs" / "phases" / "phase-5-atomic-workers.md",
+        ROOT / "docs" / "phases" / "phase-6-atomic-workers-second-wave.md",
+        ROOT / "docs" / "phases" / "phase-7-sliding-window.md",
+    ]:
+        require_file(path)
+
+
 def validate_sync(rule_modes: dict[str, dict], all_modes: dict[str, dict]) -> None:
     if len(rule_modes) != len(all_modes):
         fail(f"mode count mismatch: rules={len(rule_modes)} all-agents={len(all_modes)}")
@@ -1242,6 +1266,8 @@ def main() -> None:
     validate_no_tool_modes(rule_modes)
     validate_durable_architecture_modes(rule_modes)
     validate_atomic_first_wave_modes(rule_modes)
+    validate_atomic_second_wave_modes(rule_modes)
+    validate_phase_docs()
     validate_sync(rule_modes, all_modes)
     validate_mode_metadata(rule_modes)
     validate_scenarios(rule_modes)
