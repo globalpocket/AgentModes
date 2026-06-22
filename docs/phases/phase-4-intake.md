@@ -11,14 +11,12 @@ raw-input-materializer
 
 ## raw-input-materializer
 
-- raw input preservation
-- artifact creation
-- manifest/chunk generation
-- returns `RAW_INPUT_REF_V1` promptly
+- sole responsibility is saving the exact raw user input as `artifacts/intake/<run-id>/raw-request.md`
+- may create only mechanical materialization metadata: `raw-request.manifest.json` and optional size-based chunks
+- returns `RAW_INPUT_REF_V1` promptly with `next_mode: gpt-oss-intake-analyzer`
 - returns `MATERIALIZATION_STALLED_V1` instead of looping if exact artifact metadata cannot be produced by the available workspace capability
-- no semantic analysis
-- no GPT-OSS analysis
-- no Orchestrator dispatch
+- no semantic analysis, summarization, classification, requirement validation, TODO creation, implementation, testing, or GPT-OSS analysis
+- no Orchestrator dispatch; next-mode transfer is advisory handoff text only
 
 ## gpt-oss-intake-analyzer
 

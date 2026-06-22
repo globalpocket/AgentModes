@@ -3,24 +3,30 @@
 ## Zoo Code custom modes import
 
 - Zoo Code へインポートする対象ファイルは `all-agents.yaml` です。
-- `all-agents.yaml` は `rules/*.yaml` から生成される単一の `customModes` 配列です。
+- `all-agents.yaml` は `modes/*.yaml` から生成される単一の `customModes` 配列です。
 - 生成時は `python maintenance/generate-all-agents.py` を実行してください。
 - 検証時は `python maintenance/validate-yaml.py` を実行してください。
 - 契約検証時は `python maintenance/validate-contracts.py` を実行してください。
 - `customInstructions` は block scalar、`groups` は YAML list として保持します。
 
-## Global ~/.roo deployment layout
+## Global ~/.roo layout
 
-このリポジトリは、内容をグローバル `~/.roo/` へコピーして使う配布物です。Zoo Code / Roo Code runtime が参照する入口は `skills/` と `commands/` で、保守スクリプトは runtime から自動実行されません。
+このリポジトリのルートはグローバル `~/.roo/` 相当として扱います。したがって `rules/` は Zoo/Roo Global Rules の実配置（`~/.roo/rules/` 相当）であり、custom mode 定義の置き場ではありません。custom mode YAML の source of truth は `modes/` です。Zoo Code / Roo Code runtime が参照する入口は `rules/`、`skills/`、`commands/` で、保守スクリプトは runtime から自動実行されません。
 
 | Repository path | Deployment target / usage |
 | --- | --- |
-| `skills/` | `~/.roo/skills/` へコピー |
-| `commands/` | `~/.roo/commands/` へコピー |
-| `all-agents.yaml` | Zoo Code custom modes import 対象 |
+| `rules/` | `~/.roo/rules/` 相当。Zoo/Roo Global Rules として runtime に注入される |
+| `skills/` | `~/.roo/skills/` 相当 |
+| `commands/` | `~/.roo/commands/` 相当 |
+| `modes/` | custom mode YAML の source of truth。Global Rules ではない |
+| `all-agents.yaml` | Zoo Code custom modes import 対象（`modes/*.yaml` から生成。直接編集しない） |
 | `maintenance/` | 人間またはCIが明示的に実行する保守用。Zoo/Roo runtime は自動実行しない |
 
-AgentModes の GitHub 更新だけでは既存の Zoo Code 設定へ反映されません。更新後は `all-agents.yaml` の再importと、更新済み `skills/` / `commands/` の `~/.roo/` へのコピーが必要です。
+AgentModes の GitHub 更新だけでは既存の Zoo Code 設定へ反映されません。更新後は `all-agents.yaml` の再importが必要です。別ディレクトリで編集した場合だけ、更新済み `rules/` / `skills/` / `commands/` を対応する `~/.roo/` 配下へ同期してください。
+
+Global Rules は `rules/*.md` としてこの repo root 直下に置きます。この repo を `~/.roo` として配置している場合、追加コピー手順は不要です。
+
+`docs/contracts/compact-mode-contract.md` is the reviewed source contract. `rules/00-agentmodes-compact-mode-contract.md` is the live Global Rules copy and must remain byte-for-byte synchronized. `modes/*.yaml` should contain only mode-specific kernels; do not duplicate Global Rules boilerplate there. `all-agents.yaml` is generated from `modes/*.yaml`, so avoid editing it directly or treating it as a second source of truth.
 
 保守コマンド:
 
@@ -46,7 +52,7 @@ python maintenance/validate-contracts.py
 
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
-| `raw-input-materializer` | `Qwen large-context` | 低〜中 | raw入力のartifact化・chunk化専任。要件分析を行わない |
+| `raw-input-materializer` | `Qwen large-context` | 低 | raw入力をartifactへ保存し、`RAW_INPUT_REF_V1`で次モードへ渡すだけ。要件分析・計画・実装を行わない |
 | `gpt-oss-intake-analyzer` | `GPT-OSS-120B` | オン / 最高 | materialized inputからUSER_NEEDS_V1を生成する分析専任 |
 | `intake-ledger-writer` | `Qwen3.5-9Bまたは小型` | オフ〜低 | RAW_INPUT_REF_V1とUSER_NEEDS_V1を永続化しSESSION_START_V1を返す |
 | `orchestrator` | `Qwen3.6-9B` | オン / 中 | path-onlyのdurable continuity supervisor |
@@ -116,6 +122,7 @@ top-level `workflows/` は使用しません。Skill は必要時にオンデマ
 | --- | --- | --- |
 | `commands/tdd-quality-gate.md` | Slash Command | 軽量TDD Workflowの明示的entrypoint |
 | `commands/github-issue-main-task.md` | Slash Command | GitHub Issue Workflowの明示的entrypoint |
+| `commands/analysis.md` | Slash Command | project analysis / diagnostic issue workflow entrypoint; GitHub mutation remains delegated |
 | `skills/tdd-quality-gate/SKILL.md` | Skill | `/tdd-quality-gate` 専用phase定義 |
 | `skills/github-issue-main-task/SKILL.md` | Skill | `/github-issue-main-task` 専用phase定義 |
 | `skills/orchestrator-workflows/SKILL.md` | Skill | 旧参照向け互換shim。詳細phase定義のsource of truthではない |
@@ -162,7 +169,7 @@ Explicit workflows bypass ordinary intake and enter `workflow-orchestrator` dire
 ```
 
 
-`gpt-oss-intake-supervisor` remains only as a deprecated compatibility shim and is not the primary ordinary-input route. Raw本文 must not be passed directly to GPT-OSS or Orchestrator; raw input is first materialized into `RAW_INPUT_REF_V1`, then analyzed from paths. AgentModes Large Input Materialization Contract is a fallback after an LLM can start; provider requests that exceed context before API send require ZooCodeCustom/runtime pre-LLM materialization.
+`gpt-oss-intake-supervisor` remains only as a deprecated compatibility shim and is not the primary ordinary-input route. Raw本文 must not be passed directly to GPT-OSS or Orchestrator; raw input is first materialized into `RAW_INPUT_REF_V1`, then analyzed from paths. `raw-input-materializer` is intentionally not an analyzer or worker: it stores the raw artifact, returns path metadata, and stops with `next_mode: gpt-oss-intake-analyzer`. AgentModes Large Input Materialization Contract is a fallback after an LLM can start; provider requests that exceed context before API send require ZooCodeCustom/runtime pre-LLM materialization.
 
 `/continue-from-state artifacts/state/<run-id>.json` starts a new root Orchestrator task from the durable ledger only.
 
@@ -179,7 +186,8 @@ Explicit workflows bypass ordinary intake and enter `workflow-orchestrator` dire
 - Long-lived `orchestrator` and `workflow-orchestrator` keep only `SESSION_CURSOR_V1` pointers.
 - High-reasoning work moves to short-lived `epoch-orchestrator` tasks.
 - Atomic workers return compact `STATE_DELTA_V1` handoffs.
-- `TASK_PACKET_V1` is sparse: omit empty/default fields and include only current-subtask facts.
+- `TASK_PACKET_V1` is sparse and compact: omit empty/default fields, include only current-subtask facts, and pass artifact paths instead of pasted bodies.
+- All mode-level customInstructions are intentionally compact; common control-plane/slash/todo/routing/post-condense boilerplate is installed as Zoo/Roo Global Rules from `rules/`; `docs/contracts/compact-mode-contract.md` is the synchronized review copy.
 - Read/search workers obey the Context Budget Contract: two inspection tool calls per assistant message, normally 80 read lines, 20 search matches, no full tree/log/file handoffs.
 - `apply-diff-recovery` is loaded only after the first patch mismatch and a target reread.
 
@@ -216,6 +224,8 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 | --- | --- | --- |
 | `RUN_STATE_V1` | `docs/contracts/run-state-v1.md` | Durable run status, hashes, checksum, transition, and retry contract |
 | `SESSION_CURSOR_V1` | `docs/contracts/session-cursor-v1.md` | Long-lived Orchestrator pointer-only context |
+| `TASK_PACKET_V1` | `docs/contracts/task-packet-v1.md` | Compact delegated-subtask prompt budget |
+| Compact mode contract | `docs/contracts/compact-mode-contract.md` + `rules/00-agentmodes-compact-mode-contract.md` | Reviewed contract plus live Zoo/Roo Global Rules copy for common control-plane/slash/todo/routing/post-condense boilerplate |
 | `USER_NEEDS_V1` | `docs/contracts/user-needs-v1.md` | Normalized intake artifact schema |
 | Example ledger | `docs/examples/run-state-v1.json` | Minimal state ledger fixture for prompts and validators |
 | Phase 3 | `docs/phases/phase-3-control-plane.md` | Control-plane recomposition scope |

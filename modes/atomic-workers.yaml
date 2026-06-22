@@ -1,0 +1,541 @@
+---
+customModes:
+- slug: tree-indexer
+  name: "\U0001F50D tree-indexer"
+  roleDefinition: Atomic worker for tree-indexer.
+  whenToUse: Use for one atomic tree-indexer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: text-searcher
+  name: "\U0001F50D text-searcher"
+  roleDefinition: Atomic worker for text-searcher.
+  whenToUse: Use for one atomic text-searcher operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: source-excerpt-reader
+  name: "\U0001F50D source-excerpt-reader"
+  roleDefinition: Atomic worker for source-excerpt-reader.
+  whenToUse: Use for one atomic source-excerpt-reader operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: artifact-reader
+  name: "\U0001F50D artifact-reader"
+  roleDefinition: Atomic worker for artifact-reader.
+  whenToUse: Use for one atomic artifact-reader operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: git-state-reader
+  name: "\U0001F50D git-state-reader"
+  roleDefinition: Atomic worker for git-state-reader.
+  whenToUse: Use for one atomic git-state-reader operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: dependency-manifest-reader
+  name: "\U0001F50D dependency-manifest-reader"
+  roleDefinition: Atomic worker for dependency-manifest-reader.
+  whenToUse: Use for one atomic dependency-manifest-reader operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: issue-reader
+  name: "\U0001F50D issue-reader"
+  roleDefinition: Atomic worker for issue-reader.
+  whenToUse: Use for one atomic issue-reader operation.
+  description: atomic worker
+  groups:
+  - read
+  - mcp
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: patch-applier
+  name: "\U0001F4DD patch-applier"
+  roleDefinition: Atomic worker for patch-applier.
+  whenToUse: Use for one atomic patch-applier operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: new-file-writer
+  name: "\U0001F4DD new-file-writer"
+  roleDefinition: Atomic worker for new-file-writer.
+  whenToUse: Use for one atomic new-file-writer operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: test-patch-writer
+  name: "\U0001F4DD test-patch-writer"
+  roleDefinition: Atomic worker for test-patch-writer.
+  whenToUse: Use for one atomic test-patch-writer operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: manifest-editor
+  name: "\U0001F4DD manifest-editor"
+  roleDefinition: Atomic worker for manifest-editor.
+  whenToUse: Use for one atomic manifest-editor operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: ci-workflow-writer
+  name: "\U0001F4DD ci-workflow-writer"
+  roleDefinition: Atomic worker for ci-workflow-writer.
+  whenToUse: Use for one atomic ci-workflow-writer operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: dependency-editor
+  name: "\U0001F4DD dependency-editor"
+  roleDefinition: Atomic worker for dependency-editor.
+  whenToUse: Use for one atomic dependency-editor operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: issue-comment-writer
+  name: "\U0001F4DD issue-comment-writer"
+  roleDefinition: Atomic worker for issue-comment-writer.
+  whenToUse: Use for one atomic issue-comment-writer operation.
+  description: atomic worker
+  groups:
+  - read
+  - mcp
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: sub-issue-creator
+  name: "\U0001F4DD sub-issue-creator"
+  roleDefinition: Atomic worker for sub-issue-creator.
+  whenToUse: Use for one atomic sub-issue-creator operation.
+  description: atomic worker
+  groups:
+  - read
+  - mcp
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: issue-closer
+  name: "\U0001F4DD issue-closer"
+  roleDefinition: Atomic worker for issue-closer.
+  whenToUse: Use for one atomic issue-closer operation.
+  description: atomic worker
+  groups:
+  - read
+  - mcp
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: exact-command-runner
+  name: "▶️ exact-command-runner"
+  roleDefinition: Atomic worker for exact-command-runner.
+  whenToUse: Use for one atomic exact-command-runner operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: test-runner
+  name: "▶️ test-runner"
+  roleDefinition: Atomic worker for test-runner.
+  whenToUse: Use for one atomic test-runner operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: coverage-runner
+  name: "▶️ coverage-runner"
+  roleDefinition: Atomic worker for coverage-runner.
+  whenToUse: Use for one atomic coverage-runner operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: format-lint-runner
+  name: "▶️ format-lint-runner"
+  roleDefinition: Atomic worker for format-lint-runner.
+  whenToUse: Use for one atomic format-lint-runner operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: build-runner
+  name: "▶️ build-runner"
+  roleDefinition: Atomic worker for build-runner.
+  whenToUse: Use for one atomic build-runner operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: provider-operator
+  name: "▶️ provider-operator"
+  roleDefinition: Atomic worker for provider-operator.
+  whenToUse: Use for one atomic provider-operator operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: container-operator
+  name: "▶️ container-operator"
+  roleDefinition: Atomic worker for container-operator.
+  whenToUse: Use for one atomic container-operator operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: environment-inspector
+  name: "▶️ environment-inspector"
+  roleDefinition: Atomic worker for environment-inspector.
+  whenToUse: Use for one atomic environment-inspector operation.
+  description: atomic worker
+  groups:
+  - read
+  - command
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: compiler-diagnostic-classifier
+  name: "⚖️ compiler-diagnostic-classifier"
+  roleDefinition: Atomic worker for compiler-diagnostic-classifier.
+  whenToUse: Use for one atomic compiler-diagnostic-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: test-result-classifier
+  name: "⚖️ test-result-classifier"
+  roleDefinition: Atomic worker for test-result-classifier.
+  whenToUse: Use for one atomic test-result-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: coverage-checker
+  name: "⚖️ coverage-checker"
+  roleDefinition: Atomic worker for coverage-checker.
+  whenToUse: Use for one atomic coverage-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: scope-checker
+  name: "⚖️ scope-checker"
+  roleDefinition: Atomic worker for scope-checker.
+  whenToUse: Use for one atomic scope-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: contract-checker
+  name: "⚖️ contract-checker"
+  roleDefinition: Atomic worker for contract-checker.
+  whenToUse: Use for one atomic contract-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: test-inventory-checker
+  name: "⚖️ test-inventory-checker"
+  roleDefinition: Atomic worker for test-inventory-checker.
+  whenToUse: Use for one atomic test-inventory-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: secret-auditor
+  name: "⚖️ secret-auditor"
+  roleDefinition: Atomic worker for secret-auditor.
+  whenToUse: Use for one atomic secret-auditor operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: dependency-auditor
+  name: "⚖️ dependency-auditor"
+  roleDefinition: Atomic worker for dependency-auditor.
+  whenToUse: Use for one atomic dependency-auditor operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: unsafe-code-auditor
+  name: "⚖️ unsafe-code-auditor"
+  roleDefinition: Atomic worker for unsafe-code-auditor.
+  whenToUse: Use for one atomic unsafe-code-auditor operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: fabricated-package-auditor
+  name: "⚖️ fabricated-package-auditor"
+  roleDefinition: Atomic worker for fabricated-package-auditor.
+  whenToUse: Use for one atomic fabricated-package-auditor operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: implementation-reviewer
+  name: "⚖️ implementation-reviewer"
+  roleDefinition: Atomic worker for implementation-reviewer.
+  whenToUse: Use for one atomic implementation-reviewer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: architecture-reviewer
+  name: "⚖️ architecture-reviewer"
+  roleDefinition: Atomic worker for architecture-reviewer.
+  whenToUse: Use for one atomic architecture-reviewer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: test-reviewer
+  name: "⚖️ test-reviewer"
+  roleDefinition: Atomic worker for test-reviewer.
+  whenToUse: Use for one atomic test-reviewer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: performance-risk-reviewer
+  name: "⚖️ performance-risk-reviewer"
+  roleDefinition: Atomic worker for performance-risk-reviewer.
+  whenToUse: Use for one atomic performance-risk-reviewer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: artifact-indexer
+  name: "\U0001F4E6 artifact-indexer"
+  roleDefinition: Atomic worker for artifact-indexer.
+  whenToUse: Use for one atomic artifact-indexer operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: artifact-conflict-checker
+  name: "\U0001F4E6 artifact-conflict-checker"
+  roleDefinition: Atomic worker for artifact-conflict-checker.
+  whenToUse: Use for one atomic artifact-conflict-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: artifact-materializer
+  name: "\U0001F4E6 artifact-materializer"
+  roleDefinition: Atomic worker for artifact-materializer.
+  whenToUse: Use for one atomic artifact-materializer operation.
+  description: atomic worker
+  groups:
+  - read
+  - edit
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: artifact-retention-planner
+  name: "\U0001F4E6 artifact-retention-planner"
+  roleDefinition: Atomic worker for artifact-retention-planner.
+  whenToUse: Use for one atomic artifact-retention-planner operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: ledger-consistency-checker
+  name: "\U0001F9EE ledger-consistency-checker"
+  roleDefinition: Atomic worker for ledger-consistency-checker.
+  whenToUse: Use for one atomic ledger-consistency-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: handoff-consistency-checker
+  name: "\U0001F9EE handoff-consistency-checker"
+  roleDefinition: Atomic worker for handoff-consistency-checker.
+  whenToUse: Use for one atomic handoff-consistency-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: workflow-phase-checker
+  name: "\U0001F9EE workflow-phase-checker"
+  roleDefinition: Atomic worker for workflow-phase-checker.
+  whenToUse: Use for one atomic workflow-phase-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: github-relationship-checker
+  name: "\U0001F419 github-relationship-checker"
+  roleDefinition: Atomic worker for github-relationship-checker.
+  whenToUse: Use for one atomic github-relationship-checker operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: review-risk-classifier
+  name: "⚖️ review-risk-classifier"
+  roleDefinition: Atomic worker for review-risk-classifier.
+  whenToUse: Use for one atomic review-risk-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: security-risk-classifier
+  name: "\U0001F512 security-risk-classifier"
+  roleDefinition: Atomic worker for security-risk-classifier.
+  whenToUse: Use for one atomic security-risk-classifier operation.
+  description: atomic worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: context-metrics-reader
+  name: "\U0001F4CA context-metrics-reader"
+  roleDefinition: Atomic governance worker for context-metrics-reader.
+  whenToUse: Use for one phase-8 metrics or governance check.
+  description: phase8 metrics/governance worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: rehydration-auditor
+  name: "\U0001F4CA rehydration-auditor"
+  roleDefinition: Atomic governance worker for rehydration-auditor.
+  whenToUse: Use for one phase-8 metrics or governance check.
+  description: phase8 metrics/governance worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: handoff-budget-checker
+  name: "\U0001F4CA handoff-budget-checker"
+  roleDefinition: Atomic governance worker for handoff-budget-checker.
+  whenToUse: Use for one phase-8 metrics or governance check.
+  description: phase8 metrics/governance worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.
+- slug: model-lifetime-checker
+  name: "\U0001F4CA model-lifetime-checker"
+  roleDefinition: Atomic governance worker for model-lifetime-checker.
+  whenToUse: Use for one phase-8 metrics or governance check.
+  description: phase8 metrics/governance worker
+  groups:
+  - read
+  customInstructions: |
+    **Atomic Worker Kernel**
+    - Complete one delegated atomic operation and return compact STATE_DELTA_V1.

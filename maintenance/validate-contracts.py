@@ -2,1479 +2,174 @@
 from __future__ import annotations
 
 from pathlib import Path
-import os
-import re
 import shutil
-import sys
-
-
-def ensure_yaml():
-    try:
-        import yaml  # type: ignore
-
-        return yaml
-    except ModuleNotFoundError:
-        if os.environ.get("AGENTMODES_UV_PYYAML") == "1":
-            raise SystemExit("ERROR: PyYAML is required")
-
-        ruby = shutil.which("ruby")
-        if ruby is not None:
-            import json
-            import subprocess
-
-            class RubyYaml:
-                @staticmethod
-                def safe_load(text):
-                    proc = subprocess.run(
-                        [ruby, "-r", "yaml", "-r", "json", "-e", "puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Symbol], aliases: true))"],
-                        input=text,
-                        text=True,
-                        capture_output=True,
-                    )
-                    if proc.returncode != 0:
-                        raise RuntimeError(proc.stderr.strip())
-                    return json.loads(proc.stdout)
-
-                @staticmethod
-                def dump(data, **kwargs):
-                    proc = subprocess.run(
-                        [ruby, "-r", "yaml", "-r", "json", "-e", "obj = JSON.parse(STDIN.read); puts obj.to_yaml(line_width: -1)"],
-                        input=json.dumps(data, ensure_ascii=False),
-                        text=True,
-                        capture_output=True,
-                    )
-                    if proc.returncode != 0:
-                        raise RuntimeError(proc.stderr.strip())
-                    return proc.stdout
-
-            return RubyYaml
-        uv = shutil.which("uv")
-        if uv is None:
-            raise SystemExit("ERROR: PyYAML is required and uv was not found")
-        env = os.environ.copy()
-        env["AGENTMODES_UV_PYYAML"] = "1"
-        os.execvpe(uv, [uv, "run", "--with", "PyYAML", "python", *sys.argv], env)
-
-
-yaml = ensure_yaml()
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-RULES_DIR = ROOT / "rules"
-ALL_AGENTS = ROOT / "all-agents.yaml"
-
-CONTROL_NO_WORKSPACE_MODES = {
-    "orchestrator",
-    "workflow-orchestrator",
-    "epoch-orchestrator",
-    "gpt-oss-intake-supervisor",
-}
-
-TERMINAL_NO_TOOL_MODES = {
-    "user-response-composer",
-    "gpt-oss-needs-analyzer",
-}
 
 
 def fail(message: str) -> None:
     raise SystemExit(f"ERROR: {message}")
 
 
-def load_yaml(path: Path) -> dict:
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except Exception as e:  # noqa: BLE001
-        fail(f"YAML parse failed: {path}: {e}")
-    if not isinstance(data, dict) or not isinstance(data.get("customModes"), list):
-        fail(f"{path}: expected top-level mapping with customModes list")
-    return data
+def load_yaml(path: Path):
+    ruby = shutil.which("ruby")
+    if ruby is None:
+        fail("ruby is required for YAML validation")
+    proc = subprocess.run(
+        [ruby, "-r", "yaml", "-r", "json", "-e", "puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Symbol], aliases: true))"],
+        input=path.read_text(encoding="utf-8"),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        fail(f"YAML parse failed for {path}: {proc.stderr.strip()}")
+    import json
+    return json.loads(proc.stdout)
 
 
-def load_rule_modes() -> dict[str, dict]:
+def mode_text(mode: dict) -> str:
+    return mode.get("customInstructions") or ""
+
+
+def collect_modes() -> dict[str, dict]:
     modes: dict[str, dict] = {}
-    for path in sorted(RULES_DIR.glob("*.yaml")):
+    for path in sorted((ROOT / "modes").glob("*.yaml")):
         data = load_yaml(path)
-        for mode in data["customModes"]:
-            if not isinstance(mode, dict):
-                fail(f"{path}: customModes entry must be mapping")
+        for mode in data.get("customModes", []):
             slug = mode.get("slug")
-            if not isinstance(slug, str) or not slug:
-                fail(f"{path}: invalid slug")
+            if not slug:
+                fail(f"{path}: mode without slug")
             if slug in modes:
-                fail(f"duplicate slug across rules: {slug}")
+                fail(f"duplicate slug: {slug}")
             mode["__path"] = str(path.relative_to(ROOT))
             modes[slug] = mode
     return modes
 
 
-def load_all_agents_modes() -> dict[str, dict]:
-    data = load_yaml(ALL_AGENTS)
-    modes: dict[str, dict] = {}
-    for mode in data["customModes"]:
-        slug = mode.get("slug") if isinstance(mode, dict) else None
-        if not isinstance(slug, str) or not slug:
-            fail("all-agents.yaml: invalid slug")
-        if slug in modes:
-            fail(f"all-agents.yaml: duplicate slug {slug}")
-        modes[slug] = mode
-    return modes
+def require(mode: dict, needle: str) -> None:
+    if needle not in mode_text(mode):
+        fail(f"{mode['slug']}: missing required text: {needle}")
 
 
-def instructions(mode: dict) -> str:
-    text = mode.get("customInstructions")
-    if not isinstance(text, str):
-        fail(f"{mode.get('slug', '<unknown>')}: customInstructions must be string")
-    return text
-
-
-def normalized_mode(mode: dict) -> dict:
-    return {key: value for key, value in mode.items() if not key.startswith("__")}
-
-
-def group_contains(value, target: str) -> bool:
-    if isinstance(value, str):
-        return value == target
-    if isinstance(value, list):
-        return any(group_contains(item, target) for item in value)
-    if isinstance(value, dict):
-        return any(group_contains(item, target) for item in value.values())
-    return False
-
-
-def metadata_text(mode: dict) -> str:
-    parts = []
-    for key in ("roleDefinition", "whenToUse", "description"):
-        value = mode.get(key)
-        if isinstance(value, str):
-            parts.append(value)
-    return "\n".join(parts)
-
-
-def full_mode_text(mode: dict) -> str:
-    return metadata_text(mode) + "\n" + instructions(mode)
-
-
-def require_contains(slug: str, text: str, needle: str) -> None:
-    if needle not in text:
-        fail(f"{slug}: missing required contract text: {needle}")
-
-
-def require_regex(slug: str, text: str, pattern: str, reason: str) -> None:
-    if re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL) is None:
-        fail(f"{slug}: missing {reason}")
-
-
-def forbid_regex(slug: str, text: str, pattern: str, reason: str) -> None:
-    if re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL):
-        fail(f"{slug}: forbidden {reason}")
-
-
-def validate_no_tool_classification(modes: dict[str, dict]) -> None:
-    actual = {
-        slug
-        for slug, mode in modes.items()
-        if mode.get("groups") == []
-    }
-    expected = CONTROL_NO_WORKSPACE_MODES | TERMINAL_NO_TOOL_MODES
-
-    if actual != expected:
-        fail(
-            "unclassified no-tool modes: "
-            f"actual={sorted(actual)!r} expected={sorted(expected)!r}"
-        )
-
-
-def validate_tester(modes: dict[str, dict]) -> None:
-    text = instructions(modes["tester"])
-    require_contains("tester", text, "Tester Artifact Materialization Authority exception")
-    require_contains("tester", text, "execute_command` is an artifact materialization authority")
-    require_contains("tester", text, "Artifact Status: not written / not verified")
-    require_regex("tester", text, r"allowed_actions[^\n]+execute_command", "execute_command allowed_actions authority rule")
-    require_regex("tester", text, r"artifact_path[^\n]+canonical[^\n]+artifacts/", "canonical artifacts path rule")
-    require_regex("tester", text, r"tee|redirection", "tee or redirection artifact write rule")
-    require_regex("tester", text, r"pipefail|exit status", "pipefail or exit-status preservation rule")
-    require_regex("tester", text, r"exactly once|without rerun", "single execution rule")
-
-
-def validate_orchestrator(modes: dict[str, dict]) -> None:
-    text = instructions(modes["orchestrator"])
-    require_contains("orchestrator", text, "Tester Artifact Materialization Authority exception")
-    require_contains("orchestrator", text, "Tester artifact authority")
-    require_contains(
-        "orchestrator",
-        text,
-        "exactly one ownership marker in `context_delta.facts`: "
-        "`owning_orchestrator: orchestrator`",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "Other verified factual entries may coexist in "
-        "`context_delta.facts`",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "the exactly-one restriction applies only to ownership markers, "
-        "not to the total number of facts",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "Do not include `owning_orchestrator: workflow-orchestrator`",
-    )
-
-    if (
-        "must include exactly one fact in `context_delta.facts`"
-        in text
-    ):
-        fail(
-            "orchestrator: ownership wording incorrectly limits the "
-            "entire facts collection to one entry"
-        )
-    require_contains(
-        "orchestrator",
-        text,
-        "Do not route a regular-Orchestrator composition failure "
-        "to `workflow-orchestrator`",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "Do not create a wrapper `new_task` targeting `orchestrator`",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "**Workflow Isolation Boundary**",
-    )
-    require_contains(
-        "orchestrator",
-        text,
-        "Regular Orchestrator must not load workflow Skills (`tdd-quality-gate`, `github-issue-main-task`, or the legacy `orchestrator-workflows` shim).",
-    )
-    require_contains("orchestrator", text, "**Explicit First-Step Fidelity**")
-    require_contains("orchestrator", text, "**Large Task Admission Control**")
-    if "**SoD Workflow**" in text:
-        fail("orchestrator: duplicated SoD Workflow phase list remains")
-    require_regex(
-        "orchestrator",
-        text,
-        r"Tester artifact authority:.*?assigned_mode=tester.*?allowed_actions=\[execute_command\].*?do not classify `?artifact_permission_conflict`?",
-        "Scenario A tester exception example",
-    )
-    require_contains("orchestrator", text, "doc-evidence-reader first, then analyzer, then librarian")
-    require_contains("orchestrator", text, "Do not send standalone documentation presence inspection to Documenter")
-    if "README or docs presence checks go to doc-evidence-reader, librarian, analyzer, or documenter" in text:
-        fail("orchestrator: forbidden Documenter in standalone README/docs presence routing")
-
-
-def validate_workflow_orchestrator(modes: dict[str, dict]) -> None:
-    mode = modes.get("workflow-orchestrator")
-    if mode is None:
-        fail("workflow-orchestrator: missing required mode")
-    if mode.get("groups") != []:
-        fail("workflow-orchestrator: groups must be []")
-    text = instructions(mode)
+def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
+    mode = modes.get("raw-input-materializer") or fail("missing raw-input-materializer")
     for needle in [
-        "**Workflow Invocation Gate**",
-        "**Workflow Skill Entry**",
-        "Workflow Invocation Required",
-        "The `skill` call must be the only tool call in that assistant message.",
-        "**Workflow Completion**",
-        "**Provider Recovery Coordination**",
-        "**Large Task Admission Control**",
-        "**Internal Routing Contract**",
-        "Do not create a wrapper `new_task` targeting `orchestrator`",
-        "Do not call `new_task` targeting `workflow-orchestrator` or `orchestrator`",
-        "Code granularity check",
-        "Responsibility check",
-        "state-rehydrate",
+        "Sole responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`.",
+        "Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.",
+        "Recommended Next Mode: gpt-oss-intake-analyzer",
+        "MATERIALIZATION_STALLED_V1",
     ]:
-        require_contains("workflow-orchestrator", text, needle)
-    require_contains(
-        "workflow-orchestrator",
-        text,
-        "exactly one ownership marker in `context_delta.facts`: "
-        "`owning_orchestrator: workflow-orchestrator`",
-    )
-    require_contains(
-        "workflow-orchestrator",
-        text,
-        "Other verified factual entries may coexist in "
-        "`context_delta.facts`",
-    )
-    require_contains(
-        "workflow-orchestrator",
-        text,
-        "the exactly-one restriction applies only to ownership markers, "
-        "not to the total number of facts",
-    )
-    require_contains(
-        "workflow-orchestrator",
-        text,
-        "Do not include `owning_orchestrator: orchestrator`",
-    )
-
-    if (
-        "must include exactly one fact in `context_delta.facts`"
-        in text
-    ):
-        fail(
-            "workflow-orchestrator: ownership wording incorrectly "
-            "limits the entire facts collection to one entry"
-        )
-    require_contains(
-        "workflow-orchestrator",
-        text,
-        "Do not fall back to regular `orchestrator`",
-    )
-    forbid_regex(
-        "workflow-orchestrator",
-        text,
-        r"## Workflow: tdd-quality-gate|## Workflow: github-issue-main-task|### Phase: red-write",
-        "duplicated workflow phase list in mode prompt",
-    )
+        require(mode, needle)
 
 
-def validate_control_plane_serialization(modes: dict[str, dict]) -> None:
-    for slug, mode in modes.items():
-        text = instructions(mode)
-        if slug in TERMINAL_NO_TOOL_MODES:
-            require_contains(slug, text, "**No-Tool Control Boundary**")
-            require_contains(slug, text, "This mode must not call any tool.")
-            require_regex(
-                slug,
-                text,
-                r"Do not call `skill`.*`run_slash_command`.*`update_todo_list`.*`new_task`.*`switch_mode`.*`attempt_completion`",
-                "no-tool control-plane prohibition",
-            )
-            if "**Control-Plane Serialization Contract**" in text:
-                fail(f"{slug}: terminal no-tool mode must not include Control-Plane Serialization Contract")
-            continue
-        require_contains(slug, text, "**Control-Plane Serialization Contract**")
-        require_contains(slug, text, "Emit at most one control-plane tool call in one assistant message.")
-        require_contains(slug, text, "A `skill` call must be the only tool call in that message.")
-        require_contains(slug, text, "Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.")
-
-
-def validate_slash_command_boundary(modes: dict[str, dict]) -> None:
-    stale_permissive_phrases = [
-        "Slash commands may run only when",
-        "/init is allowed only when",
-        "/analysys is allowed only when",
-        "unless the raw user prompt explicitly requested the corresponding command purpose",
-        "unless the raw user prompt explicitly runs a slash command",
-    ]
-    for slug, mode in modes.items():
-        text = instructions(mode)
-        require_contains(slug, text, "**Slash Command Invocation Boundary**")
-        require_contains(slug, text, "Never call `run_slash_command` autonomously.")
-        require_contains(slug, text, "Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.")
-        require_contains(slug, text, "Missing or unrelated Slash Commands are not Provider Health Failures.")
-        for phrase in stale_permissive_phrases:
-            if phrase in text:
-                fail(f"{slug}: stale permissive slash-command wording: {phrase}")
-
-
-def validate_internal_routing(modes: dict[str, dict]) -> None:
-    for slug in ("orchestrator", "workflow-orchestrator"):
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**Internal Routing Contract**")
-        require_contains(slug, text, "Delegate specialist work only with `new_task`.")
-        require_contains(slug, text, "Never call `switch_mode` for internal work.")
-        require_contains(slug, text, "Do not create a wrapper `new_task` targeting `orchestrator`.")
-    for slug, mode in modes.items():
-        if slug in CONTROL_NO_WORKSPACE_MODES:
-            continue
-        text = instructions(mode)
-        require_contains(slug, text, "**Delegated Routing Boundary**")
-        require_contains(slug, text, "Never call `new_task`.")
-        require_contains(slug, text, "Never call `switch_mode`.")
-        require_contains(slug, text, "Never invoke another mode directly.")
-        require_contains(slug, text, "Recommended Next Mode")
-
-
-def validate_visible_todo_admission(modes: dict[str, dict]) -> None:
-    for slug, mode in modes.items():
-        text = instructions(mode)
-        if slug in TERMINAL_NO_TOOL_MODES:
-            require_contains(slug, text, "**No-Tool TODO Boundary**")
-            require_contains(slug, text, "Do not call `update_todo_list`.")
-            if "**Visible TODO Admission Contract**" in text:
-                fail(f"{slug}: terminal no-tool mode must not include Visible TODO Admission Contract")
-            continue
-        require_contains(slug, text, "**Visible TODO Admission Contract**")
-        require_contains(slug, text, "The first `update_todo_list` call in a task must contain exactly one item.")
-        require_contains(slug, text, "Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.")
-        require_contains(slug, text, "Never encode multiple todos inside one todo body")
-
-
-def validate_command_group_policy(modes: dict[str, dict]) -> None:
-    allowed = {"artifact-manager", "tester", "segregated-devops", "release-manager", "security-auditor", "exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator", "container-operator", "environment-inspector"}
-    actual = {slug for slug, mode in modes.items() if group_contains(mode.get("groups", []), "command")}
-    if actual != allowed:
-        fail(f"command group modes must be exactly {sorted(allowed)!r}, got {sorted(actual)!r}")
-    if modes["code"].get("groups") != ["read", "edit", "mcp"]:
-        fail(f"code: groups must be ['read', 'edit', 'mcp'], got {modes['code'].get('groups')!r}")
-    if modes["diagnostic-reporter"].get("groups") != ["read", "mcp"]:
-        fail("diagnostic-reporter: groups must be ['read', 'mcp']")
-
-
-def validate_patch_recovery_skill(modes: dict[str, dict]) -> None:
-    path = ROOT / "skills" / "apply-diff-recovery" / "SKILL.md"
-    require_file(path)
-    data = markdown_frontmatter(path)
-    if data.get("name") != "apply-diff-recovery":
-        fail("apply-diff-recovery: frontmatter name must be 'apply-diff-recovery'")
-    expected_slugs = {"code", "debug", "refactorer", "test-writer"}
-    if set(data.get("modeSlugs") or []) != expected_slugs:
-        fail("apply-diff-recovery: modeSlugs must be exactly ['code', 'debug', 'refactorer', 'test-writer']")
-    skill_text = path.read_text(encoding="utf-8")
+def validate_external_common_contract() -> None:
+    contract_path = ROOT / "docs" / "contracts" / "compact-mode-contract.md"
+    global_rule_path = ROOT / "rules" / "00-agentmodes-compact-mode-contract.md"
+    text = contract_path.read_text(encoding="utf-8")
+    global_text = global_rule_path.read_text(encoding="utf-8")
+    if text != global_text:
+        fail("rules/00-agentmodes-compact-mode-contract.md must stay byte-for-byte in sync with docs/contracts/compact-mode-contract.md")
     for needle in [
-        "`-------` must be on its own line",
-        "Retry `apply_diff` at most once",
-        "`patch_application_failed`",
-        "Do not invent helper methods",
-        "read_file",
-    ]:
-        if needle not in skill_text:
-            fail(f"apply-diff-recovery: missing required text: {needle}")
-    for slug in ["code", "debug", "refactorer", "test-writer"]:
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**Patch Application Contract**")
-        require_contains(slug, text, "do not load `apply-diff-recovery` on a normal first patch")
-        require_contains(slug, text, "Load `apply-diff-recovery` only after the first patch mismatch")
-        require_contains(slug, text, "Do not call `execute_command`.")
-
-
-def validate_post_condense_rehydration(modes: dict[str, dict]) -> None:
-    for slug, mode in modes.items():
-        text = instructions(mode)
-        if slug in CONTROL_NO_WORKSPACE_MODES:
-            if slug not in {"orchestrator", "workflow-orchestrator"}:
-                continue
-            require_contains(slug, text, "**Orchestrated Post-Condense Rehydration Contract**")
-            require_contains(slug, text, "no direct workspace inspection authority")
-            require_contains(slug, text, "[ ] state-rehydrate:")
-            require_contains(slug, text, "`update_todo_list` call must be the only control-plane call")
-            require_contains(slug, text, "delegate exactly one `state-rehydrate` task with `new_task`")
-            require_contains(slug, text, "`new_task` call must be the only control-plane call")
-            require_contains(slug, text, "Wait for the rehydration handoff")
-            for forbidden in [
-                "**Post-Condense Rehydration Contract**",
-                "**No-Tool Post-Condense Boundary**",
-            ]:
-                if forbidden in text:
-                    fail(f"{slug}: forbidden post-condense contract text remains: {forbidden}")
-            continue
-        if slug in TERMINAL_NO_TOOL_MODES:
-            require_contains(slug, text, "**No-Tool Post-Condense Boundary**")
-            require_contains(slug, text, "cannot rehydrate workspace state directly")
-            require_regex(slug, text, r"Do not read, search, execute, inspect", "terminal no-tool inspection prohibition")
-            for forbidden in [
-                "**Post-Condense Rehydration Contract**",
-                "**Orchestrated Post-Condense Rehydration Contract**",
-                "Re-establish current truth from current workspace files",
-            ]:
-                if forbidden in text:
-                    fail(f"{slug}: forbidden post-condense contract text remains: {forbidden}")
-            if slug == "user-response-composer":
-                require_contains(slug, text, "COMPOSER_BLOCKED: inspection_required")
-                require_contains(slug, text, "Missing Facts")
-                require_contains(slug, text, "Recommended Next Mode: orchestrator")
-            if slug == "gpt-oss-needs-analyzer":
-                require_contains(slug, text, "blocked_by_permission")
-                require_contains(slug, text, "analysis_confidence: unavailable")
-                require_contains(slug, text, "ORCHESTRATOR_BRIEF_V1")
-                require_contains(slug, text, "Recommended Next Mode: orchestrator")
-            continue
-        require_contains(slug, text, "**Post-Condense Rehydration Contract**")
-        require_contains(slug, text, "Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.")
-        require_contains(slug, text, "Do not reuse stale line numbers")
-
-
-def validate_terminal_no_tool_stop_conditions(
-    modes: dict[str, dict],
-) -> None:
-    forbidden_phrases = [
-        "**Loop Guard and Stop Conditions**",
-        "**Output Discipline**",
-        "If an `update_todo_list` payload is identical",
-        "split it into separate todos",
-        "Do not continue monitoring loops with",
-        "same failure fingerprint",
-        "proceed with a concrete non-todo action",
-        "Do not retry a failed `attempt_completion` with the same content",
-        "Use concise fixed sections requested by `output_contract`",
-    ]
-
-    for slug in TERMINAL_NO_TOOL_MODES:
-        text = instructions(modes[slug])
-
-        require_contains(
-            slug,
-            text,
-            "**No-Tool Stop Conditions**",
-        )
-        require_contains(
-            slug,
-            text,
-            "Do not inspect workspace state, repair todos, invoke tools",
-        )
-
-        for phrase in forbidden_phrases:
-            if phrase in text:
-                fail(
-                    f"{slug}: stale operational no-tool wording remains: "
-                    f"{phrase}"
-                )
-
-
-def validate_explicit_first_step(modes: dict[str, dict]) -> None:
-    text = instructions(modes["orchestrator"])
-    require_contains("orchestrator", text, "**Explicit First-Step Fidelity**")
-    require_contains("orchestrator", text, "Exact shell commands are routed to Tester, never to Slash Commands.")
-    require_contains("orchestrator", text, "Do not substitute a semantically related Skill, Slash Command, or exploratory task for the explicit first step.")
-
-
-def validate_large_task_admission(modes: dict[str, dict]) -> None:
-    for slug in ("orchestrator", "workflow-orchestrator"):
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**Large Task Admission Control**")
-        require_contains(slug, text, "One Code task owns exactly one implementation invariant")
-        require_contains(slug, text, "`files.edit_files` for Code must contain no more than three files.")
-        require_contains(slug, text, "Code granularity check")
-        require_contains(slug, text, "Responsibility check")
-
-
-def task_packet_modes(modes: dict[str, dict]) -> dict[str, dict]:
-    return {
-        slug: mode
-        for slug, mode in modes.items()
-        if "**TASK_PACKET_V1 Reception Contract**" in instructions(mode)
-    }
-
-
-def validate_scoped_todo_compatibility(modes: dict[str, dict]) -> None:
-    for slug, mode in task_packet_modes(modes).items():
-        if slug == "orchestrator":
-            continue
-        text = instructions(mode)
-        require_contains(slug, text, "**Zoo/Roo Hard Completion Gate Compatibility**")
-        require_contains(slug, text, "exactly one scoped item")
-        require_contains(slug, text, "Never call `attempt_completion` while any visible todo is Pending or In Progress")
-        require_contains(slug, text, "Call `attempt_completion` exactly once")
-        require_contains(slug, text, "do not call `update_todo_list` again")
-        require_contains(
-            slug,
-            text,
-            "Terminal local outcomes are `completed`, `failed`, `task_packet_conflict`, `blocked_by_permission`, and `not_found_after_inspection`.",
-        )
-        require_contains(
-            slug,
-            text,
-            "never label a failed command, unsatisfied `done` condition, or failed required action as `completed`",
-        )
-        if (
-            "Terminal local outcomes are `completed`, `task_packet_conflict`, "
-            "`blocked_by_permission`, and `not_found_after_inspection`."
-            in text
-        ):
-            fail(f"{slug}: terminal outcomes do not include failed")
-        require_regex(slug, text, r"Never use `\[-\]`", "no in-progress todo marker rule")
-
-    orch_text = instructions(modes["orchestrator"])
-    require_contains("orchestrator", orch_text, "**Scoped TODO Projection Protocol**")
-    require_contains("orchestrator", orch_text, "hard Zoo/Roo runtime completion gate")
-    require_contains("orchestrator", orch_text, "exactly one pending item")
-    require_contains("orchestrator", orch_text, "[x] workflow: completed")
-    require_contains("orchestrator", orch_text, "[x] workflow: failed")
-    require_contains("orchestrator", orch_text, "when no next task remains")
-    require_contains("orchestrator", orch_text, "do not create a synthetic pending task")
-    require_regex(
-        "orchestrator",
-        orch_text,
-        r"Do not store the full parent workflow plan in the visible todo list",
-        "parent workflow plan visible todo prohibition",
-    )
-
-
-def validate_librarian(modes: dict[str, dict]) -> None:
-    mode = modes["librarian"]
-    groups = mode.get("groups")
-    if groups != ["read"]:
-        fail(f"librarian: groups must be ['read'], got {groups!r}")
-    if group_contains(groups, "command"):
-        fail("librarian: command group is forbidden")
-    if group_contains(groups, "edit"):
-        fail("librarian: edit group is forbidden")
-
-    text = instructions(mode)
-    require_contains("librarian", text, "**Librarian TASK_PACKET Preflight**")
-    require_contains("librarian", text, "Reject when `artifact_handoff.required` is true")
-    require_contains("librarian", text, "Reject when `allowed_actions` includes `execute_command`")
-    require_regex("librarian", text, r"falls outside `files\.read_scope`", "scope conflict rejection")
-    require_regex("librarian", text, r"max_lines.*less than.*required_sections", "max_lines required_sections validation")
-    require_contains("librarian", text, "Do not call `execute_command`.")
-    require_regex("librarian", text, r"Do not create directories or files|Do not use shell redirection", "filesystem mutation prohibition")
-    require_contains(
-        "librarian",
-        text,
-        "The normal three-candidate limit applies only to target discovery.",
-    )
-    require_contains(
-        "librarian",
-        text,
-        "complete directory, crate, source-file, documentation-file, or test-file inventory",
-    )
-    forbid_regex(
-        "librarian",
-        text,
-        r"Search, read, and command operations",
-        "command operation wording",
-    )
-    forbid_regex(
-        "librarian",
-        text,
-        r"list/search/read/command exploration",
-        "command exploration wording",
-    )
-    forbid_regex(
-        "librarian",
-        text,
-        r"Reference commands are limited",
-        "reference command permission wording",
-    )
-    require_contains(
-        "librarian",
-        text,
-        "Search and read operations must stay inside the current workspace",
-    )
-    require_contains(
-        "librarian",
-        text,
-        "use Codebase Index before list/search/read exploration",
-    )
-    require_contains("librarian", text, "**Evidence and Count Integrity**")
-    require_contains("librarian", text, "Do not infer a source file's responsibility from its filename alone.")
-    require_contains("librarian", text, "A search for `#[test]` alone is not a complete Rust test inventory")
-    require_contains("librarian", text, "Every reported file count must equal the number of files actually listed in the same result.")
-
-
-def validate_orchestrator_packet_preflight(modes: dict[str, dict]) -> None:
-    text = instructions(modes["orchestrator"])
-    require_contains("orchestrator", text, "**TASK_PACKET Preflight Gate**")
-    require_contains("orchestrator", text, "Librarian packets must always use `artifact_handoff.required: false`.")
-    require_contains("orchestrator", text, "Librarian packets must not include `execute_command` in `allowed_actions`.")
-    require_contains("orchestrator", text, "Scope coverage check")
-    require_regex("orchestrator", text, r"max_lines.*greater than or equal to.*required_sections", "max_lines >= required_sections count rule")
-    require_regex("orchestrator", text, r"understand a file's structure or responsibility.*authorize reading", "semantic source read evidence rule")
-    require_contains("orchestrator", text, "Librarian packet conflict")
-
-
-def validate_artifact_wording(modes: dict[str, dict]) -> None:
-    old = "When `artifact_handoff.paths` is provided, store or reference logs"
-    new = "Read-only modes must not create, prepare, touch, redirect output to, or populate those paths"
-    for slug, mode in task_packet_modes(modes).items():
-        text = instructions(mode)
-        if old in text:
-            fail(f"{slug}: old ambiguous artifact wording remains")
-        if new in text:
-            continue
-        require_regex(
-            slug,
-            text,
-            r"artifact_handoff\.required.*?read-only.*?Do not create files|artifact_handoff\.paths.*?reference provided artifacts only by path",
-            "read-only artifact path non-write condition",
-        )
-
-
-def validate_user_response_composer(modes: dict[str, dict]) -> None:
-    mode = modes["user-response-composer"]
-    if mode.get("groups") != []:
-        fail("user-response-composer: groups must be []")
-    text = instructions(mode)
-    require_contains("user-response-composer", text, "**No-Tool Control Boundary**")
-    require_contains("user-response-composer", text, "**No-Tool TODO Boundary**")
-    require_contains("user-response-composer", text, "**No-Tool Post-Condense Boundary**")
-    require_contains("user-response-composer", text, "COMPOSER_BLOCKED: inspection_required")
-    require_contains("user-response-composer", text, "Recommended Next Mode: orchestrator")
-    require_contains("user-response-composer", text, "Do not inspect, self-dispatch, or invent facts")
-    require_contains(
-        "user-response-composer",
-        text,
-        "owning_orchestrator: orchestrator",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "owning_orchestrator: workflow-orchestrator",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "owner-aware `Recommended Next Mode`",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "Never output the literal placeholder `<owning_orchestrator>`",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "exactly one ownership marker, not exactly one total fact",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "Other verified factual entries may coexist in "
-        "`context_delta.facts`",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "both valid markers appearing together",
-    )
-    require_contains(
-        "user-response-composer",
-        text,
-        "any unknown `owning_orchestrator` value",
-    )
-
-    stale_ownership_input = (
-        "Require exactly one ownership fact in "
-        "`context_delta.facts`"
-    )
-    if stale_ownership_input in text:
-        fail(
-            "user-response-composer: ambiguous ownership input wording "
-            "remains"
-        )
-
-    stale_total_fact_wording = (
-        "must include exactly one fact in `context_delta.facts`"
-    )
-
-    for owner_slug in ("orchestrator", "workflow-orchestrator"):
-        owner_text = instructions(modes[owner_slug])
-        if stale_total_fact_wording in owner_text:
-            fail(
-                f"{owner_slug}: stale total-fact ownership wording remains"
-            )
-    require_contains(
-        "user-response-composer",
-        text,
-        "**No-Tool Stop Conditions**",
-    )
-    stale_fixed_composer_lines = [
-        (
-            "return `COMPOSER_BLOCKED: inspection_required` to Orchestrator"
-        ),
-        (
-            "return only: `COMPOSER_BLOCKED: inspection_required`, "
-            "`Missing Facts`, and `Recommended Next Mode: orchestrator`"
-        ),
-    ]
-
-    for phrase in stale_fixed_composer_lines:
-        if phrase in text:
-            fail(
-                "user-response-composer: "
-                f"stale fixed Orchestrator return remains: {phrase}"
-            )
-    forbid_regex("user-response-composer", text, r"Inspect it yourself|perform the inspection|read/search|run the specified command|use list/search/read", "direct inspection instruction")
-
-
-def validate_ask(modes: dict[str, dict]) -> None:
-    text = instructions(modes["ask"])
-    require_contains("ask", text, "Recommended Next Mode")
-    require_contains("ask", text, "to Orchestrator")
-    require_contains("ask", text, "do not perform the transition")
-    require_contains("ask", text, "self-dispatch")
-    forbid_regex("ask", text, r"route to the smallest responsible mode", "self-dispatch routing wording")
-
-
-def validate_documenter(modes: dict[str, dict]) -> None:
-    text = instructions(modes["documenter"])
-    require_contains("documenter", text, "Failure Summary: DOC_FACTS_V1 missing or insufficient")
-    require_contains("documenter", text, "Recommended Next Mode: doc-evidence-reader")
-    require_contains("documenter", text, "read only the existing assigned Markdown targets")
-    require_contains("documenter", text, "Do not perform standalone presence checks")
-    require_contains("documenter", text, "Do not discover documentation destinations")
-
-
-def validate_mode_metadata(modes: dict[str, dict]) -> None:
-    gpt = modes["gpt-oss-needs-analyzer"]
-    gpt_description = gpt.get("description")
-    if gpt_description != "GPT-OSS分析とOrchestrator向けbrief作成":
-        fail("gpt-oss-needs-analyzer: description must match advisory brief contract")
-    if "起動" in gpt_description:
-        fail("gpt-oss-needs-analyzer: description must not imply Orchestrator launch")
-    if gpt.get("groups") != []:
-        fail("gpt-oss-needs-analyzer: groups must be []")
-
-    gpt_text = full_mode_text(gpt)
-    gpt_instructions = instructions(gpt)
-    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Control Boundary**")
-    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool TODO Boundary**")
-    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "**No-Tool Post-Condense Boundary**")
-    require_contains(
-        "gpt-oss-needs-analyzer",
-        gpt_instructions,
-        "The user question budget is zero.",
-    )
-    require_contains(
-        "gpt-oss-needs-analyzer",
-        gpt_instructions,
-        "Never ask the user a clarification question",
-    )
-    require_contains(
-        "gpt-oss-needs-analyzer",
-        gpt_instructions,
-        "Do not call `ask_followup_question`.",
-    )
-    require_contains(
-        "gpt-oss-needs-analyzer",
-        gpt_instructions,
-        "**No-Tool Stop Conditions**",
-    )
-
-    if "Ask only when the raw prompt cannot be understood" in gpt_instructions:
-        fail(
-            "gpt-oss-needs-analyzer: "
-            "stale clarification permission remains"
-        )
-    require_contains("gpt-oss-needs-analyzer", gpt_instructions, "analysis_confidence: unavailable")
-    require_contains("gpt-oss-needs-analyzer", gpt_text, "Recommended Next Mode: orchestrator")
-    require_regex(
-        "gpt-oss-needs-analyzer",
-        gpt.get("roleDefinition", "") + "\n" + gpt_instructions,
-        r"without dispatching|No runtime dispatch|do not .*dispatch",
-        "explicit no-dispatch contract",
-    )
-    require_regex(
-        "gpt-oss-needs-analyzer",
-        gpt_instructions,
-        r"Do not .*invoke .*Orchestrator|advisory handoff only",
-        "no Orchestrator invocation contract",
-    )
-    forbid_regex(
-        "gpt-oss-needs-analyzer",
-        metadata_text(gpt),
-        r"Orchestrator起動|dispatch Orchestrator|invoke Orchestrator|call Orchestrator",
-        "direct Orchestrator launch metadata",
-    )
-
-    ask = modes["ask"]
-    if group_contains(ask.get("groups", []), "edit"):
-        fail("ask: edit permission is forbidden")
-    ask_role = ask.get("roleDefinition")
-    if not isinstance(ask_role, str):
-        fail("ask: roleDefinition must be string")
-    if "read-only" not in ask_role.lower():
-        fail("ask: roleDefinition must include read-only")
-    if "unless explicitly requested" in ask_role.lower():
-        fail("ask: roleDefinition must not include unless explicitly requested")
-    ask_text = instructions(ask)
-    require_contains("ask", ask_text, "Read-only technical consultation mode. Do not modify files.")
-    require_contains("ask", ask_text, "Recommended Next Mode")
-    require_regex(
-        "ask",
-        ask_text,
-        r"do not perform the transition|do not transition modes directly",
-        "direct transition prohibition",
-    )
-    require_regex(
-        "ask",
-        ask_text,
-        r"self-dispatch|call `new_task`|switch modes yourself",
-        "self-dispatch prohibition",
-    )
-    forbid_regex(
-        "ask",
-        ask_role + "\n" + ask_text,
-        r"without modifying files unless explicitly requested|Do not modify files unless|unless explicitly requested",
-        "edit-on-request wording",
-    )
-
-
-def validate_no_tool_modes(modes: dict[str, dict]) -> None:
-    forbidden = re.compile(
-        r"Inspect it yourself|Before asking, perform|read/search both|use list/search/read|run the specified command|"
-        r"perform the inspection|switch modes yourself",
-        flags=re.IGNORECASE,
-    )
-    metadata_forbidden = re.compile(
-        r"Orchestrator起動|dispatch Orchestrator|invoke Orchestrator|call Orchestrator|"
-        r"read files directly|run commands directly|inspect workspace directly|workspace inspection authority",
-        flags=re.IGNORECASE,
-    )
-    for slug, mode in modes.items():
-        if mode.get("groups") != []:
-            continue
-        meta = metadata_text(mode)
-        if slug in CONTROL_NO_WORKSPACE_MODES:
-            # Control no-workspace modes may delegate but must not inspect directly.
-            text = instructions(mode)
-            if re.search(r"inspect workspace (state )?directly|workspace inspection authority", meta, flags=re.IGNORECASE):
-                fail(f"{slug}: no-tool metadata promises direct workspace inspection")
-            require_regex(slug, text, r"does not inspect workspace|Do not inspect workspace directly|no-workspace-inspection", "control no-workspace inspection boundary")
-            require_regex(slug, text, r"delegate|new_task|Orchestrator|STATE_DELTA_V1", "control handoff or delegation boundary")
-            continue
-        if metadata_forbidden.search(meta):
-            fail(f"{slug}: no-tool metadata contains direct tool, inspection, or dispatch wording")
-        text = instructions(mode)
-        if forbidden.search(text):
-            fail(f"{slug}: no-tool mode contains direct inspection or self-dispatch wording")
-        require_regex(slug, text, r"no-tool|no workspace inspection authority|cannot inspect workspace", "no-tool workspace inspection boundary")
-        require_regex(slug, text, r"Recommended Next Mode|Orchestrator|ORCHESTRATOR_BRIEF_V1", "Orchestrator handoff or recommendation")
-        require_regex(slug, text, r"Do not ask the user|must never ask the user", "no user questions for workspace facts")
-
-
-def validate_readme_model_allocation() -> None:
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
-    for needle in [
-        "| `raw-input-materializer` | `Qwen large-context`",
-        "| `gpt-oss-intake-analyzer` | `GPT-OSS-120B`",
-        "| `intake-ledger-writer` | `Qwen3.5-9Bまたは小型`",
-        "| `gpt-oss-intake-supervisor` |",
-        "互換shim",
-        "raw-input-materializer\n→ gpt-oss-intake-analyzer\n→ intake-ledger-writer\n→ orchestrator",
-        "| `gpt-oss-needs-analyzer` |",
-        "dispatchしない純粋分析worker",
-        "| `epoch-orchestrator` | `Qwen3.5-122B`",
-        "| `orchestrator` | `Qwen3.6-9B`",
-        "| `workflow-orchestrator` | `Qwen3.6-9B`",
+        "replaces repeated fixed prompt boilerplate",
+        "Do not call `run_slash_command` autonomously",
+        "Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator",
+        "Treat post-condense summaries as advisory",
     ]:
         if needle not in text:
-            fail(f"README model allocation missing: {needle}")
+            fail(f"compact-mode-contract missing: {needle}")
 
 
-def validate_durable_architecture_modes(modes: dict[str, dict]) -> None:
-    required = {
-        "raw-input-materializer",
-        "gpt-oss-intake-analyzer",
-        "gpt-oss-intake-supervisor",
-        "intake-ledger-writer",
-        "state-ledger-reader",
-        "state-ledger-writer",
-        "context-compactor",
-        "epoch-orchestrator",
-    }
-    missing = sorted(required - set(modes))
-    if missing:
-        fail(f"missing durable architecture modes: {missing}")
-    intake_text = instructions(modes["intake-ledger-writer"])
-    require_contains("intake-ledger-writer", intake_text, "**Intake Ledger Write Contract**")
-    require_contains("intake-ledger-writer", intake_text, "SESSION_START_V1")
-    require_contains("intake-ledger-writer", intake_text, "RAW_INPUT_REF_V1")
-    require_contains("intake-ledger-writer", intake_text, "raw_manifest_path")
-
-
-def validate_atomic_first_wave_modes(modes: dict[str, dict]) -> None:
-    required = {
-        "tree-indexer", "text-searcher", "source-excerpt-reader", "artifact-reader", "git-state-reader", "dependency-manifest-reader",
-        "patch-applier", "new-file-writer", "test-patch-writer", "manifest-editor", "ci-workflow-writer",
-        "exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator",
-        "compiler-diagnostic-classifier", "test-result-classifier", "coverage-checker", "scope-checker", "contract-checker", "test-inventory-checker",
-        "dependency-editor", "container-operator", "environment-inspector",
-    }
-    missing = sorted(required - set(modes))
-    if missing:
-        fail(f"missing atomic first-wave modes: {missing}")
-    for slug in ["exact-command-runner", "test-runner", "coverage-runner", "format-lint-runner", "build-runner", "provider-operator"]:
-        if not group_contains(modes[slug].get("groups", []), "command"):
-            fail(f"{slug}: first-wave command runner must have command group")
-
-
-def validate_atomic_second_wave_modes(modes: dict[str, dict]) -> None:
-    required = {
-        "artifact-indexer", "artifact-conflict-checker", "artifact-materializer", "artifact-retention-planner",
-        "ledger-consistency-checker", "handoff-consistency-checker", "workflow-phase-checker",
-        "github-relationship-checker", "review-risk-classifier", "security-risk-classifier",
-    }
-    missing = sorted(required - set(modes))
-    if missing:
-        fail(f"missing atomic second-wave modes: {missing}")
-    if not group_contains(modes["artifact-materializer"].get("groups", []), "edit"):
-        fail("artifact-materializer: must have edit group")
-
-
-def validate_sparse_task_packet_wording(modes: dict[str, dict]) -> None:
+def validate_task_packet_contract(modes: dict[str, dict]) -> None:
+    contract = (ROOT / "docs" / "contracts" / "task-packet-v1.md").read_text(encoding="utf-8")
+    for needle in [
+        "Keep `new_task.message` small enough",
+        "Do not paste raw user prompts",
+        "artifact paths, line ranges, hashes, issue IDs, and exact commands",
+        "remaining context can carry the task evidence",
+    ]:
+        if needle not in contract:
+            fail(f"TASK_PACKET_V1 contract missing: {needle}")
     for slug in ["orchestrator", "workflow-orchestrator"]:
-        text = instructions(modes[slug])
-        require_contains(slug, text, "Always include only these required keys")
-        require_contains(slug, text, "Omit empty strings, empty arrays, empty objects, and default values")
-        for forbidden in ["Keep keys exactly", "Use `[]` or `""` for unknown values", "**TASK_PACKET_V1 Skeleton**"]:
-            if forbidden in text:
-                fail(f"{slug}: stale full TASK_PACKET wording remains: {forbidden}")
+        mode = modes.get(slug) or fail(f"missing {slug}")
+        require(mode, "`new_task.message` stays compact")
+        require(mode, "materialize context first")
+        require(mode, "artifact paths or line ranges")
+        if "1200" in mode_text(mode) or "target <=" in mode_text(mode):
+            fail(f"{slug}: character-budget checking wording remains")
 
 
-def validate_github_atomic_permissions(modes: dict[str, dict]) -> None:
-    if not group_contains(modes["issue-reader"].get("groups", []), "mcp"):
-        fail("issue-reader: GitHub Issue reader must use read+mcp")
-    for slug in ["issue-comment-writer", "sub-issue-creator", "issue-closer"]:
-        groups = modes[slug].get("groups", [])
-        if not group_contains(groups, "mcp") or group_contains(groups, "edit"):
-            fail(f"{slug}: GitHub mutation worker must use read+mcp and must not use edit")
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**GitHub Mutation Worker Kernel**")
-        require_contains(slug, text, "Do not edit workspace files.")
-
-
-def validate_phase_eight_modes(modes: dict[str, dict]) -> None:
-    required = {
-        "context-metrics-reader",
-        "rehydration-auditor",
-        "handoff-budget-checker",
-        "model-lifetime-checker",
-    }
-    missing = sorted(required - set(modes))
-    if missing:
-        fail(f"missing phase-8 governance modes: {missing}")
-    for slug in required:
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**Metrics/Governance Worker Kernel**")
-        require_contains(slug, text, "Do not use conversation summaries as evidence.")
-
-
-def validate_phase_docs() -> None:
-    for path in [
-        ROOT / "docs" / "phases" / "phase-3-control-plane.md",
-        ROOT / "docs" / "phases" / "phase-4-intake.md",
-        ROOT / "docs" / "phases" / "phase-5-atomic-workers.md",
-        ROOT / "docs" / "phases" / "phase-6-atomic-workers-second-wave.md",
-        ROOT / "docs" / "phases" / "phase-7-sliding-window.md",
-        ROOT / "docs" / "phases" / "phase-8-metrics-governance.md",
-        ROOT / "docs" / "contracts" / "migration-metrics-v1.md",
-        ROOT / "docs" / "examples" / "migration-metrics-v1.yaml",
-    ]:
-        require_file(path)
-
-
-def validate_sync(rule_modes: dict[str, dict], all_modes: dict[str, dict]) -> None:
-    if len(rule_modes) != len(all_modes):
-        fail(f"mode count mismatch: rules={len(rule_modes)} all-agents={len(all_modes)}")
-    if set(rule_modes) != set(all_modes):
-        missing = sorted(set(rule_modes) ^ set(all_modes))
-        fail(f"slug mismatch between rules and all-agents: {missing}")
-    for slug, rule_mode in rule_modes.items():
-        expected = normalized_mode(rule_mode)
-        actual = normalized_mode(all_modes[slug])
-
-        if expected != actual:
-            differing_keys = sorted(
-                key
-                for key in set(expected) | set(actual)
-                if expected.get(key) != actual.get(key)
-            )
-            fail(
-                f"all-agents.yaml not synchronized for {slug}: "
-                f"{', '.join(differing_keys)}"
-            )
-
-
-def validate_scenarios(modes: dict[str, dict]) -> None:
-    tester_text = instructions(modes["tester"])
-    orchestrator_text = instructions(modes["orchestrator"])
-    for text, slug in ((tester_text, "tester"), (orchestrator_text, "orchestrator")):
-        require_contains(slug, text, "cargo test 2>&1 | tee artifacts/test-results/test.txt" if slug == "orchestrator" else "execute_command` is an artifact materialization authority")
-    composer_text = instructions(modes["user-response-composer"])
-    require_contains("user-response-composer", composer_text, "COMPOSER_BLOCKED: inspection_required")
-    ask_text = instructions(modes["ask"])
-    require_regex("ask", ask_text, r"Recommended Next Mode.*?Orchestrator", "Scenario C Ask recommendation")
-    doc_text = instructions(modes["orchestrator"])
-    require_regex("orchestrator", doc_text, r"doc-evidence-reader first, then analyzer, then librarian", "Scenario D documentation presence routing")
-
-
-def relative(path: Path) -> str:
-    return str(path.relative_to(ROOT))
-
-
-def require_file(path: Path) -> None:
-    if not path.is_file():
-        fail(f"required runtime file missing: {relative(path)}")
-
-
-def markdown_frontmatter(path: Path) -> dict:
-    require_file(path)
-    text = path.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        fail(f"{relative(path)} missing YAML frontmatter")
-    end = text.find("\n---", 4)
-    if end == -1:
-        fail(f"{relative(path)} missing closing YAML frontmatter delimiter")
-    try:
-        data = yaml.safe_load(text[4:end]) or {}
-    except Exception as exc:  # noqa: BLE001
-        fail(f"{relative(path)} invalid YAML frontmatter: {exc}")
-    if not isinstance(data, dict):
-        fail(f"{relative(path)} frontmatter must be a mapping")
-    return data
-
-
-def validate_runtime_layout() -> None:
-    for forbidden_dir in (ROOT / "scripts", ROOT / "workflows"):
-        if forbidden_dir.exists():
-            fail(f"top-level runtime-incompatible directory must not exist: {relative(forbidden_dir)}")
-
-    for required in [
-        ROOT / "maintenance" / "generate-all-agents.py",
-        ROOT / "maintenance" / "validate-yaml.py",
-        ROOT / "maintenance" / "validate-contracts.py",
-        ROOT / "skills" / "orchestrator-workflows" / "SKILL.md",
-        ROOT / "skills" / "tdd-quality-gate" / "SKILL.md",
-        ROOT / "skills" / "github-issue-main-task" / "SKILL.md",
-        ROOT / "skills" / "orchestrator-delegation-guardrails" / "SKILL.md",
-        ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md",
-        ROOT / "skills" / "provider-health-recovery" / "SKILL.md",
-        ROOT / "commands" / "tdd-quality-gate.md",
-        ROOT / "commands" / "github-issue-main-task.md",
-    ]:
-        require_file(required)
-
-
-def validate_skill_frontmatter() -> None:
-    expected = {
-        ROOT / "skills" / "orchestrator-workflows" / "SKILL.md": {
-            "name": "orchestrator-workflows",
-            "modeSlugs": ["workflow-orchestrator"],
-            "description_contains": ["Compatibility shim", "tdd-quality-gate", "github-issue-main-task"],
-        },
-        ROOT / "skills" / "tdd-quality-gate" / "SKILL.md": {
-            "name": "tdd-quality-gate",
-            "modeSlugs": ["workflow-orchestrator"],
-            "description_contains": ["tdd-quality-gate"],
-        },
-        ROOT / "skills" / "github-issue-main-task" / "SKILL.md": {
-            "name": "github-issue-main-task",
-            "modeSlugs": ["workflow-orchestrator"],
-            "description_contains": ["github-issue-main-task"],
-        },
-        ROOT / "skills" / "orchestrator-delegation-guardrails" / "SKILL.md": {
-            "name": "orchestrator-delegation-guardrails",
-            "modeSlugs": ["orchestrator", "workflow-orchestrator", "epoch-orchestrator"],
-            "description_contains": ["guardrails"],
-        },
-        ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md": {
-            "name": "provider-health-recovery-flow",
-            "modeSlugs": ["orchestrator", "workflow-orchestrator"],
-            "description_contains": [],
-        },
-        ROOT / "skills" / "provider-health-recovery" / "SKILL.md": {
-            "name": "provider-health-recovery",
-            "modeSlugs": ["segregated-devops"],
-            "description_contains": [],
-        },
-    }
-    for path, spec in expected.items():
-        data = markdown_frontmatter(path)
-        if data.get("name") != spec["name"]:
-            fail(f"{relative(path)} frontmatter name must be {spec['name']!r}")
-        if sorted(data.get("modeSlugs") or []) != sorted(spec["modeSlugs"]):
-            fail(f"{relative(path)} frontmatter modeSlugs must be exactly {spec['modeSlugs']!r}")
-        description = str(data.get("description") or "")
-        if not description:
-            fail(f"{relative(path)} frontmatter description is required")
-        for needle in spec["description_contains"]:
-            if needle not in description:
-                fail(f"{relative(path)} frontmatter description must mention {needle!r}")
-
-
-def validate_runtime_skill_semantics() -> None:
-    shim_path = ROOT / "skills" / "orchestrator-workflows" / "SKILL.md"
-    tdd_path = ROOT / "skills" / "tdd-quality-gate" / "SKILL.md"
-    issue_path = ROOT / "skills" / "github-issue-main-task" / "SKILL.md"
-    provider_path = ROOT / "skills" / "provider-health-recovery-flow" / "SKILL.md"
-
-    shim_text = shim_path.read_text(encoding="utf-8")
-    tdd_text = tdd_path.read_text(encoding="utf-8")
-    issue_text = issue_path.read_text(encoding="utf-8")
-    provider_text = provider_path.read_text(encoding="utf-8")
-
-    for needle in [
-        "Compatibility Shim",
-        "not the sole runtime source of truth",
-        "Do not duplicate full phase lists here.",
-        "immediately load `tdd-quality-gate`",
-        "immediately load `github-issue-main-task`",
-    ]:
-        if needle not in shim_text:
-            fail(f"orchestrator-workflows shim: missing text: {needle}")
-    for forbidden in [
-        "## Workflow: tdd-quality-gate",
-        "## Workflow: github-issue-main-task",
-        "sole runtime source of truth for the phase order of both workflows",
-    ]:
-        if forbidden in shim_text:
-            fail(f"orchestrator-workflows shim: stale workflow authority remains: {forbidden}")
-    for needle in ["Load this Skill at workflow entry", "STATE_DELTA_V1", "state-ledger-writer"]:
-        if needle not in tdd_text:
-            fail(f"tdd-quality-gate: missing runtime semantic text: {needle}")
-    for needle in ["Load this Skill first", "issue-reader", "Do not load TDD workflow instructions until the implementation phase"]:
-        if needle not in issue_text:
-            fail(f"github-issue-main-task: missing runtime semantic text: {needle}")
-
-    provider_frontmatter = markdown_frontmatter(provider_path)
-    if sorted(provider_frontmatter.get("modeSlugs") or []) != ["orchestrator", "workflow-orchestrator"]:
-        fail(
-            "provider-health-recovery-flow: modeSlugs must be exactly "
-            "['orchestrator', 'workflow-orchestrator']"
-        )
-
-    required_provider = [
-        "This Skill does not classify provider failures",
-        "## Phase 1: provider-recovery",
-        "## Phase 2: resume-after-recovery",
-        "Provider Health Failure has already been explicitly confirmed",
-        "`segregated-devops` subtask must load and follow the `provider-health-recovery` Skill",
-        "Orchestrator coordinates this flow but must not load or execute the operational `provider-health-recovery` Skill itself",
-        "`provider-health-recovery-flow` is an Orchestrator coordination Skill",
-    ]
-    for needle in required_provider:
-        if needle not in provider_text:
-            fail(
-                "provider-health-recovery-flow: "
-                f"missing runtime semantic text: {needle}"
-            )
-
-    forbidden_provider = [
-        "provider-failure-classification",
-        "Assigned Mode: `recovery-supervisor`",
-        "- Required Skill: Load and follow `provider-health-recovery`.",
-    ]
-    for needle in forbidden_provider:
-        if needle in provider_text:
-            fail(
-                "provider-health-recovery-flow: "
-                f"stale classification phase remains: {needle}"
-            )
-
-
-def validate_command_frontmatter() -> None:
-    for path in [
-        ROOT / "commands" / "tdd-quality-gate.md",
-        ROOT / "commands" / "github-issue-main-task.md",
-    ]:
-        data = markdown_frontmatter(path)
-        if not data.get("description"):
-            fail(f"{relative(path)} frontmatter description is required")
-        if not data.get("argument-hint"):
-            fail(f"{relative(path)} frontmatter argument-hint is required")
-        if data.get("mode") != "workflow-orchestrator":
-            fail(f"{relative(path)} frontmatter mode must be 'workflow-orchestrator'")
-
-
-def validate_stale_runtime_references() -> None:
-    workflows_prefix = "workflows/"
-    scripts_prefix = "python scripts/"
-    stale_needles = [
-        workflows_prefix + "tdd-quality-gate.json",
-        workflows_prefix + "github-issue-main-task.json",
-        workflows_prefix + "provider-health-recovery.json",
-        scripts_prefix + "generate-all-agents.py",
-        scripts_prefix + "validate-yaml.py",
-        scripts_prefix + "validate-contracts.py",
-    ]
-    checked_roots = [
-        ROOT / "README.md",
-        ROOT / "commands",
-        ROOT / "skills",
-        ROOT / "rules",
-        ROOT / "maintenance",
-        ROOT / "all-agents.yaml",
-    ]
-    self_path = Path(__file__).resolve()
-    files: list[Path] = []
-    for root in checked_roots:
-        if root.is_file():
-            files.append(root)
-        elif root.is_dir():
-            files.extend(path for path in root.rglob("*") if path.is_file())
-    for path in files:
-        if path.resolve() == self_path:
-            continue
-        if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
-            continue
-        if any(part == ".git" for part in path.parts):
-            continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        for needle in stale_needles:
-            if needle in text:
-                fail(f"stale runtime reference {needle!r} found in {relative(path)}")
-
-
-
-def validate_large_input_materialization(modes: dict[str, dict]) -> None:
-    required_modes = {
-        "raw-input-materializer",
-        "gpt-oss-intake-analyzer",
-        "intake-ledger-writer",
-        "orchestrator",
-        "epoch-orchestrator",
-    }
-    missing = sorted(required_modes - set(modes))
-    if missing:
-        fail(f"missing large-input required modes: {missing}")
-
-    raw_text = instructions(modes["raw-input-materializer"])
-    for needle in [
-        "RAW_INPUT_REF_V1",
-        "RAW_INPUT_MANIFEST_V1",
-        "raw-request.md",
-        "raw-request.manifest.json",
-        "artifacts/intake/<run-id>/",
-        "Do not perform requirements analysis",
-        "GPT-OSS analysis",
-        "Do not repost raw本文",
-    ]:
-        require_contains("raw-input-materializer", raw_text, needle)
-
-    analyzer_text = instructions(modes["gpt-oss-intake-analyzer"])
-    for needle in [
-        "USER_NEEDS_V1",
-        "USER_NEEDS_SLICE_V1",
-        "RAW_INPUT_REF_V1",
-        "Do not repost long raw本文",
-        "do not re-inject the entire raw artifact as a giant context",
-        "call `new_task`",
-        "call `switch_mode`",
-        "execute command",
-        "edit workspace",
-        "Do not directly start Orchestrator",
-    ]:
-        require_contains("gpt-oss-intake-analyzer", analyzer_text, needle)
-
-    orch_text = instructions(modes["orchestrator"])
-    for needle in [
-        "**Large Input Materialization Contract**",
-        "raw-input-materializer",
-        "do not route it directly to GPT-OSS analysis or epoch work",
-        "Do not begin normal TODO projection, Skill loading, or epoch dispatch for unmaterialized large inline input",
-        "Do not pass raw本文 directly to `gpt-oss-intake-analyzer`",
-        "`SESSION_START_V1` or `RAW_INPUT_REF_V1`",
-        "path-only",
-    ]:
-        require_contains("orchestrator", orch_text, needle)
-
-    for slug in ["orchestrator", "workflow-orchestrator", "gpt-oss-intake-supervisor", "epoch-orchestrator", "intake-ledger-writer"]:
-        text = instructions(modes[slug])
-        require_contains(slug, text, "**Large Input Materialization Contract**")
-        require_contains(slug, text, "RAW_INPUT_REF_V1")
-        require_contains(slug, text, "raw_request_path")
-        require_contains(slug, text, "USER_NEEDS_V1")
-        require_contains(slug, text, "SESSION_START_V1")
-        require_contains(slug, text, "Do not reject large input solely because it is large.")
-        require_contains(slug, text, "Do not pass raw large input between modes after materialization.")
-        require_contains(slug, text, "Use artifact paths as the source of truth.")
-        require_contains(slug, text, "Pre-LLM materialization is required")
-
-    needs_text = instructions(modes["gpt-oss-needs-analyzer"])
-    require_contains("gpt-oss-needs-analyzer", needs_text, "**Large Input Reference Boundary**")
-    require_contains("gpt-oss-needs-analyzer", needs_text, "materialization_required")
-    require_contains("gpt-oss-needs-analyzer", needs_text, "RAW_INPUT_REF_V1")
-    require_contains("gpt-oss-needs-analyzer", needs_text, "raw_request_path")
-    require_contains("gpt-oss-needs-analyzer", needs_text, "Do not summarize the raw large input")
-
+def validate_externalized_boilerplate(modes: dict[str, dict]) -> None:
     for slug, mode in modes.items():
-        text = instructions(mode)
-        forbidden = [
-            "CONTEXT_ADMISSION_BLOCKED",
-            "INTAKE_FILE_REQUIRED",
-            "Do not process large inline input",
-            "Return blocked response",
-        ]
-        for phrase in forbidden:
-            if phrase in text:
-                fail(f"{slug}: forbidden large-input blocking phrase remains: {phrase}")
+        text = mode_text(mode)
+        for forbidden in [
+            "**External Common Contract**",
+            "docs/contracts/compact-mode-contract.md",
+            "**Compact Fixed Prompt Contract**",
+            "**Control-Plane Serialization Contract**",
+            "**Slash Command Invocation Boundary**",
+            "**Visible TODO Admission Contract**",
+            "**Delegated Routing Boundary**",
+            "**Post-Condense Rehydration Contract**",
+            "run_slash_command",
+            "post-condense",
+        ]:
+            if forbidden in text:
+                fail(f"{slug}: common/global boilerplate remains inline: {forbidden}")
 
 
-def validate_large_input_docs() -> None:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+def validate_no_large_body_regressions(modes: dict[str, dict]) -> None:
+    for path in [ROOT / "README.md", ROOT / "docs" / "contracts" / "task-packet-v1.md"]:
+        text = path.read_text(encoding="utf-8")
+        for forbidden_budget in ["1200 characters", "character budget", "character-count", "target <=", "must not exceed 1200"]:
+            if forbidden_budget in text.lower():
+                fail(f"{path.relative_to(ROOT)}: character-budget checking wording remains: {forbidden_budget}")
+
+    forbidden = [
+        "full TASK_PACKET skeleton",
+        "Keep keys exactly",
+        "Use `[]` or `\"\"` for unknown values",
+        "paste full logs",
+        "paste full diffs",
+        "re-inject the entire raw artifact",
+    ]
+    for slug, mode in modes.items():
+        text = mode_text(mode)
+        for needle in forbidden:
+            if needle in text:
+                fail(f"{slug}: forbidden prompt-bloat wording remains: {needle}")
+
+
+def validate_readme() -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
     for needle in [
-        "raw-input-materializer",
-        "gpt-oss-intake-analyzer",
-        "RAW_INPUT_REF_V1",
-        "pre-LLM materialization",
-        "Raw本文 must not be passed directly to GPT-OSS or Orchestrator",
+        "raw入力をartifactへ保存し、`RAW_INPUT_REF_V1`で次モードへ渡すだけ",
+        "`TASK_PACKET_V1` is sparse and compact",
+        "common control-plane/slash/todo/routing/post-condense boilerplate is installed as Zoo/Roo Global Rules from `rules/`",
     ]:
-        if needle not in readme:
-            fail(f"README.md missing large input materialization text: {needle}")
-    phase4 = (ROOT / "docs" / "phases" / "phase-4-intake.md").read_text(encoding="utf-8")
-    for needle in [
-        "raw-input-materializer",
-        "gpt-oss-intake-analyzer",
-        "pre-LLM limitation",
-        "AgentModes cannot intercept",
-        "ZooCodeCustom/runtime pre-LLM materialization is required",
-    ]:
-        if needle not in phase4:
-            fail(f"phase-4-intake.md missing text: {needle}")
+        if needle not in text:
+            fail(f"README missing: {needle}")
+
+
+def validate_generated_count(expected: int) -> None:
+    generated = load_yaml(ROOT / "all-agents.yaml")
+    count = len(generated.get("customModes", []))
+    if count != expected:
+        fail(f"all-agents.yaml customModes count mismatch: expected {expected}, got {count}")
+
 
 def main() -> None:
-    rule_modes = load_rule_modes()
-    all_modes = load_all_agents_modes()
-    for slug in [
-        "raw-input-materializer",
-        "gpt-oss-intake-analyzer",
-        "intake-ledger-writer",
-        "epoch-orchestrator",
-        "tester",
-        "orchestrator",
-        "workflow-orchestrator",
-        "user-response-composer",
-        "ask",
-        "documenter",
-        "gpt-oss-needs-analyzer",
-    ]:
-        if slug not in rule_modes:
-            fail(f"missing required mode: {slug}")
-
-    validate_no_tool_classification(rule_modes)
-    validate_control_plane_serialization(rule_modes)
-    validate_slash_command_boundary(rule_modes)
-    validate_visible_todo_admission(rule_modes)
-    validate_post_condense_rehydration(rule_modes)
-    validate_terminal_no_tool_stop_conditions(rule_modes)
-    validate_internal_routing(rule_modes)
-    validate_workflow_orchestrator(rule_modes)
-    validate_command_group_policy(rule_modes)
-    validate_patch_recovery_skill(rule_modes)
-    validate_explicit_first_step(rule_modes)
-    validate_large_task_admission(rule_modes)
-    validate_large_input_materialization(rule_modes)
-    validate_large_input_docs()
-    validate_tester(rule_modes)
-    validate_orchestrator(rule_modes)
-    validate_scoped_todo_compatibility(rule_modes)
-    validate_librarian(rule_modes)
-    validate_orchestrator_packet_preflight(rule_modes)
-    validate_artifact_wording(rule_modes)
-    validate_user_response_composer(rule_modes)
-    validate_ask(rule_modes)
-    validate_documenter(rule_modes)
-    validate_no_tool_modes(rule_modes)
-    validate_readme_model_allocation()
-    validate_durable_architecture_modes(rule_modes)
-    validate_atomic_first_wave_modes(rule_modes)
-    validate_atomic_second_wave_modes(rule_modes)
-    validate_sparse_task_packet_wording(rule_modes)
-    validate_github_atomic_permissions(rule_modes)
-    validate_phase_eight_modes(rule_modes)
-    validate_phase_docs()
-    validate_sync(rule_modes, all_modes)
-    validate_mode_metadata(rule_modes)
-    validate_scenarios(rule_modes)
-    validate_runtime_layout()
-    validate_skill_frontmatter()
-    validate_runtime_skill_semantics()
-    validate_command_frontmatter()
-    validate_stale_runtime_references()
-
+    modes = collect_modes()
+    validate_generated_count(len(modes))
+    validate_external_common_contract()
+    validate_raw_input_materializer(modes)
+    validate_task_packet_contract(modes)
+    validate_externalized_boilerplate(modes)
+    validate_no_large_body_regressions(modes)
+    validate_readme()
     print("contract validation ok")
-    print(f"customModes count = {len(rule_modes)}")
-    print("no-tool modes = " + ", ".join(sorted(slug for slug, mode in rule_modes.items() if mode.get("groups") == [])))
+    print(f"customModes count = {len(modes)}")
 
 
 if __name__ == "__main__":

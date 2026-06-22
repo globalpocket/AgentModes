@@ -2,6 +2,8 @@
 
 Phase 5 introduces the first operational worker split. Each worker owns one side-effect region, one failure pattern, one fixed output contract, and normally one to three tool calls.
 
+Each worker must receive a compact `TASK_PACKET_V1` for one invariant only; use artifact paths, line ranges, and exact commands instead of pasted bodies.
+
 ## Read workers
 
 - `tree-indexer`
