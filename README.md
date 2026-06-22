@@ -123,6 +123,7 @@ top-level `workflows/` は使用しません。Skill は必要時にオンデマ
 | `commands/tdd-quality-gate.md` | Slash Command | 軽量TDD Workflowの明示的entrypoint |
 | `commands/github-issue-main-task.md` | Slash Command | GitHub Issue Workflowの明示的entrypoint |
 | `commands/analysis.md` | Slash Command | project analysis / diagnostic issue workflow entrypoint; GitHub mutation remains delegated |
+| `commands/analysys.md` | Slash Command | backward-compatible alias for the former misspelled analysis command |
 | `skills/tdd-quality-gate/SKILL.md` | Skill | `/tdd-quality-gate` 専用phase定義 |
 | `skills/github-issue-main-task/SKILL.md` | Skill | `/github-issue-main-task` 専用phase定義 |
 | `skills/orchestrator-workflows/SKILL.md` | Skill | 旧参照向け互換shim。詳細phase定義のsource of truthではない |
