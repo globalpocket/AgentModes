@@ -21,6 +21,10 @@ RAW_INPUT_REF_V1:
 
 `raw-request.manifest.json` records raw path, sha256, byte count, token estimate, source kind, and chunk metadata.
 
+## MATERIALIZATION_STALLED_V1
+
+`MATERIALIZATION_STALLED_V1` is a fail-fast output for cases where the model-side materializer cannot promptly create exact artifacts or metadata. It records the blocker, any pending fields such as `sha256`, `byte_count`, or chunk metadata, and `recommended_next: runtime_pre_llm_materialization`. The materializer must use this instead of retrying indefinitely.
+
 ## USER_NEEDS_SLICE_V1
 
 Chunk-level GPT-OSS analysis output used before merge.

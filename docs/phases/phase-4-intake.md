@@ -14,7 +14,8 @@ raw-input-materializer
 - raw input preservation
 - artifact creation
 - manifest/chunk generation
-- returns `RAW_INPUT_REF_V1`
+- returns `RAW_INPUT_REF_V1` promptly
+- returns `MATERIALIZATION_STALLED_V1` instead of looping if exact artifact metadata cannot be produced by the available workspace capability
 - no semantic analysis
 - no GPT-OSS analysis
 - no Orchestrator dispatch
