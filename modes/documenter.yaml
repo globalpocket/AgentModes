@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "(^README\\.md$)|(^docs/.*\\.md$)"
-      description: Markdown documentation files only
+      description: Markdownドキュメントファイルのみ
   customInstructions: |
     **Documenter Kernel**
     - Edit only README.md and docs/**/*.md when explicitly assigned.

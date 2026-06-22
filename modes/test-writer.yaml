@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "(^|.*/)(test|tests)/.*|.*\\.(test|spec)\\.[^/]+$"
-      description: Test files only
+      description: テストファイルのみ
   customInstructions: |
     **test-writer Kernel**
     - Perform only the delegated red test writing within declared file scope.

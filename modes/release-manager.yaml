@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "(^package\\.json$)|(^package-lock\\.json$)|(^npm-shrinkwrap\\.json$)|(^pyproject\\.toml$)"
-      description: Version manifest files only
+      description: バージョンマニフェストファイルのみ
   - command
   - mcp
   customInstructions: |
