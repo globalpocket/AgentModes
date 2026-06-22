@@ -232,4 +232,4 @@ Large user inputs are still valid work items. AgentModes expects large specifica
 
 GPT-OSS intake must not keep carrying a raw huge body after materialization. Orchestrator proceeds path-only from `raw_request_path`, `user_needs_path`, and state ledger paths, using artifacts as the source of truth.
 
-AgentModes alone cannot fully prevent provider-context overflow before the model receives control. ZooCodeCustom therefore needs a pre-LLM large input materializer for inputs that would exceed provider context. Once AgentModes receives control, the expected behavior is **materialize and continue**, not refusal.
+AgentModes alone cannot fully prevent provider-context overflow before the model receives control. ZooCodeCustom therefore needs a pre-LLM large input materializer for inputs that would exceed provider context. Once AgentModes receives control, the expected behavior is **materialize and continue**, not refusal. If the model-side materializer cannot promptly produce exact artifact metadata, it must fail fast with `MATERIALIZATION_STALLED_V1` and recommend runtime pre-LLM materialization instead of looping indefinitely.

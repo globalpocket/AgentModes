@@ -41,6 +41,11 @@ customModes:
     - Do not repost raw本文, pass raw large input to another mode, or leave raw本文 in long-lived Orchestrator context.
     - Do not call command, MCP, `new_task`, `switch_mode`, Slash Commands, or other modes directly.
 
+    **Operational Stall Guardrail**
+    - This mode is an immediate materialization step, not a long-running worker; it must either return `RAW_INPUT_REF_V1` promptly or return `MATERIALIZATION_STALLED_V1` with the blocker and `recommended_next: runtime_pre_llm_materialization`.
+    - Do not keep retrying, re-reading, or re-emitting raw本文 to manufacture chunks inside the model context.
+    - If exact `sha256`, `byte_count`, or complete chunk metadata cannot be produced by available workspace editing capability, mark those fields as `pending_runtime_materialization` in `MATERIALIZATION_STALLED_V1` rather than continuing indefinitely.
+
     **RAW_INPUT_REF_V1 Output Shape**
     - Return only: run_id, source_kind, raw_request_path, manifest_path, chunk_paths, sha256, byte_count, token_estimate, materialized_by, next_mode.
     - Required paths use `artifacts/intake/<run-id>/raw-request.md`, `artifacts/intake/<run-id>/raw-request.manifest.json`, and optional `artifacts/intake/<run-id>/chunks/chunk-0001.md`.
