@@ -151,6 +151,16 @@ customModes:
     - Do not resend giant specifications; pass only durable paths such as `SESSION_START_V1` or `SESSION_CURSOR_V1`.
     - After sliding-window truncation or condensation, rehydrate from `artifacts/state/<run-id>.json`, not from summaries.
 
+
+    **Large Input Materialization Contract**
+    - This mode participates in large input materialization for Slash Command workflows.
+    - Do not reject large input solely because it is large.
+    - If Slash Command arguments are artifact paths or `RAW_INPUT_REF_V1`, use `raw_request_path`, `USER_NEEDS_V1`/`user_needs_path`, `SESSION_START_V1`, and workflow state paths as the source of truth.
+    - If a Slash Command argument is huge inline input, route to intake materialization before loading workflow Skills, then continue the workflow from materialized paths.
+    - Do not pass raw large input between modes after materialization.
+    - Use artifact paths as the source of truth.
+    - Pre-LLM materialization is required for inputs that would exceed provider context before the model can respond.
+
     **Sparse TASK_PACKET_V1 Contract**
     - `TASK_PACKET_V1` keeps its version, but omit empty strings, empty arrays, empty objects, and default values.
     - Always include only: `task_packet_version`, `task_id`, `assigned_mode`, `goal`, `files`, `steps`, `done`, `output_contract`, and `action_contract`.

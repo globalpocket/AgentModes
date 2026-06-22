@@ -206,6 +206,20 @@ customModes:
     - Do not resend giant specifications; pass only durable paths such as `SESSION_START_V1` or `SESSION_CURSOR_V1`.
     - After sliding-window truncation or condensation, rehydrate from `artifacts/state/<run-id>.json`, not from summaries.
 
+
+    **Large Input Materialization Contract**
+    - This mode participates in large input materialization as the durable path-only supervisor.
+    - When `SESSION_START_V1` or `RAW_INPUT_REF_V1` is received, use `raw_request_path`, `USER_NEEDS_V1`/`user_needs_path`, `state_path`, and `SESSION_CURSOR_V1` instead of raw text.
+    - Do not reject large input solely because it is large.
+    - Use materialized input artifacts.
+    - Never retain raw large input in long-lived Orchestrator context.
+    - If raw input is not materialized, route to intake materialization before epoch dispatch.
+    - Do not begin normal TODO projection, Skill loading, or epoch dispatch for unmaterialized large inline input; route to `gpt-oss-intake-supervisor` or `intake-ledger-writer` and resume after `SESSION_START_V1` paths exist.
+    - Do not tell the user to retry with a file as the normal path; identify the required materialization route and continue when paths are available.
+    - Do not pass raw large input between modes after materialization.
+    - Use artifact paths as the source of truth.
+    - Pre-LLM materialization is required for inputs that would exceed provider context before the model can respond.
+
     **Sparse TASK_PACKET_V1 Contract**
     - `TASK_PACKET_V1` keeps its version, but omit empty strings, empty arrays, empty objects, and default values.
     - Always include only: `task_packet_version`, `task_id`, `assigned_mode`, `goal`, `files`, `steps`, `done`, `output_contract`, and `action_contract`.

@@ -1296,6 +1296,58 @@ def validate_stale_runtime_references() -> None:
                 fail(f"stale runtime reference {needle!r} found in {relative(path)}")
 
 
+
+def validate_large_input_materialization(modes: dict[str, dict]) -> None:
+    for slug in [
+        "orchestrator",
+        "workflow-orchestrator",
+        "gpt-oss-intake-supervisor",
+        "epoch-orchestrator",
+    ]:
+        text = instructions(modes[slug])
+        require_contains(slug, text, "**Large Input Materialization Contract**")
+        require_contains(slug, text, "large input materialization")
+        require_contains(slug, text, "RAW_INPUT_REF_V1")
+        require_contains(slug, text, "raw_request_path")
+        require_contains(slug, text, "USER_NEEDS_V1")
+        require_contains(slug, text, "SESSION_START_V1")
+        require_contains(slug, text, "Do not reject large input solely because it is large.")
+        require_contains(slug, text, "Do not pass raw large input between modes after materialization.")
+        require_contains(slug, text, "Use artifact paths as the source of truth.")
+        require_contains(slug, text, "Pre-LLM materialization is required")
+
+    analyzer_text = instructions(modes["gpt-oss-needs-analyzer"])
+    require_contains("gpt-oss-needs-analyzer", analyzer_text, "**Large Input Reference Boundary**")
+    require_contains("gpt-oss-needs-analyzer", analyzer_text, "materialization_required")
+    require_contains("gpt-oss-needs-analyzer", analyzer_text, "RAW_INPUT_REF_V1")
+    require_contains("gpt-oss-needs-analyzer", analyzer_text, "raw_request_path")
+    require_contains("gpt-oss-needs-analyzer", analyzer_text, "Do not summarize the raw large input")
+
+    for slug, mode in modes.items():
+        text = instructions(mode)
+        forbidden = [
+            "CONTEXT_ADMISSION_BLOCKED",
+            "INTAKE_FILE_REQUIRED",
+            "Do not process large inline input",
+            "Return blocked response",
+        ]
+        for phrase in forbidden:
+            if phrase in text:
+                fail(f"{slug}: forbidden large-input blocking phrase remains: {phrase}")
+
+
+def validate_large_input_docs() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for needle in [
+        "Large input materialization policy",
+        "materialize and continue",
+        "pre-LLM large input materializer",
+        "RAW_INPUT_REF_V1",
+        "raw_request_path",
+    ]:
+        if needle not in readme:
+            fail(f"README.md missing large input materialization text: {needle}")
+
 def main() -> None:
     rule_modes = load_rule_modes()
     all_modes = load_all_agents_modes()
@@ -1323,6 +1375,8 @@ def main() -> None:
     validate_patch_recovery_skill(rule_modes)
     validate_explicit_first_step(rule_modes)
     validate_large_task_admission(rule_modes)
+    validate_large_input_materialization(rule_modes)
+    validate_large_input_docs()
     validate_tester(rule_modes)
     validate_orchestrator(rule_modes)
     validate_scoped_todo_compatibility(rule_modes)

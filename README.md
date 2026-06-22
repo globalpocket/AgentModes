@@ -218,3 +218,11 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 | Phase 7 | `docs/phases/phase-7-sliding-window.md` | Sliding-window, rehydration, and root-task rotation policy |
 | Phase 8 | `docs/phases/phase-8-metrics-governance.md` | Migration metrics and governance checks |
 | `MIGRATION_METRICS_V1` | `docs/contracts/migration-metrics-v1.md` | Observable migration metrics schema |
+
+## Large input materialization policy
+
+Large user inputs are still valid work items. AgentModes expects large specifications, logs, diffs, and handoffs to be persisted as raw artifacts and then processed by path, not rejected for size. The intake flow materializes raw input as `RAW_INPUT_REF_V1` with a `raw_request_path`, derives `USER_NEEDS_V1`, and starts Orchestrator with `SESSION_START_V1` paths.
+
+GPT-OSS intake must not keep carrying a raw huge body after materialization. Orchestrator proceeds path-only from `raw_request_path`, `user_needs_path`, and state ledger paths, using artifacts as the source of truth.
+
+AgentModes alone cannot fully prevent provider-context overflow before the model receives control. ZooCodeCustom therefore needs a pre-LLM large input materializer for inputs that would exceed provider context. Once AgentModes receives control, the expected behavior is **materialize and continue**, not refusal.
