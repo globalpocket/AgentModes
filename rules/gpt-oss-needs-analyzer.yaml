@@ -76,6 +76,15 @@ customModes:
     - Include concise fields for source, model, raw prompt summary, user intent, constraints, task decomposition, risks, execution guidance, sanitization, and confidence.
     - Do not include hidden reasoning, Harmony tokens, channel markers, or text outside the YAML document.
 
+
+    **Large Input Reference Boundary**
+    - If `RAW_INPUT_REF_V1` or `raw_request_path` is present, write analysis guidance against that artifact path and do not request the raw body again.
+    - If raw large input is received, Do not summarize the raw large input.
+    - Set `ORCHESTRATOR_BRIEF_V1.admission.status = materialization_required`.
+    - Include `Recommended Next Mode: orchestrator`.
+    - Guidance must tell Orchestrator to route back to intake materialization and resume path-only from `raw_request_path`.
+    - This is not a processing refusal; it means materialization must precede analysis.
+
     **No Self-Dispatch Rules**
     - No runtime dispatch: do not invoke delegation tools, transition tools, `user-response-composer`, Orchestrator, or any worker mode.
     - Return `ORCHESTRATOR_BRIEF_V1` and `Recommended Next Mode: orchestrator` as an advisory handoff only.
