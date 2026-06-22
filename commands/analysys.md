@@ -1,12 +1,12 @@
 ---
 description: Backward-compatible alias for /analysis
 argument-hint: <analysis scope or repository diagnosis request>
-mode: workflow-orchestrator
+mode: orchestrator
 ---
 
 `/analysys` は旧スペル互換のエイリアスです。新規利用では `/analysis` を使ってください。
 
-以下は `/analysis` と同一の方針で実行すること:
+この互換エイリアスは、固定Workflow専用の `workflow-orchestrator` ではなく通常の `orchestrator` に入り、以下を `/analysis` と同一の方針として実行すること:
 
 プロジェクト分析・評価を行う。実装、削除、修正は行わない。
 
