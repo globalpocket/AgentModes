@@ -19,11 +19,11 @@ RAW_INPUT_REF_V1:
 
 ## RAW_INPUT_MANIFEST_V1
 
-`raw-request.manifest.json` records raw path, sha256, byte count, token estimate, source kind, and chunk metadata.
+`raw-request.manifest.json` records only mechanical materialization metadata: raw path, sha256, byte count, token estimate, source kind, and chunk metadata. It must not contain requirement analysis, summaries, implementation plans, risk analysis, TODOs, or answers to the user request; those belong to `gpt-oss-intake-analyzer` and later modes.
 
 ## MATERIALIZATION_STALLED_V1
 
-`MATERIALIZATION_STALLED_V1` is a fail-fast output for cases where the model-side materializer cannot promptly create exact artifacts or metadata. It records the blocker, any pending fields such as `sha256`, `byte_count`, or chunk metadata, and `recommended_next: runtime_pre_llm_materialization`. The materializer must use this instead of retrying indefinitely.
+`MATERIALIZATION_STALLED_V1` is a fail-fast output for cases where the model-side materializer cannot promptly create exact artifacts or metadata. It records the blocker, any pending fields such as `sha256`, `byte_count`, or chunk metadata, and `recommended_next: runtime_pre_llm_materialization`. The materializer must use this instead of retrying indefinitely or doing downstream analysis to appear productive.
 
 ## USER_NEEDS_SLICE_V1
 

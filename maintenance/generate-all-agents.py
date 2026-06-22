@@ -65,7 +65,7 @@ def ensure_yaml():
 yaml = ensure_yaml()
 
 ROOT = Path(__file__).resolve().parents[1]
-RULES_DIR = ROOT / "rules"
+MODES_DIR = ROOT / "modes"
 OUT = ROOT / "all-agents.yaml"
 
 REQUIRED_MODE_KEYS = [
@@ -179,7 +179,7 @@ def main() -> None:
     merged: dict[str, object] = {"customModes": []}
     seen_slugs: set[str] = set()
 
-    for path in sorted(RULES_DIR.glob("*.yaml")):
+    for path in sorted(MODES_DIR.glob("*.yaml")):
         for mode in load_rule_modes(path):
             slug = mode["slug"]
             if slug in seen_slugs:

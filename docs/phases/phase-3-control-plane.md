@@ -10,6 +10,7 @@ Phase 3 narrows long-lived control modes and pushes high-reasoning planning into
 - The current phase is delegated to `epoch-orchestrator` only.
 - `STATE_DELTA_V1` is committed through `state-ledger-writer` before the next epoch starts.
 - Long-lived modes do not perform detailed design, edit-file selection, TDD judgment, failure fingerprint analysis, or direct code/artifact/GitHub interpretation.
+- Delegated `TASK_PACKET_V1` messages are compact control packets that carry pointers rather than pasted specs, logs, diffs, or parent plans.
 
 ## Model lifetime split
 

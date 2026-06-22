@@ -59,9 +59,9 @@ def ensure_yaml():
 yaml = ensure_yaml()
 
 ROOT = Path(__file__).resolve().parents[1]
-RULES_DIR = ROOT / "rules"
+MODES_DIR = ROOT / "modes"
 ALL_AGENTS = ROOT / "all-agents.yaml"
-FILES = sorted(RULES_DIR.glob("*.yaml")) + [ALL_AGENTS]
+FILES = sorted(MODES_DIR.glob("*.yaml")) + [ALL_AGENTS]
 
 REQUIRED_MODE_KEYS = [
     "slug",
@@ -143,10 +143,20 @@ def main() -> None:
         path: validate_file(path, require_unique_slugs=(path == ALL_AGENTS))
         for path in FILES
     }
-    rule_mode_count = sum(len(data_by_path[path]["customModes"]) for path in sorted(RULES_DIR.glob("*.yaml")))
-    all_agents_count = len(data_by_path[ALL_AGENTS]["customModes"])
-    if all_agents_count != rule_mode_count:
-        fail(f"all-agents.yaml: customModes count {all_agents_count} does not match rules count {rule_mode_count}")
+    expected_modes = []
+    for path in sorted(MODES_DIR.glob("*.yaml")):
+        expected_modes.extend(data_by_path[path]["customModes"])
+
+    all_agents = data_by_path[ALL_AGENTS]
+    all_agents_count = len(all_agents["customModes"])
+    if all_agents_count != len(expected_modes):
+        fail(f"all-agents.yaml: customModes count {all_agents_count} does not match modes count {len(expected_modes)}")
+
+    if all_agents.get("source") != "project":
+        fail("all-agents.yaml: source must be project")
+
+    if all_agents["customModes"] != expected_modes:
+        fail("all-agents.yaml is stale or manually edited; run python maintenance/generate-all-agents.py")
 
     print("yaml validation ok")
     print(f"all-agents.yaml customModes count = {all_agents_count}")

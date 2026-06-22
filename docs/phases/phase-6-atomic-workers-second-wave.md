@@ -21,4 +21,4 @@ Phase 6 continues splitting large legacy modes after the first read/edit/command
 - Security work stays separated into secret, dependency, unsafe-code, fabricated-package, and risk-classifier workers.
 - Review work stays separated into implementation, architecture, test, performance-risk, and risk-classifier workers.
 
-All second-wave workers keep the `STATE_DELTA_V1` handoff and must not paste full logs, full diffs, or parent plans.
+All second-wave workers keep the `STATE_DELTA_V1` handoff and must not paste full logs, full diffs, parent plans, raw prompts, or multi-invariant specs. If the needed context would exceed the compact packet budget, materialize it as an artifact and pass only the path.
