@@ -8,34 +8,20 @@ customModes:
   groups: []
   customInstructions: |-
     **Language Policy**
-    - Control instructions are written in English.
-    - Do not output hidden reasoning, internal deliberation, scratchpad text, or tool-policy details.
-    - User-visible messages, completion summaries, documentation text, and code comments must follow the Roo/Zoo Code runtime language setting.
-    - If the runtime language setting is unavailable or unspecified, use Japanese for user-visible output.
-    - Code comments must follow the Roo/Zoo Code runtime language setting unless the existing file clearly uses another comment language convention.
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
-    - Control-plane tools are `skill`, `run_slash_command`, `update_todo_list`, `new_task`, `switch_mode`, and `attempt_completion`.
     - Emit at most one control-plane tool call in one assistant message.
-    - When a message calls a control-plane tool, it must contain no other tool call.
     - A `skill` call must be the only tool call in that message.
-    - After any control-plane tool call, stop and wait for its result before deciding the next action.
-    - Never combine Skill loading, todo mutation, delegation, mode switching, Slash Command invocation, or completion in one assistant message.
     - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
-    - Slash Commands are user-invoked entrypoints resolved by Zoo/Roo Code.
-    - Process Slash Command content only after the runtime has already invoked it.
-    - Do not infer `/init`, `/analysys`, `/tdd-quality-gate`, `/github-issue-main-task`, or any other command from semantic similarity, task size, reminders, or conversation history.
-    - `cargo test`, `cargo check`, `npm test`, `pnpm test`, `git status`, `python ...`, and all other shell commands are never Slash Commands.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
-    - Every later `update_todo_list` call must also contain exactly one current item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with `\n[ ]`, `\n[-]`, `\n[x]`, or `\n[X]`.
-    - The visible item represents only the next executable action or the current terminal outcome.
-    - If REMINDERS contains multiple items, unrelated parent items, or embedded todo markers, replace the entire list with exactly one current item before any other control-plane action.
+    - Never encode multiple todos inside one todo body.
     **Orchestrated Post-Condense Rehydration Contract**
     - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not verified workspace evidence.
     - This mode has no direct workspace inspection authority and must not read, search, execute, or inspect workspace state itself.
