@@ -1,6 +1,6 @@
 # TASK_PACKET_V1 Compact Prompt Contract
 
-`TASK_PACKET_V1` is a compact control packet for one delegated subtask. It is not a copied prompt, mini specification, parent plan, or conversation summary. The only exception is the first `raw-input-materializer` handoff, which must carry the verbatim raw body as `RAW_INPUT_PAYLOAD` so it can create `RAW_INPUT_REF_V1`.
+`TASK_PACKET_V1` is a compact control packet for one delegated subtask. It is not a copied prompt, mini specification, parent plan, or conversation summary. The only exception is the first `raw-input-materializer` handoff, which must carry the verbatim raw body as `RAW_INPUT_PAYLOAD_V1` so it can create `RAW_INPUT_REF_V1`.
 
 ## Compact construction
 
@@ -11,7 +11,7 @@
 
 ## Forbidden packet content
 
-- Do not paste raw user prompts, full specs, full logs, full diffs, full files, previous handoffs, or hidden reasoning, except the required fenced `RAW_INPUT_PAYLOAD` in the single `raw-input-materializer` subtask.
+- Do not paste raw user prompts, full specs, full logs, full diffs, full files, previous handoffs, or hidden reasoning, except the required escape-safe `RAW_INPUT_PAYLOAD_V1` envelope in the single `raw-input-materializer` subtask.
 - Do not combine multiple invariants or multiple worker responsibilities in one packet.
 - Do not use placeholders such as empty arrays, empty strings, or default objects to fill an old skeleton.
 
@@ -21,4 +21,4 @@ Use artifact paths, line ranges, hashes, issue IDs, and exact commands as pointe
 
 ## Raw-input materializer exception
 
-When the current user request is large inline input that has not already been materialized, the orchestrator must send exactly one subtask to `raw-input-materializer` with the verbatim body in fenced `RAW_INPUT_PAYLOAD`. That materializer subtask is the only packet allowed to contain the raw body. Every later packet must refer to `RAW_INPUT_REF_V1` artifacts by path. See `docs/contracts/raw-input-materialization.md`.
+When the current user request is large inline input that has not already been materialized, the orchestrator must send exactly one subtask to `raw-input-materializer` with the verbatim body in escape-safe `RAW_INPUT_PAYLOAD_V1` envelope. That materializer subtask is the only packet allowed to contain the raw body. Every later packet must refer to `RAW_INPUT_REF_V1` artifacts by path. See `docs/contracts/raw-input-materialization.md`.

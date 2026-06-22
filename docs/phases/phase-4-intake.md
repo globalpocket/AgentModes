@@ -11,10 +11,11 @@ raw-input-materializer
 
 ## raw-input-materializer
 
-- sole responsibility is saving the exact raw user input from the orchestrator's fenced `RAW_INPUT_PAYLOAD` as `artifacts/intake/<run-id>/raw-request.md`
+- sole responsibility is saving the exact raw user input from the orchestrator's escape-safe `RAW_INPUT_PAYLOAD_V1` envelope as `artifacts/intake/<run-id>/raw-request.md`
 - may create only mechanical materialization metadata: `raw-request.manifest.json` and optional size-based chunks
 - returns `RAW_INPUT_REF_V1` promptly with `next_mode: gpt-oss-intake-analyzer`
-- returns `MATERIALIZATION_STALLED_V1` instead of looping if exact artifact metadata cannot be produced by the available workspace capability
+- verifies the envelope delimiter, byte_count, and sha256 before writing artifacts
+- returns `MATERIALIZATION_STALLED_V1` instead of looping if exact artifact metadata cannot be produced by the available workspace capability or envelope integrity validation fails
 - no semantic analysis, summarization, classification, requirement validation, TODO creation, implementation, testing, or GPT-OSS analysis
 - no Orchestrator dispatch; next-mode transfer is advisory handoff text only
 - after this mode returns `RAW_INPUT_REF_V1`, no later subtask may receive the raw body inline
