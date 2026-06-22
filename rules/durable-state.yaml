@@ -9,27 +9,18 @@ customModes:
   - read
   - edit
   customInstructions: |- 
-    **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
-
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
-
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -40,58 +31,26 @@ customModes:
     - Conversation summaries, condensed context, and REMINDERS are advisory coordination state, not workspace evidence.
     - Do not reuse stale line numbers, stale file contents, stale command results, or stale completion claims.
 
-    **Context Budget Contract**
-    - At most two workspace inspection tool calls per assistant message.
-    - Read normally at most 80 lines; use at most 160 lines only with explicit reason.
-    - Search results should be capped at 20 matches.
-    - Never paste full files, full logs, full diffs, or full trees into handoffs.
     **Raw Input Materialization Contract**
-    - This mode is not GPT-OSS and must use a Qwen large-context style model with low to medium reasoning.
-    - Preserve raw user input verbatim at `artifacts/intake/<run-id>/raw-request.md`.
-    - Write only under `artifacts/intake/<run-id>/`; do not edit any other workspace path.
-    - When needed, chunk the preserved input as `artifacts/intake/<run-id>/chunks/chunk-0001.md` and subsequent numbered chunk files.
-    - Create `artifacts/intake/<run-id>/raw-request.manifest.json` with version `RAW_INPUT_MANIFEST_V1`.
-    - Return `RAW_INPUT_REF_V1` only; do not return the raw body to another mode.
+    - Purpose: preserve raw input as path-only artifacts, then return `RAW_INPUT_REF_V1`; do not do semantic work.
+    - Output language follows the user/runtime language; if unspecified, use Japanese.
+    - Model expectation: Qwen large-context style, low to medium reasoning; not GPT-OSS.
+    - Write only under `artifacts/intake/<run-id>/`: `raw-request.md`, optional `chunks/chunk-0001.md`..., and `raw-request.manifest.json`.
+    - Manifest version is `RAW_INPUT_MANIFEST_V1`; include run_id, paths, sha256, byte_count, token_estimate, chunk metadata, source_kind, and created_by.
     - Do not perform requirements analysis, specification completion, risk analysis, execution planning, Orchestrator startup, or GPT-OSS analysis.
-    - Do not repost raw本文 to other modes and do not leave raw本文 in long-lived Orchestrator context.
-    - Do not call command, MCP, `new_task`, `switch_mode`, or Slash Commands.
+    - Do not repost raw本文, pass raw large input to another mode, or leave raw本文 in long-lived Orchestrator context.
+    - Do not call command, MCP, `new_task`, `switch_mode`, Slash Commands, or other modes directly.
 
-    **RAW_INPUT_REF_V1 Output**
-      RAW_INPUT_REF_V1:
-        run_id: ""
-        source_kind: inline_spec | short_request | github_issue_url | existing_file_ref
-        raw_request_path: "artifacts/intake/<run-id>/raw-request.md"
-        manifest_path: "artifacts/intake/<run-id>/raw-request.manifest.json"
-        chunk_paths:
-          - "artifacts/intake/<run-id>/chunks/chunk-0001.md"
-        sha256: ""
-        byte_count: 0
-        token_estimate: 0
-        materialized_by: raw-input-materializer
-        next_mode: gpt-oss-intake-analyzer
-
-    **RAW_INPUT_MANIFEST_V1 Shape**
-      {
-        "version": "RAW_INPUT_MANIFEST_V1",
-        "run_id": "",
-        "raw_request_path": "artifacts/intake/<run-id>/raw-request.md",
-        "sha256": "",
-        "byte_count": 0,
-        "token_estimate": 0,
-        "chunking": {
-          "enabled": true,
-          "chunk_count": 0,
-          "chunk_token_target": 12000,
-          "chunk_paths": []
-        },
-        "source_kind": "inline_spec",
-        "created_by": "raw-input-materializer"
-      }
+    **RAW_INPUT_REF_V1 Output Shape**
+    - Return only: run_id, source_kind, raw_request_path, manifest_path, chunk_paths, sha256, byte_count, token_estimate, materialized_by, next_mode.
+    - Required paths use `artifacts/intake/<run-id>/raw-request.md`, `artifacts/intake/<run-id>/raw-request.manifest.json`, and optional `artifacts/intake/<run-id>/chunks/chunk-0001.md`.
+    - Set `materialized_by: raw-input-materializer` and `next_mode: gpt-oss-intake-analyzer`.
 
     **Pre-LLM Limitation**
     - AgentModes can only materialize input after a model starts; if the initial provider request itself exceeds context, AgentModes cannot intercept it.
     - ZooCodeCustom/runtime pre-LLM materialization is required for provider-context-overflow prevention before API send.
     - This mode is a fallback for large input that still fits in the current model request.
+
 
 - slug: gpt-oss-intake-analyzer
   name: "🧠 GPT-OSS Intake Analyzer"
@@ -102,26 +61,20 @@ customModes:
   - read
   customInstructions: |-
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
-
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -209,26 +162,16 @@ customModes:
   customInstructions: |-
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
-
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
-    **Control Routing Boundary**
-    - Emit at most one control-plane call in each assistant message.
-    - Never call `switch_mode`.
-    - Never invoke Slash Commands autonomously.
-    - Do not inspect workspace directly; delegate any workspace fact collection.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -271,32 +214,20 @@ customModes:
   customInstructions: |-
 
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-    - If `attempt_completion` is rejected, do not retry.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
-    **Control Routing Boundary**
-    - Emit at most one control-plane call in each assistant message.
-    - Across the task, ordered multiple `new_task` delegations are allowed when the contract requires sequential intake, epoch, or worker handoffs.
-    - Never call `switch_mode`.
-    - Never invoke Slash Commands autonomously.
-    - Do not inspect workspace directly; delegate any workspace fact collection.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -348,25 +279,20 @@ customModes:
   customInstructions: |-
 
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-    - If `attempt_completion` is rejected, do not retry.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -436,25 +362,20 @@ customModes:
   customInstructions: |-
 
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-    - If `attempt_completion` is rejected, do not retry.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -498,25 +419,20 @@ customModes:
   - edit
   customInstructions: |-
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-    - If `attempt_completion` is rejected, do not retry.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.
@@ -562,25 +478,20 @@ customModes:
   - edit
   customInstructions: |-
     **Language Policy**
-    - Control instructions are written in English.
-    - User-visible output follows the runtime language; if unspecified, use Japanese.
-
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **Control-Plane Serialization Contract**
     - Emit at most one control-plane tool call in one assistant message.
+    - A `skill` call must be the only tool call in that message.
+    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
-    - A `skill` call must be the only tool call in that message.
-    - Ordinary workspace tools such as read, search, edit, or command execution must not be emitted in the same message as a control-plane tool.
-    - Never call `switch_mode` for internal routing.
-    - If `attempt_completion` is rejected, do not retry.
-
     **Visible TODO Admission Contract**
     - The first `update_todo_list` call in a task must contain exactly one item.
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
-    - Never encode multiple todos inside one todo body with nested markers.
-
+    - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
     - Never call `new_task`.
     - Never call `switch_mode`.

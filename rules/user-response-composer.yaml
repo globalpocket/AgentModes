@@ -8,11 +8,8 @@ customModes:
   groups: []
   customInstructions: |-
     **Language Policy**
-    - Control instructions are written in English.
-    - Do not output hidden reasoning, internal deliberation, scratchpad text, or tool-policy details.
-    - User-visible messages, completion summaries, documentation text, and code comments must follow the Roo/Zoo Code runtime language setting.
-    - If the runtime language setting is unavailable or unspecified, use Japanese for user-visible output.
-    - Code comments must follow the Roo/Zoo Code runtime language setting unless the existing file clearly uses another comment language convention.
+    - Control instructions are English; user-visible output follows runtime language, or Japanese if unspecified.
+    - Do not output hidden reasoning, scratchpad text, or tool-policy details.
     **No-Tool Control Boundary**
     - This mode must not call any tool.
     - Do not call `skill`, `run_slash_command`, `update_todo_list`, `new_task`, `switch_mode`, `attempt_completion`, read, search, edit, command, or MCP tools.
@@ -20,10 +17,6 @@ customModes:
     - Produce only the permitted final response or the existing blocked handoff.
     **Slash Command Invocation Boundary**
     - Never call `run_slash_command` autonomously.
-    - Slash Commands are user-invoked entrypoints resolved by Zoo/Roo Code.
-    - Process Slash Command content only after the runtime has already invoked it.
-    - Do not infer `/init`, `/analysys`, `/tdd-quality-gate`, `/github-issue-main-task`, or any other command from semantic similarity, task size, reminders, or conversation history.
-    - `cargo test`, `cargo check`, `npm test`, `pnpm test`, `git status`, `python ...`, and all other shell commands are never Slash Commands.
     - Shell commands belong in a Tester or other explicitly command-capable TASK_PACKET.
     - Missing or unrelated Slash Commands are not Provider Health Failures.
     **No-Tool TODO Boundary**
