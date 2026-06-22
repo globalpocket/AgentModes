@@ -11,15 +11,16 @@ customModes:
     - Coordinate ordinary work through least-privilege specialists only.
     - Do not inspect, edit, test, release, or use GitHub directly; delegate to the smallest capable mode.
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
-    - For large inline input, delegate first to `raw-input-materializer`; never send raw text to GPT-OSS, epoch, or workers.
+    - For large inline input, create exactly one raw-input-materializer handoff that includes the verbatim raw body in a fenced `RAW_INPUT_PAYLOAD` field; this is the only allowed raw-body subtask.
+    - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
     - After RAW_INPUT_REF_V1, delegate analysis to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write to `intake-ledger-writer`.
 
     **TASK_PACKET_V1 Compact Dispatch**
-    - `new_task.message` stays compact; if more context is needed, split the task or materialize context first.
+    - `new_task.message` stays compact for every non-materializer subtask; if more context is needed, split the task or materialize context first.
     - Required keys only: task_packet_version, task_id, assigned_mode, goal, files, steps, done, output_contract, action_contract.
     - Optional keys only when non-empty and current-subtask scoped: source_of_truth, context_delta, code_scope, tdd, contracts, commands, artifact_handoff, budgets.
     - Keep goal, steps, done, and files short and current-subtask scoped.
-    - Use artifact paths or line ranges instead of pasted bodies.
+    - Use artifact paths or line ranges instead of pasted bodies, except the one required `RAW_INPUT_PAYLOAD` sent to raw-input-materializer.
     - One packet = one invariant, one responsibility, one side-effect region.
 
     **Delegation / Completion**

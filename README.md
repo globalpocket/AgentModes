@@ -170,7 +170,7 @@ Explicit workflows bypass ordinary intake and enter `workflow-orchestrator` dire
 ```
 
 
-`gpt-oss-intake-supervisor` remains only as a deprecated compatibility shim and is not the primary ordinary-input route. Raw本文 must not be passed directly to GPT-OSS or Orchestrator; raw input is first materialized into `RAW_INPUT_REF_V1`, then analyzed from paths. `raw-input-materializer` is intentionally not an analyzer or worker: it stores the raw artifact, returns path metadata, and stops with `next_mode: gpt-oss-intake-analyzer`. AgentModes Large Input Materialization Contract is a fallback after an LLM can start; provider requests that exceed context before API send require ZooCodeCustom/runtime pre-LLM materialization.
+`gpt-oss-intake-supervisor` remains only as a deprecated compatibility shim and is not the primary ordinary-input route. Raw本文 must not be passed directly to GPT-OSS, epoch orchestrators, or workers; the only inline raw-body handoff is a single fenced `RAW_INPUT_PAYLOAD` subtask to `raw-input-materializer`, which creates `RAW_INPUT_REF_V1` for all later path-based analysis. `raw-input-materializer` is intentionally not an analyzer or worker: it stores the raw artifact, returns path metadata, and stops with `next_mode: gpt-oss-intake-analyzer`. AgentModes Large Input Materialization Contract is a fallback after an LLM can start; provider requests that exceed context before API send require ZooCodeCustom/runtime pre-LLM materialization.
 
 `/continue-from-state artifacts/state/<run-id>.json` starts a new root Orchestrator task from the durable ledger only.
 
@@ -187,7 +187,7 @@ Explicit workflows bypass ordinary intake and enter `workflow-orchestrator` dire
 - Long-lived `orchestrator` and `workflow-orchestrator` keep only `SESSION_CURSOR_V1` pointers.
 - High-reasoning work moves to short-lived `epoch-orchestrator` tasks.
 - Atomic workers return compact `STATE_DELTA_V1` handoffs.
-- `TASK_PACKET_V1` is sparse and compact: omit empty/default fields, include only current-subtask facts, and pass artifact paths instead of pasted bodies.
+- `TASK_PACKET_V1` is sparse and compact: omit empty/default fields, include only current-subtask facts, and pass artifact paths instead of pasted bodies, except the required one-time `RAW_INPUT_PAYLOAD` handoff to `raw-input-materializer`.
 - All mode-level customInstructions are intentionally compact; common control-plane/slash/todo/routing/post-condense boilerplate is installed as Zoo/Roo Global Rules from `rules/`; `docs/contracts/compact-mode-contract.md` is the synchronized review copy.
 - Read/search workers obey the Context Budget Contract: two inspection tool calls per assistant message, normally 80 read lines, 20 search matches, no full tree/log/file handoffs.
 - `apply-diff-recovery` is loaded only after the first patch mismatch and a target reread.
@@ -239,7 +239,7 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 
 ## Large input materialization policy
 
-Large user inputs are still valid work items. AgentModes expects large specifications, logs, diffs, and handoffs to be persisted as raw artifacts and then processed by path, not rejected for size. The intake flow materializes raw input as `RAW_INPUT_REF_V1` with a `raw_request_path`, derives `USER_NEEDS_V1`, and starts Orchestrator with `SESSION_START_V1` paths.
+Large user inputs are still valid work items. AgentModes expects large specifications, logs, diffs, and handoffs to be persisted as raw artifacts and then processed by path, not rejected for size. The intake flow materializes raw input as `RAW_INPUT_REF_V1` with a `raw_request_path`, derives `USER_NEEDS_V1`, and starts Orchestrator with `SESSION_START_V1` paths. For model-side materialization, the orchestrator sends the raw body exactly once to `raw-input-materializer` in fenced `RAW_INPUT_PAYLOAD`; every subsequent subtask is path-only.
 
 GPT-OSS intake must not keep carrying a raw huge body after materialization. Orchestrator proceeds path-only from `raw_request_path`, `user_needs_path`, and state ledger paths, using artifacts as the source of truth.
 
