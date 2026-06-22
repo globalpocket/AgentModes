@@ -39,7 +39,7 @@ customModes:
   groups: []
   customInstructions: |
     **Deprecated Compatibility Shim**
-    - Do not inspect workspace, write artifacts, analyze raw本文, start Orchestrator, or dispatch.
+    - Do not inspect workspace, write artifacts, analyze raw text, start Orchestrator, or dispatch.
     - For raw inline input, return Recommended Next Mode: raw-input-materializer.
     - For existing RAW_INPUT_REF_V1, return Recommended Next Mode: gpt-oss-intake-analyzer.
     - Use artifact paths as source of truth and do not reject large input solely because it is large.

@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "(^artifacts/.*$)"
-      description: Artifact files only
+      description: Artifactファイルのみ
   - command
   customInstructions: |
     **artifact-manager Kernel**

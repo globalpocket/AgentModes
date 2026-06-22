@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "(^package\\.json$)|(^package-lock\\.json$)|(^pnpm-lock\\.yaml$)|(^yarn\\.lock$)|(^requirements\\.txt$)|(^requirements-dev\\.txt$)|(^pyproject\\.toml$)|(^Pipfile$)|(^Pipfile\\.lock$)|(^poetry\\.lock$)|(^Dockerfile$)|(^docker-compose\\.ya?ml$)|(^\\.github/workflows/.*$)"
-      description: Dependency and infrastructure config files only
+      description: 依存関係とインフラ設定ファイルのみ
   - command
   customInstructions: |
     **segregated-devops Kernel**

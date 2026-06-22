@@ -11,7 +11,7 @@ customModes:
     - Coordinate ordinary work through least-privilege specialists only.
     - Do not inspect, edit, test, release, or use GitHub directly; delegate to the smallest capable mode.
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
-    - For large inline input, delegate first to `raw-input-materializer`; never send raw本文 to GPT-OSS, epoch, or workers.
+    - For large inline input, delegate first to `raw-input-materializer`; never send raw text to GPT-OSS, epoch, or workers.
     - After RAW_INPUT_REF_V1, delegate analysis to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write to `intake-ledger-writer`.
 
     **TASK_PACKET_V1 Compact Dispatch**

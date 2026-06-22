@@ -9,7 +9,7 @@ customModes:
   - read
   - - edit
     - fileRegex: "\\.md$"
-      description: Markdown files only
+      description: Markdownファイルのみ
   - mcp
   customInstructions: |
     **architect Kernel**
