@@ -229,9 +229,9 @@ customModes:
     - Never place the full project plan, all workflow phases, all user headings, or future-mode work in visible REMINDERS.
     - Never encode multiple todos inside one todo body.
     **Delegated Routing Boundary**
-    - Never call `new_task`.
+    - May call `new_task` only to delegate atomic read/edit/command/judge work required by this epoch.
     - Never call `switch_mode`.
-    - Never invoke another mode directly.
+    - Never invoke another mode directly except through permitted `new_task` delegation.
     - Use Recommended Next Mode only as advisory handoff text.
 
     **Post-Condense Rehydration Contract**
