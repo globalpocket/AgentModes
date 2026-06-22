@@ -935,7 +935,12 @@ def validate_no_tool_modes(modes: dict[str, dict]) -> None:
 def validate_readme_model_allocation() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     for needle in [
+        "| `raw-input-materializer` | `Qwen large-context`",
+        "| `gpt-oss-intake-analyzer` | `GPT-OSS-120B`",
+        "| `intake-ledger-writer` | `Qwen3.5-9Bまたは小型`",
         "| `gpt-oss-intake-supervisor` |",
+        "互換shim",
+        "raw-input-materializer\n→ gpt-oss-intake-analyzer\n→ intake-ledger-writer\n→ orchestrator",
         "| `gpt-oss-needs-analyzer` |",
         "dispatchしない純粋分析worker",
         "| `epoch-orchestrator` | `Qwen3.5-122B`",
@@ -948,6 +953,8 @@ def validate_readme_model_allocation() -> None:
 
 def validate_durable_architecture_modes(modes: dict[str, dict]) -> None:
     required = {
+        "raw-input-materializer",
+        "gpt-oss-intake-analyzer",
         "gpt-oss-intake-supervisor",
         "intake-ledger-writer",
         "state-ledger-reader",
@@ -961,6 +968,8 @@ def validate_durable_architecture_modes(modes: dict[str, dict]) -> None:
     intake_text = instructions(modes["intake-ledger-writer"])
     require_contains("intake-ledger-writer", intake_text, "**Intake Ledger Write Contract**")
     require_contains("intake-ledger-writer", intake_text, "SESSION_START_V1")
+    require_contains("intake-ledger-writer", intake_text, "RAW_INPUT_REF_V1")
+    require_contains("intake-ledger-writer", intake_text, "raw_manifest_path")
 
 
 def validate_atomic_first_wave_modes(modes: dict[str, dict]) -> None:
@@ -1298,15 +1307,60 @@ def validate_stale_runtime_references() -> None:
 
 
 def validate_large_input_materialization(modes: dict[str, dict]) -> None:
-    for slug in [
+    required_modes = {
+        "raw-input-materializer",
+        "gpt-oss-intake-analyzer",
+        "intake-ledger-writer",
         "orchestrator",
-        "workflow-orchestrator",
-        "gpt-oss-intake-supervisor",
         "epoch-orchestrator",
+    }
+    missing = sorted(required_modes - set(modes))
+    if missing:
+        fail(f"missing large-input required modes: {missing}")
+
+    raw_text = instructions(modes["raw-input-materializer"])
+    for needle in [
+        "RAW_INPUT_REF_V1",
+        "RAW_INPUT_MANIFEST_V1",
+        "raw-request.md",
+        "raw-request.manifest.json",
+        "artifacts/intake/<run-id>/",
+        "Do not perform requirements analysis",
+        "GPT-OSS analysis",
+        "Do not repost raw本文",
     ]:
+        require_contains("raw-input-materializer", raw_text, needle)
+
+    analyzer_text = instructions(modes["gpt-oss-intake-analyzer"])
+    for needle in [
+        "USER_NEEDS_V1",
+        "USER_NEEDS_SLICE_V1",
+        "RAW_INPUT_REF_V1",
+        "Do not repost long raw本文",
+        "do not re-inject the entire raw artifact as a giant context",
+        "call `new_task`",
+        "call `switch_mode`",
+        "execute command",
+        "edit workspace",
+        "Do not directly start Orchestrator",
+    ]:
+        require_contains("gpt-oss-intake-analyzer", analyzer_text, needle)
+
+    orch_text = instructions(modes["orchestrator"])
+    for needle in [
+        "**Large Input Materialization Contract**",
+        "raw-input-materializer",
+        "do not route it directly to GPT-OSS analysis or epoch work",
+        "Do not begin normal TODO projection, Skill loading, or epoch dispatch for unmaterialized large inline input",
+        "Do not pass raw本文 directly to `gpt-oss-intake-analyzer`",
+        "`SESSION_START_V1` or `RAW_INPUT_REF_V1`",
+        "path-only",
+    ]:
+        require_contains("orchestrator", orch_text, needle)
+
+    for slug in ["orchestrator", "workflow-orchestrator", "gpt-oss-intake-supervisor", "epoch-orchestrator", "intake-ledger-writer"]:
         text = instructions(modes[slug])
         require_contains(slug, text, "**Large Input Materialization Contract**")
-        require_contains(slug, text, "large input materialization")
         require_contains(slug, text, "RAW_INPUT_REF_V1")
         require_contains(slug, text, "raw_request_path")
         require_contains(slug, text, "USER_NEEDS_V1")
@@ -1316,12 +1370,12 @@ def validate_large_input_materialization(modes: dict[str, dict]) -> None:
         require_contains(slug, text, "Use artifact paths as the source of truth.")
         require_contains(slug, text, "Pre-LLM materialization is required")
 
-    analyzer_text = instructions(modes["gpt-oss-needs-analyzer"])
-    require_contains("gpt-oss-needs-analyzer", analyzer_text, "**Large Input Reference Boundary**")
-    require_contains("gpt-oss-needs-analyzer", analyzer_text, "materialization_required")
-    require_contains("gpt-oss-needs-analyzer", analyzer_text, "RAW_INPUT_REF_V1")
-    require_contains("gpt-oss-needs-analyzer", analyzer_text, "raw_request_path")
-    require_contains("gpt-oss-needs-analyzer", analyzer_text, "Do not summarize the raw large input")
+    needs_text = instructions(modes["gpt-oss-needs-analyzer"])
+    require_contains("gpt-oss-needs-analyzer", needs_text, "**Large Input Reference Boundary**")
+    require_contains("gpt-oss-needs-analyzer", needs_text, "materialization_required")
+    require_contains("gpt-oss-needs-analyzer", needs_text, "RAW_INPUT_REF_V1")
+    require_contains("gpt-oss-needs-analyzer", needs_text, "raw_request_path")
+    require_contains("gpt-oss-needs-analyzer", needs_text, "Do not summarize the raw large input")
 
     for slug, mode in modes.items():
         text = instructions(mode)
@@ -1339,19 +1393,33 @@ def validate_large_input_materialization(modes: dict[str, dict]) -> None:
 def validate_large_input_docs() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     for needle in [
-        "Large input materialization policy",
-        "materialize and continue",
-        "pre-LLM large input materializer",
+        "raw-input-materializer",
+        "gpt-oss-intake-analyzer",
         "RAW_INPUT_REF_V1",
-        "raw_request_path",
+        "pre-LLM materialization",
+        "Raw本文 must not be passed directly to GPT-OSS or Orchestrator",
     ]:
         if needle not in readme:
             fail(f"README.md missing large input materialization text: {needle}")
+    phase4 = (ROOT / "docs" / "phases" / "phase-4-intake.md").read_text(encoding="utf-8")
+    for needle in [
+        "raw-input-materializer",
+        "gpt-oss-intake-analyzer",
+        "pre-LLM limitation",
+        "AgentModes cannot intercept",
+        "ZooCodeCustom/runtime pre-LLM materialization is required",
+    ]:
+        if needle not in phase4:
+            fail(f"phase-4-intake.md missing text: {needle}")
 
 def main() -> None:
     rule_modes = load_rule_modes()
     all_modes = load_all_agents_modes()
     for slug in [
+        "raw-input-materializer",
+        "gpt-oss-intake-analyzer",
+        "intake-ledger-writer",
+        "epoch-orchestrator",
         "tester",
         "orchestrator",
         "workflow-orchestrator",
