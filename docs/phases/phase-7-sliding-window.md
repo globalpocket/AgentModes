@@ -36,6 +36,6 @@ context-compactor
 
 ## Raw large input under sliding windows
 
-Sliding-window operation must keep raw large input in artifacts rather than conversation history. Once materialized, downstream modes use `RAW_INPUT_REF_V1`, `raw_request_path`, `USER_NEEDS_V1`, `SESSION_START_V1`, `SESSION_CURSOR_V1`, and `RUN_STATE_V1` paths as the source of truth.
+Sliding-window operation must keep raw large input in artifacts rather than conversation history. The raw body may appear only in the one `RAW_INPUT_PAYLOAD_V1` handoff to `raw-input-materializer`; once materialized, downstream modes use `RAW_INPUT_REF_V1`, `raw_request_path`, `USER_NEEDS_V1`, `SESSION_START_V1`, `SESSION_CURSOR_V1`, and `RUN_STATE_V1` paths as the source of truth.
 
 If existing history becomes too large, resume with `/continue-from-state` or a new root task using path-only state instead of pasting the raw large input again. The state ledger and raw artifact are authoritative; raw large input should not be re-sent between modes or reintroduced into the chat transcript.

@@ -57,7 +57,10 @@ def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
     mode = modes.get("raw-input-materializer") or fail("missing raw-input-materializer")
     for needle in [
         "Sole responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`.",
+        "escape-safe `RAW_INPUT_PAYLOAD_V1` envelope",
+        "byte_count, and sha256",
         "Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.",
+        "Do not forward, echo, excerpt, or repackage the raw body",
         "Recommended Next Mode: gpt-oss-intake-analyzer",
         "MATERIALIZATION_STALLED_V1",
     ]:
@@ -83,8 +86,20 @@ def validate_external_common_contract() -> None:
 
 def validate_task_packet_contract(modes: dict[str, dict]) -> None:
     contract = (ROOT / "docs" / "contracts" / "task-packet-v1.md").read_text(encoding="utf-8")
+    raw_contract = (ROOT / "docs" / "contracts" / "raw-input-materialization.md").read_text(encoding="utf-8")
+    for needle in [
+        "escape-safe `RAW_INPUT_PAYLOAD_V1` envelope carrying the exact raw input body",
+        "delimiter string that does not occur anywhere in the raw body",
+        "byte count, and sha256",
+        "No downstream mode may receive the raw body inline",
+        "ZooCodeCustom/runtime pre-LLM materialization",
+    ]:
+        if needle not in raw_contract:
+            fail(f"raw-input-materialization contract missing: {needle}")
     for needle in [
         "Keep `new_task.message` small enough",
+        "single `raw-input-materializer` subtask",
+        "RAW_INPUT_PAYLOAD_V1",
         "Do not paste raw user prompts",
         "artifact paths, line ranges, hashes, issue IDs, and exact commands",
         "remaining context can carry the task evidence",
@@ -95,6 +110,8 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         mode = modes.get(slug) or fail(f"missing {slug}")
         require(mode, "`new_task.message` stays compact")
         require(mode, "materialize context first")
+        require(mode, "RAW_INPUT_PAYLOAD_V1")
+        require(mode, "only allowed raw-body subtask")
         require(mode, "artifact paths or line ranges")
         if "1200" in mode_text(mode) or "target <=" in mode_text(mode):
             fail(f"{slug}: character-budget checking wording remains")

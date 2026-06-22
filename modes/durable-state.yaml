@@ -11,12 +11,14 @@ customModes:
   customInstructions: |
     **Raw Input Materialization Contract**
     - Sole responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`.
+    - Accept raw input only from the orchestrator handoff's escape-safe `RAW_INPUT_PAYLOAD_V1` envelope; verify the declared delimiter closes the envelope, byte_count, and sha256 before persisting that payload byte-for-byte.
     - Write only under `artifacts/intake/<run-id>/`: `raw-request.md`, optional size chunks, and mechanical `raw-request.manifest.json`.
     - Manifest contains only paths, sha256, byte_count, token_estimate, chunk metadata, source_kind, and created_by.
     - Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.
+    - Do not forward, echo, excerpt, or repackage the raw body to any subtask or mode; the handoff is path-only after materialization.
     - On success return only run_id, source_kind, raw_request_path, manifest_path, chunk_paths, sha256, byte_count, token_estimate, materialized_by, and `next_mode`.
     - Recommended Next Mode: gpt-oss-intake-analyzer.
-    - If exact metadata cannot be produced promptly, return `MATERIALIZATION_STALLED_V1` with `recommended_next: runtime_pre_llm_materialization`.
+    - If exact metadata cannot be produced promptly, or the envelope delimiter/byte_count/sha256 validation fails, return `MATERIALIZATION_STALLED_V1` with `recommended_next: runtime_pre_llm_materialization`.
     - AgentModes cannot prevent pre-LLM provider context overflow; runtime pre-LLM materialization is required for that case.
 - slug: gpt-oss-intake-analyzer
   name: "\U0001F9E0 GPT-OSS Intake Analyzer"
