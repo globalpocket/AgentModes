@@ -41,7 +41,9 @@ python maintenance/validate-contracts.py
 以下は、`modes/*.yaml` に定義されている全 custom mode を対象にした推奨割り当て例です。source of truth は `modes/` であり、この表は運用時の model profile 選定例です。
 
 前提:
-- GPT系モデルは `GPT-OSS-*` のみを推奨表に含める。
+- GPT系モデルは `GPT-OSS-*` のみを推奨表に含めるが、常用するのではなく「高リスクな分析・審査を構造化artifactに落とす」用途に限定する。
+- `GPT-OSS-120B` の出力を後続の `Qwen3.6-9B` が活かせるのは、自由文の推論過程ではなく、`USER_NEEDS_V1`、`ORCHESTRATOR_BRIEF_V1`、review/security finding、recovery plan のような schema 化された decision artifact として渡す場合だけである。
+- `Qwen3.6-9B` は GPT-OSS の判断を再推論・再解釈する担当ではない。後続の長寿命control-plane modeは、artifact path、優先度、制約、acceptance criteria、blocker、次mode候補などの明示フィールドを cursor として扱い、判断密度の高い再分解は `epoch-orchestrator` または該当review/audit modeへ委譲する。
 - `qwen35-MTP` は `orchestrator`、`workflow-orchestrator`、`epoch-orchestrator`、`code`、`debug`、精密patch worker、`recovery-supervisor` には割り当てない。
 - MTP系モデルはread-only索引、定型command実行、定型文生成など、control-plane判断や精密patch生成を必要としない責務に限定する。
 - 推論設定はモデル能力ではなくモード責務で決める。
@@ -50,6 +52,16 @@ python maintenance/validate-contracts.py
 - `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う。
 - `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う。文書化の根拠収集は `doc-evidence-reader` に分離する。
 - `tester` / `artifact-manager` / command runner系 atomic worker は推論オフを推奨し、過剰判断や completion ループを避ける。
+
+### GPT-OSS → Qwen handoff policy
+
+`GPT-OSS-120B` を使うmodeは、後続の `Qwen3.6-9B` に「考え方」を継承させる前提ではなく、後続が機械的に参照できる durable artifact を作る前提で使います。したがって、GPT-OSS mode の完了条件は「説明が詳しいこと」ではなく、次の条件を満たすことです。
+
+- must: schema名、artifact path、根拠path、決定事項、未決事項、制約、優先度、acceptance criteria、blocker、推奨next modeを明示する。
+- must not: 長い自由文の推論過程、暗黙の前提、会話履歴だけに依存する判断、後続modeに再解釈を要求する曖昧な助言を渡す。
+- if needed: `Qwen3.6-9B` が判断を再現できない粒度なら、handoffを薄めずに `Qwen3.5-122B` の `epoch-orchestrator`、`GPT-OSS-120B` の `reviewer` / `security-auditor` / `recovery-supervisor`、または該当 atomic classifier へ再委譲する。
+
+このため、`orchestrator` や `workflow-orchestrator` を `Qwen3.6-9B` にしても、GPT-OSS の成果は「会話の文脈」ではなく ledger / brief / finding / plan のフィールドとして利用できます。逆に、GPT-OSS の出力が schema 化されていない場合は、後続Qwenで活かせる保証がないため、その出力は不完全なhandoffとして扱います。
 
 ### Durable intake / control-plane modes
 
