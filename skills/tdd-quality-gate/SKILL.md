@@ -16,6 +16,7 @@ Use only after the user explicitly invokes `/tdd-quality-gate`.
 - Do not load GitHub Issue workflow instructions from here.
 - Execute one phase at a time through `workflow-orchestrator` → `epoch-orchestrator` → atomic workers.
 - Preserve one visible TODO for the current phase only.
+- Format visible TODOs with actual newline characters between the heading and checklist items; do not include literal `\n` escape sequences.
 - Handoffs from workers must be `STATE_DELTA_V1` and about eight lines or fewer.
 
 ## Phase outline

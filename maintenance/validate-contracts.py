@@ -341,6 +341,23 @@ def validate_no_large_body_regressions(modes: dict[str, dict]) -> None:
                 fail(f"{slug}: forbidden prompt-bloat wording remains: {needle}")
 
 
+def validate_visible_todo_formatting_contract() -> None:
+    expected = "literal `\\n` escape sequences"
+    for rel in [
+        "rules/00-agentmodes-compact-mode-contract.md",
+        "docs/contracts/compact-mode-contract.md",
+        "skills/tdd-quality-gate/SKILL.md",
+    ]:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        if expected not in text:
+            fail(f"{rel}: missing visible TODO literal newline escape guard")
+
+    expected_japanese = "文字列 `\\n` を含めない"
+    for rel in ["commands/tdd-quality-gate.md", "commands/github-issue-main-task.md"]:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        if expected_japanese not in text:
+            fail(f"{rel}: missing visible TODO literal newline escape guard")
+
 def validate_readme() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     for needle in [
@@ -367,6 +384,7 @@ def main() -> None:
     validate_task_packet_contract(modes)
     validate_externalized_boilerplate(modes)
     validate_no_large_body_regressions(modes)
+    validate_visible_todo_formatting_contract()
     validate_readme()
     print("contract validation ok")
     print(f"customModes count = {len(modes)}")
