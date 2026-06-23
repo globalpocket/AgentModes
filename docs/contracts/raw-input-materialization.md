@@ -10,7 +10,8 @@ Large inline input has one deliberate exception to the compact packet rule: the 
 - The orchestrator must choose a delimiter string that does not occur anywhere in the raw body; if no safe delimiter can be selected within the current request, it must use ZooCodeCustom/runtime pre-LLM materialization instead.
 - The materializer must verify the closing delimiter, byte count, and sha256 before writing artifacts; mismatches produce `MATERIALIZATION_STALLED_V1` and must not create a best-effort raw artifact.
 - The packet must instruct the materializer to write only `artifacts/intake/<run-id>/raw-request.md`, optional size chunks, and `raw-request.manifest.json`.
-- The materializer returns `RAW_INPUT_REF_V1` path metadata with `next_mode: gpt-oss-intake-analyzer` and `routing_control`, then stops; it must never recommend or route to `code`, implementation, test, or worker modes.
+- The materializer returns `RAW_INPUT_REF_V1` path metadata with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_mode: gpt-oss-intake-analyzer`, `next_action: {type: new_task, tool: new_task, mode: gpt-oss-intake-analyzer}`, and `routing_control`, then stops this mode only; it must never recommend or route to `code`, implementation, test, or worker modes.
+- `handoff_status`, `workflow_complete`, and `next_action` are mandatory completion-disambiguation fields. They make the result machine-readable as an incomplete workflow handoff so Roo/Zoo runtimes can dispatch the required Boomerang `new_task` with its `mode` parameter and do not treat successful materialization as final task completion.
 - `routing_control` must include current-hop `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing concrete implementation/test/worker slugs such as `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]` for future modes, and `completion_unwind` with `return_to_mode: user-response-composer` plus `policy: unwind_parent_chain`.
 - The canonical post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: user-response-composer` instead of ending in an implementation mode.
 
@@ -33,6 +34,18 @@ The delimiter line is control metadata, not part of the payload. The payload sta
 ## Routing control
 
 Every post-materialization handoff must preserve this routing metadata until final completion:
+
+```yaml
+handoff_status: requires_parent_dispatch
+workflow_complete: false
+next_mode: gpt-oss-intake-analyzer
+next_action:
+  type: new_task
+  tool: new_task
+  mode: gpt-oss-intake-analyzer
+```
+
+`next_mode` and `next_action` are advisory instructions for the parent/runtime controller, not permission for the materializer to self-dispatch. For intake-chain continuation, the controller should use Boomerang `new_task` and pass the target slug in the required `mode` parameter. `switch_mode` is not the primary intake-chain continuation primitive because it requests a session-level mode change rather than creating the next scoped subtask. `workflow_complete: false` means the overall user request is not complete even though the materializer mode must stop after returning the handoff.
 
 ```yaml
 routing_control:

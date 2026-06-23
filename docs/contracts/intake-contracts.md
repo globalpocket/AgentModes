@@ -14,7 +14,13 @@ RAW_INPUT_REF_V1:
   byte_count: 0
   token_estimate: 0
   materialized_by: raw-input-materializer
+  handoff_status: requires_parent_dispatch
+  workflow_complete: false
   next_mode: gpt-oss-intake-analyzer
+  next_action:
+    type: new_task
+    tool: new_task
+    mode: gpt-oss-intake-analyzer
 ```
 
 ## RAW_INPUT_MANIFEST_V1
