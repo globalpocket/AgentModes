@@ -33,7 +33,7 @@ The delimiter line is control metadata, not part of the payload. The payload sta
 
 ## Routing control
 
-Every post-materialization handoff must preserve this routing metadata until final completion:
+The raw-input-materializer completion must return this current-hop handoff metadata:
 
 ```yaml
 handoff_status: requires_parent_dispatch
@@ -45,7 +45,7 @@ next_action:
   mode: gpt-oss-intake-analyzer
 ```
 
-`next_mode` and `next_action` are advisory instructions for the parent/runtime controller, not permission for the materializer to self-dispatch. For intake-chain continuation, the controller should use Boomerang `new_task` and pass the target slug in the required `mode` parameter. `switch_mode` is not the primary intake-chain continuation primitive because it requests a session-level mode change rather than creating the next scoped subtask. `workflow_complete: false` means the overall user request is not complete even though the materializer mode must stop after returning the handoff.
+`next_mode` and `next_action` are advisory instructions for the parent/runtime controller, not permission for the materializer to self-dispatch. These fields are current-hop instructions, not metadata to preserve verbatim: each downstream handoff must update `next_mode`, `next_action.mode`, and `routing_control.allowed_next_modes` for its own immediate expected hop (`gpt-oss-intake-analyzer → intake-ledger-writer`, then `intake-ledger-writer → orchestrator`). For intake-chain continuation, the controller should use Boomerang `new_task` and pass the current target slug from `next_action.mode` in the required `mode` parameter. `switch_mode` is not the primary intake-chain continuation primitive because it requests a session-level mode change rather than creating the next scoped subtask. `workflow_complete: false` means the overall user request is not complete even though the current mode must stop after returning the handoff.
 
 ```yaml
 routing_control:
