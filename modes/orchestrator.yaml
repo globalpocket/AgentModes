@@ -29,6 +29,7 @@ customModes:
     - Keep goal, steps, done, and files short and current-subtask scoped.
     - Use artifact paths or line ranges instead of pasted bodies, except the one required `RAW_INPUT_PAYLOAD_V1` envelope sent to raw-input-materializer.
     - One packet = one invariant, one responsibility, one side-effect region.
+    - When assigning broad edit workers (`patch-applier` or `new-file-writer`), TASK_PACKET_V1 must include dynamic scope: `action_contract.allowed_file_regex` or `files.allowlist`; if that scope is missing or too broad, do not dispatch and report `DELEGATION_BLOCKED`.
 
     **Delegation / Completion**
     - Tester executes exact commands; Code edits only within explicit scope and returns to Orchestrator; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.

@@ -11,7 +11,7 @@ customModes:
   customInstructions: |
     **Raw Input Materialization Contract**
     - Sole responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`.
-    - Accept raw input only from the orchestrator handoff's escape-safe `RAW_INPUT_PAYLOAD_V1` envelope; verify the declared delimiter closes the envelope, byte_count, and sha256 before persisting that payload byte-for-byte.
+    - Accept raw input only from the active parent controller handoff's escape-safe `RAW_INPUT_PAYLOAD_V1` envelope; verify the declared delimiter closes the envelope, byte_count, and sha256 before persisting that payload byte-for-byte.
     - Write only under `artifacts/intake/<run-id>/`: `raw-request.md`, optional size chunks, and mechanical `raw-request.manifest.json`.
     - Manifest contains only paths, sha256, byte_count, token_estimate, chunk metadata, source_kind, and created_by.
     - Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.
@@ -21,7 +21,7 @@ customModes:
     - `next_mode` and `next_action` are advisory metadata for the runtime/parent controller only; do not call, dispatch, switch to, or answer as the next mode yourself.
     - Recommended Next Mode: gpt-oss-intake-analyzer only; never recommend `code`, implementation, test, or worker modes from raw materialization.
     - Include `routing_control` with `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]`, `completion_unwind.return_to_mode: user-response-composer`, `completion_unwind.policy: unwind_parent_chain`, and terminal forbidden modes/classes for implementation/test/worker completions.
-    - The required intake chain is raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator; downstream execution must return through this chain rather than ending in an implementation mode.
+    - The required non-slash intake chain is raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator; slash workflow intake must return to workflow-orchestrator. Downstream execution must return through the active parent controller rather than ending in an implementation mode.
     - If exact metadata cannot be produced promptly, or the envelope delimiter/byte_count/sha256 validation fails, return `MATERIALIZATION_STALLED_V1` with `recommended_next: runtime_pre_llm_materialization`.
     - AgentModes cannot prevent pre-LLM provider context overflow; runtime pre-LLM materialization is required for that case.
 - slug: gpt-oss-intake-analyzer
@@ -42,7 +42,7 @@ customModes:
 - slug: gpt-oss-intake-supervisor
   name: "\U0001F9FE GPT-OSS Intake Supervisor (Deprecated Shim)"
   roleDefinition: Deprecated compatibility entry that routes legacy intake callers to raw-input-materializer or gpt-oss-intake-analyzer without combining raw artifact writing and semantic analysis.
-  whenToUse: Use only for legacy compatibility; the primary path is raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator.
+  whenToUse: Use only for legacy compatibility; the non-slash primary path is raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator; slash workflow paths return to workflow-orchestrator.
   description: 互換shim（主経路ではない）
   groups: []
   customInstructions: |
@@ -67,9 +67,10 @@ customModes:
     - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Use artifact paths and current ledger facts; do not paste raw prompts, full logs, diffs, files, or parent plans.
     - Keep downstream TASK_PACKET_V1 messages compact and one responsibility.
+    - When delegating to broad edit workers (`patch-applier` or `new-file-writer`), include dynamic scope in TASK_PACKET_V1: `action_contract.allowed_file_regex` or `files.allowlist`; otherwise do not dispatch and return `DELEGATION_BLOCKED`.
 - slug: intake-ledger-writer
   name: "\U0001F5C3️ Intake Ledger Writer"
-  roleDefinition: "You persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 with Recommended Next Mode: orchestrator."
+  roleDefinition: "You persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 to the active parent controller: orchestrator for non-slash intake, workflow-orchestrator for slash workflows."
   whenToUse: Use after GPT-OSS Intake has produced USER_NEEDS_V1 and before orchestrator starts.
   description: intake artifactのatomic保存
   groups:
@@ -77,10 +78,10 @@ customModes:
   - edit
   customInstructions: |
     **intake-ledger-writer Kernel**
-    - Follow the role definition: persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1.
-    - Return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_action: {type: new_task, tool: new_task, mode: orchestrator}`, and Recommended Next Mode: orchestrator only; never route directly to `code` or other implementation modes.
+    - Follow the role definition: persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 to the active parent controller.
+    - Return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}` where `<active-parent-controller>` is `orchestrator` for non-slash intake and `workflow-orchestrator` for slash workflows; never route directly to `code` or other implementation modes.
     - Preserve `routing_control.completion_unwind.return_to_mode: user-response-composer` and terminal forbidden modes/classes in SESSION_START_V1 so final completion unwinds to the user-response-composer.
-    - Set current-hop `allowed_next_modes: [orchestrator]` in SESSION_START_V1.
+    - Set current-hop `allowed_next_modes: [orchestrator]` for non-slash intake or `allowed_next_modes: [workflow-orchestrator]` for slash workflow intake in SESSION_START_V1.
     - Complete only the assigned packet scope and return a compact handoff to the parent/controller; do not dispatch, switch modes, or answer the user.
 - slug: state-ledger-reader
   name: "\U0001F4D6 State Ledger Reader"
@@ -104,9 +105,9 @@ customModes:
   customInstructions: |
     **state-ledger-writer Kernel**
     - Follow the role definition: You atomically commit RUN_STATE_V1 updates from a validated STATE_DELTA_V1.
-    - Return Recommended Next Mode: orchestrator so Orchestrator advances the next epoch, with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, and `next_action: {type: new_task, tool: new_task, mode: orchestrator}`; do not route to code or answer the user.
+    - Return Recommended Next Mode to the active parent controller (`orchestrator` for non-slash intake, `workflow-orchestrator` for slash workflows) so that controller advances the next epoch, with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}`; do not route to code or answer the user.
     - Preserve any incoming `routing_control.completion_unwind` and terminal forbidden modes/classes; if present, do not replace the original `return_to_mode`.
-    - Set current-hop `allowed_next_modes: [orchestrator]` in the state handoff.
+    - Set current-hop `allowed_next_modes: [orchestrator]` for non-slash intake or `allowed_next_modes: [workflow-orchestrator]` for slash workflows in the state handoff.
     - Complete only the assigned packet scope and return a compact handoff.
 - slug: context-compactor
   name: "\U0001F5DC️ Context Compactor"

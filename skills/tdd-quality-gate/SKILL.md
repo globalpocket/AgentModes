@@ -28,3 +28,47 @@ Use only after the user explicitly invokes `/tdd-quality-gate`.
 5. Classify results with judge workers.
 6. Commit `STATE_DELTA_V1` through `state-ledger-writer`.
 7. At phase boundary, consider `context-compactor`.
+
+## Machine-readable phase contract
+
+```yaml
+phase_contract:
+  workflow: tdd-quality-gate
+  phase_execution: one_phase_at_a_time
+  default_supervisor: workflow-orchestrator
+  supervisor_handoff_chain:
+    - workflow-orchestrator
+    - epoch-orchestrator
+    - state-ledger-writer
+    - workflow-orchestrator
+  worker_class_handoff: atomic-workers
+  phases:
+    - id: rehydrate_state
+      allowed_workers: [state-ledger-reader, ledger-consistency-checker]
+      required_artifacts: [RUN_STATE_V1, initialization_decision]
+      exit_delta: STATE_DELTA_V1.rehydrated_state
+    - id: identify_invariant
+      allowed_workers: [tree-indexer, source-excerpt-reader, scope-checker]
+      required_artifacts: [current_invariant, allowed_files]
+      exit_delta: STATE_DELTA_V1.phase_scope
+    - id: delegate_epoch
+      allowed_workers: [epoch-orchestrator]
+      required_artifacts: [TASK_PACKET_V1]
+      exit_delta: STATE_DELTA_V1.epoch_result
+    - id: run_checks
+      allowed_workers: [exact-command-runner, test-runner, coverage-runner, format-lint-runner, build-runner]
+      required_artifacts: [exact_commands, command_result_artifacts]
+      exit_delta: STATE_DELTA_V1.command_results
+    - id: classify_results
+      allowed_workers: [test-result-classifier, coverage-checker, compiler-diagnostic-classifier, contract-checker]
+      required_artifacts: [command_result_artifact_paths]
+      exit_delta: STATE_DELTA_V1.quality_gate_decision
+    - id: commit_state
+      allowed_workers: [state-ledger-writer]
+      required_artifacts: [validated_STATE_DELTA_V1]
+      exit_delta: RUN_STATE_V1.updated
+    - id: phase_boundary_compaction
+      allowed_workers: [context-compactor]
+      required_artifacts: [RUN_STATE_V1, artifact_index]
+      exit_delta: STATE_DELTA_V1.compaction_result
+```
