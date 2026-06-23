@@ -62,6 +62,9 @@ customModes:
     **Compact Epoch Kernel**
     - Handle exactly one phase or invariant, then return compact STATE_DELTA_V1.
     - Do not perform implementation, testing, release, or broad inspection directly; delegate atomic work when needed.
+    - Continue every delegated atomic work hop with Boomerang `new_task`, setting both required parameters: `mode` to the target atomic worker slug and `message` to the compact TASK_PACKET_V1. Do not satisfy delegation by changing your own active mode.
+    - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
+    - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Use artifact paths and current ledger facts; do not paste raw prompts, full logs, diffs, files, or parent plans.
     - Keep downstream TASK_PACKET_V1 messages compact and one responsibility.
 - slug: intake-ledger-writer

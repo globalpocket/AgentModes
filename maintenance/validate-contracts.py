@@ -297,6 +297,15 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
             "allowed_next_modes` as current-hop only",
             "terminal forbidden modes/classes",
         ],
+        "epoch-orchestrator": [
+            "Boomerang `new_task`, setting both required parameters",
+            "Do not satisfy delegation by changing your own active mode",
+            "A mode switch may be part of the runtime transition",
+            "If only `switch_mode` occurred",
+            "DELEGATION_BLOCKED",
+            "target atomic worker slug",
+            "compact TASK_PACKET_V1",
+        ],
         "gpt-oss-intake-supervisor": [
             "routing_control.completion_unwind.return_to_mode",
             "runtime repair or re-materialization",
