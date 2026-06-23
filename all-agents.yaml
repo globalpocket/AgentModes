@@ -751,6 +751,9 @@ customModes:
     **Compact Epoch Kernel**
     - Handle exactly one phase or invariant, then return compact STATE_DELTA_V1.
     - Do not perform implementation, testing, release, or broad inspection directly; delegate atomic work when needed.
+    - Continue every delegated atomic work hop with Boomerang `new_task`, setting both required parameters: `mode` to the target atomic worker slug and `message` to the compact TASK_PACKET_V1. Do not satisfy delegation by changing your own active mode.
+    - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
+    - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Use artifact paths and current ledger facts; do not paste raw prompts, full logs, diffs, files, or parent plans.
     - Keep downstream TASK_PACKET_V1 messages compact and one responsibility.
 - slug: intake-ledger-writer
@@ -860,7 +863,9 @@ customModes:
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
     - Enforce the canonical chain: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch.
     - After RAW_INPUT_REF_V1, delegate analysis only to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write only to `intake-ledger-writer`. Treat every worker `Recommended Next Mode` as advisory and make the next mode transition explicitly yourself.
-    - Continue the intake chain with Boomerang `new_task`, setting the required `mode` parameter to the target slug from `next_action.mode`; do not rely on free-text `Recommended Next Mode` alone. Reserve `switch_mode` for explicit session-level mode-change requests rather than ordinary intake subtask continuation.
+    - Continue every delegated workflow hop with Boomerang `new_task`, setting both required parameters: `mode` to the target slug from `next_action.mode` or `TASK_PACKET_V1.assigned_mode`, and `message` to the compact packet. Do not satisfy delegation by changing your own active mode.
+    - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
+    - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.
     - Preserve `routing_control.completion_unwind` from intake artifacts through every epoch and state update; final user-facing completion must unwind to `return_to_mode: user-response-composer` when that field is present.
     - Treat `routing_control.allowed_next_modes` as current-hop only; update it for the immediate next mode without removing `completion_unwind`, terminal forbidden modes/classes, or concrete forbidden implementation/test/worker slugs/classes.
@@ -1028,7 +1033,9 @@ customModes:
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
     - Enforce the canonical chain: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch.
     - After RAW_INPUT_REF_V1, delegate analysis only to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write only to `intake-ledger-writer`. Treat every worker `Recommended Next Mode` as advisory and make the next mode transition explicitly yourself.
-    - Continue the intake chain with Boomerang `new_task`, setting the required `mode` parameter to the target slug from `next_action.mode`; do not rely on free-text `Recommended Next Mode` alone. Reserve `switch_mode` for explicit session-level mode-change requests rather than ordinary intake subtask continuation.
+    - Continue every delegated workflow hop with Boomerang `new_task`, setting both required parameters: `mode` to the target slug from `next_action.mode` or `TASK_PACKET_V1.assigned_mode`, and `message` to the compact packet. Do not satisfy delegation by changing your own active mode.
+    - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
+    - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.
     - Preserve `routing_control.completion_unwind` from intake artifacts through every epoch and state update; final user-facing completion must unwind to `return_to_mode: user-response-composer` when that field is present.
     - Treat `routing_control.allowed_next_modes` as current-hop only; update it for the immediate next mode without removing `completion_unwind`, terminal forbidden modes/classes, or concrete forbidden implementation/test/worker slugs/classes.
