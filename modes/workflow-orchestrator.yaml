@@ -16,7 +16,7 @@ customModes:
     - Enforce the canonical chain: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch.
     - After RAW_INPUT_REF_V1, delegate analysis only to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write only to `intake-ledger-writer`. Treat every worker `Recommended Next Mode` as advisory and make the next mode transition explicitly yourself.
     - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.
-    - Preserve `routing_control.completion_unwind` from intake artifacts through every epoch and state update; final user-facing completion must unwind to `return_to_mode: raw-input-materializer` when that field is present.
+    - Preserve `routing_control.completion_unwind` from intake artifacts through every epoch and state update; final user-facing completion must unwind to `return_to_mode: user-response-composer` when that field is present.
     - Treat `routing_control.allowed_next_modes` as current-hop only; update it for the immediate next mode without removing `completion_unwind`, terminal forbidden modes/classes, or concrete forbidden implementation/test/worker slugs/classes.
 
     **TASK_PACKET_V1 Compact Dispatch**

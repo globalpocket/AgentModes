@@ -113,7 +113,7 @@ def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
         "raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator",
         "routing_control",
         "allowed_next_modes: [gpt-oss-intake-analyzer]",
-        "completion_unwind.return_to_mode: raw-input-materializer",
+        "completion_unwind.return_to_mode: user-response-composer",
         "test-writer",
         "patch-applier",
         "new-file-writer",
@@ -158,7 +158,7 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "must never recommend or route to `code`",
         "canonical post-materialization chain",
         "routing_control",
-        "return_to_mode: raw-input-materializer",
+        "return_to_mode: user-response-composer",
         "terminal_mode_must_not_be: code",
         "Current-hop allowlist",
         "test-writer",
@@ -180,8 +180,8 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
     completion_unwind = routing_control.get("completion_unwind")
     if not isinstance(completion_unwind, dict):
         fail("routing_control: completion_unwind must be a mapping")
-    if completion_unwind.get("return_to_mode") != "raw-input-materializer":
-        fail("routing_control: completion_unwind.return_to_mode must be raw-input-materializer")
+    if completion_unwind.get("return_to_mode") != "user-response-composer":
+        fail("routing_control: completion_unwind.return_to_mode must be user-response-composer")
     if completion_unwind.get("policy") != "unwind_parent_chain":
         fail("routing_control: completion_unwind.policy must be unwind_parent_chain")
     require_list(completion_unwind, "terminal_forbidden_modes", ["code", "tester", "test-writer", "refactorer", "patch-applier", "new-file-writer"], "completion_unwind")
@@ -219,7 +219,7 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "remaining context can carry the task evidence",
         "The next step after materialization is intake analysis, not `code`",
         "preserve `routing_control.completion_unwind`",
-        "final completion must unwind to `return_to_mode: raw-input-materializer`",
+        "final completion must unwind to `return_to_mode: user-response-composer`",
         "allowed_next_modes` is current-hop only",
         "concrete forbidden implementation/test/worker slugs/classes",
         "terminal forbidden modes/classes",
@@ -245,7 +245,7 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         ],
         "intake-ledger-writer": [
             "Recommended Next Mode: orchestrator only",
-            "completion_unwind.return_to_mode: raw-input-materializer",
+            "completion_unwind.return_to_mode: user-response-composer",
             "allowed_next_modes: [orchestrator]",
             "terminal forbidden modes/classes",
         ],

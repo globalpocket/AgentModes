@@ -11,8 +11,8 @@ Large inline input has one deliberate exception to the compact packet rule: the 
 - The materializer must verify the closing delimiter, byte count, and sha256 before writing artifacts; mismatches produce `MATERIALIZATION_STALLED_V1` and must not create a best-effort raw artifact.
 - The packet must instruct the materializer to write only `artifacts/intake/<run-id>/raw-request.md`, optional size chunks, and `raw-request.manifest.json`.
 - The materializer returns `RAW_INPUT_REF_V1` path metadata with `next_mode: gpt-oss-intake-analyzer` and `routing_control`, then stops; it must never recommend or route to `code`, implementation, test, or worker modes.
-- `routing_control` must include current-hop `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing concrete implementation/test/worker slugs such as `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]` for future modes, and `completion_unwind` with `return_to_mode: raw-input-materializer` plus `policy: unwind_parent_chain`.
-- The canonical post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: raw-input-materializer` instead of ending in an implementation mode.
+- `routing_control` must include current-hop `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing concrete implementation/test/worker slugs such as `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]` for future modes, and `completion_unwind` with `return_to_mode: user-response-composer` plus `policy: unwind_parent_chain`.
+- The canonical post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: user-response-composer` instead of ending in an implementation mode.
 
 ## Envelope format
 
@@ -54,7 +54,7 @@ routing_control:
     - test
     - worker
   completion_unwind:
-    return_to_mode: raw-input-materializer
+    return_to_mode: user-response-composer
     policy: unwind_parent_chain
     terminal_mode_must_not_be: code
     terminal_forbidden_modes:
