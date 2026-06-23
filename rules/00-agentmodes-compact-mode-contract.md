@@ -5,7 +5,7 @@ This contract replaces repeated fixed prompt boilerplate. `rules/00-agentmodes-c
 - Keep mode-local instructions small; mode prompts contain only the role kernel and task-specific boundaries.
 - Use current task facts, artifact paths, line ranges, hashes, issue IDs, and exact commands instead of pasted bodies.
 - Do not paste full specs, raw prompts, full logs, full diffs, full files, prior handoffs, parent plans, hidden reasoning, or condensed summaries.
-- Do not call `run_slash_command` autonomously; slash commands are user entrypoints only.
+- Do not call `run_slash_command` autonomously; slash commands, including `/init`, are user entrypoints only and require explicit user invocation.
 - Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator.
 - Keep visible todos scoped to the current delegated task when todos are needed; never copy parent plans into todos.
 - Treat post-condense summaries as advisory; use current artifacts, paths, and cited evidence as source of truth.
