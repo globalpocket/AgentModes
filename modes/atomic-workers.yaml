@@ -78,6 +78,11 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Artifact Consumption Rule**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - When reading a GPT-OSS-produced artifact, consume only explicit schema fields; do not reinterpret raw reasoning or infer missing decisions.
+    - If required fields such as `schema`, `source_of_truth`, `decisions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, or `handoff_policy` are missing, return `BLOCKED_DELTA_V1` instead of repairing them implicitly.
     ```yaml
     worker_contract:
       class: read
@@ -739,6 +744,11 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Artifact Consumption Rule**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - When reading a GPT-OSS-produced artifact, consume only explicit schema fields; do not reinterpret raw reasoning or infer missing decisions.
+    - If required fields such as `schema`, `source_of_truth`, `decisions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, or `handoff_policy` are missing, return `BLOCKED_DELTA_V1` instead of repairing them implicitly.
     ```yaml
     worker_contract:
       class: read
@@ -785,6 +795,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `SECURITY_FINDING_V1` or `SECURITY_AUDIT_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -808,6 +826,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `SECURITY_FINDING_V1` or `SECURITY_AUDIT_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -831,6 +857,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `SECURITY_FINDING_V1` or `SECURITY_AUDIT_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -854,6 +888,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `SECURITY_FINDING_V1` or `SECURITY_AUDIT_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -877,6 +919,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `REVIEW_FINDING_V1` or `REVIEW_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -900,6 +950,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `REVIEW_FINDING_V1` or `REVIEW_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -923,6 +981,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `REVIEW_FINDING_V1` or `REVIEW_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -946,6 +1012,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `REVIEW_FINDING_V1` or `REVIEW_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read
@@ -1066,6 +1140,11 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Artifact Consumption Rule**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - When reading a GPT-OSS-produced artifact, consume only explicit schema fields; do not reinterpret raw reasoning or infer missing decisions.
+    - If required fields such as `schema`, `source_of_truth`, `decisions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, or `handoff_policy` are missing, return `BLOCKED_DELTA_V1` instead of repairing them implicitly.
     ```yaml
     worker_contract:
       class: read
@@ -1089,6 +1168,11 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Artifact Consumption Rule**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - When reading a GPT-OSS-produced artifact, consume only explicit schema fields; do not reinterpret raw reasoning or infer missing decisions.
+    - If required fields such as `schema`, `source_of_truth`, `decisions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, or `handoff_policy` are missing, return `BLOCKED_DELTA_V1` instead of repairing them implicitly.
     ```yaml
     worker_contract:
       class: read
@@ -1181,6 +1265,14 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - This GPT-OSS-recommended atomic mode must still produce a downstream-consumable schema artifact, not raw reasoning.
+    - Use `SECURITY_FINDING_V1` or `SECURITY_AUDIT_REPORT_V1` inside `STATE_DELTA_V1` or as the primary artifact schema when delegated directly.
+    - Include explicit fields: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - If required evidence or fields are missing, return `BLOCKED_DELTA_V1` with `blockers` and do not ask downstream Qwen modes to infer.
     ```yaml
     worker_contract:
       class: read

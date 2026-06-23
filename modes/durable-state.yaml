@@ -33,6 +33,15 @@ customModes:
   - read
   customInstructions: |
     **GPT-OSS Intake Analyzer Kernel**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - Treat this mode as a high-reasoning artifact producer, not a free-form advisor.
+    - Do not hand off raw reasoning, long free-form advice, or Harmony-specific structure.
+    - Final output must be a downstream-consumable schema artifact with: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include when available: `artifact_path`, `evidence_paths`, `unresolved_questions`, `loss_report`, and `handoff_policy`.
+    - Always include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - Downstream Qwen modes must be able to read explicit fields only; if a required field cannot be filled, put it in `blockers` or `unresolved_questions` and recommend escalation.
     - Analyze only RAW_INPUT_REF_V1, manifest paths, chunk paths, or slice paths; never receive raw large inline input.
     - Produce USER_NEEDS_V1 or USER_NEEDS_SLICE_V1 plus `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_action: {type: new_task, tool: new_task, mode: intake-ledger-writer}`, and Recommended Next Mode: intake-ledger-writer only; do not write artifacts, dispatch work, switch modes, route to code, or answer the user.
     - Preserve incoming `routing_control.completion_unwind` and terminal forbidden modes/classes unchanged, set current-hop `allowed_next_modes: [intake-ledger-writer]`, and do not drop `return_to_mode: user-response-composer`.
@@ -47,6 +56,16 @@ customModes:
   groups: []
   customInstructions: |
     **Deprecated Compatibility Shim**
+
+    **GPT-OSS Downstream-Compatible Output Policy**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - Treat this mode as a high-reasoning artifact producer, not a free-form advisor.
+    - Do not hand off raw reasoning, long free-form advice, or Harmony-specific structure.
+    - Final output must be a downstream-consumable schema artifact with: `schema`, `producer_mode`, `intended_consumer`, `source_of_truth`, `objective`, `decisions`, `assumptions`, `constraints`, `acceptance_criteria`, `blockers`, `recommended_next_mode`, and `confidence`.
+    - Include when available: `artifact_path`, `evidence_paths`, `unresolved_questions`, `loss_report`, and `handoff_policy`.
+    - Always include `handoff_policy: {downstream_must_not_reinfer: true, downstream_should_treat_as_advisory: true, downstream_should_escalate_if_fields_missing: true, downstream_high_reasoning_delegate: epoch-orchestrator}`.
+    - Downstream Qwen modes must be able to read explicit fields only; if a required field cannot be filled, put it in `blockers` or `unresolved_questions` and recommend escalation.
+    - Use `GPT_OSS_SHIM_HANDOFF_V1` as the schema when returning compatibility routing guidance.
     - Do not inspect workspace, write artifacts, analyze raw text, start Orchestrator, or dispatch.
     - For raw inline input, return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_action: {type: new_task, tool: new_task, mode: raw-input-materializer}`, and Recommended Next Mode: raw-input-materializer.
     - For existing RAW_INPUT_REF_V1, return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_action: {type: new_task, tool: new_task, mode: gpt-oss-intake-analyzer}`, and Recommended Next Mode: gpt-oss-intake-analyzer only when `routing_control.completion_unwind.return_to_mode` is present; otherwise return a blocker recommending runtime repair or re-materialization.
@@ -92,6 +111,11 @@ customModes:
   - read
   customInstructions: |
     **state-ledger-reader Kernel**
+
+    **GPT-OSS Artifact Consumption Rule**
+    - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
+    - When restoring state from GPT-OSS-produced artifacts, consume only explicit schema fields; do not reinterpret raw reasoning or infer missing decisions.
+    - If required GPT-OSS handoff fields or `handoff_policy` are missing, return a blocked state-read summary instead of repairing them implicitly.
     - Follow the role definition: You read and verify a RUN_STATE_V1 ledger without mutating it.
     - Complete only the assigned packet scope and return a compact handoff.
 - slug: state-ledger-writer
