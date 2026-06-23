@@ -25,3 +25,47 @@ Use only after the user explicitly invokes `/github-issue-main-task`.
 4. Update `USER_NEEDS_V1` and `RUN_STATE_V1` through ledger writers.
 5. If implementation is required, load `tdd-quality-gate` and continue by epoch.
 6. Mutate GitHub state only through the dedicated mutation worker for the current atomic action.
+
+## Machine-readable phase contract
+
+```yaml
+phase_contract:
+  workflow: github-issue-main-task
+  phase_execution: one_phase_at_a_time
+  default_supervisor: workflow-orchestrator
+  supervisor_handoff_chain:
+    - workflow-orchestrator
+    - epoch-orchestrator
+    - state-ledger-writer
+    - workflow-orchestrator
+  worker_class_handoff: atomic-workers
+  mutation_gate:
+    required_fields: [repository, issue_or_pr_id, action, idempotency_key, payload_summary]
+    allowed_mutation_workers: [issue-comment-writer, sub-issue-creator, issue-closer]
+    blocker_if_missing: BLOCKED_DELTA_V1
+  phases:
+    - id: rehydrate_state
+      allowed_workers: [state-ledger-reader, ledger-consistency-checker]
+      required_artifacts: [RUN_STATE_V1, initialization_decision]
+      exit_delta: STATE_DELTA_V1.rehydrated_state
+    - id: fetch_issue
+      allowed_workers: [issue-reader, github-relationship-checker]
+      required_artifacts: [issue_body_artifact, relationship_metadata]
+      exit_delta: STATE_DELTA_V1.issue_facts
+    - id: analyze_needs
+      allowed_workers: [gpt-oss-needs-analyzer]
+      required_artifacts: [fetched_issue_facts]
+      exit_delta: USER_NEEDS_V1.update_request
+    - id: update_ledgers
+      allowed_workers: [intake-ledger-writer, state-ledger-writer]
+      required_artifacts: [USER_NEEDS_V1, RUN_STATE_V1_delta]
+      exit_delta: SESSION_START_V1_or_RUN_STATE_V1.updated
+    - id: implementation_epoch
+      allowed_workers: [workflow-orchestrator, epoch-orchestrator]
+      required_artifacts: [tdd_quality_gate_phase_contract]
+      exit_delta: STATE_DELTA_V1.implementation_result
+    - id: mutate_github
+      allowed_workers: [issue-comment-writer, sub-issue-creator, issue-closer]
+      required_artifacts: [repository, issue_or_pr_id, action, action_contract, idempotency_key, payload_summary]
+      exit_delta: STATE_DELTA_V1.github_mutation_result
+```

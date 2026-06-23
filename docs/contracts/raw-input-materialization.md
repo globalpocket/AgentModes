@@ -13,7 +13,7 @@ Large inline input has one deliberate exception to the compact packet rule: the 
 - The materializer returns `RAW_INPUT_REF_V1` path metadata with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `next_mode: gpt-oss-intake-analyzer`, `next_action: {type: new_task, tool: new_task, mode: gpt-oss-intake-analyzer}`, and `routing_control`, then stops this mode only; it must never recommend or route to `code`, implementation, test, or worker modes.
 - `handoff_status`, `workflow_complete`, and `next_action` are mandatory completion-disambiguation fields. They make the result machine-readable as an incomplete workflow handoff so Roo/Zoo runtimes can dispatch the required Boomerang `new_task` with its `mode` parameter and do not treat successful materialization as final task completion.
 - `routing_control` must include current-hop `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing concrete implementation/test/worker slugs such as `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]` for future modes, and `completion_unwind` with `return_to_mode: user-response-composer` plus `policy: unwind_parent_chain`.
-- The canonical post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: user-response-composer` instead of ending in an implementation mode.
+- The canonical post-materialization chain is context-aware. The canonical non-slash post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. The canonical slash workflow chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → workflow-orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → workflow-orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: user-response-composer` instead of ending in an implementation mode.
 
 ## Envelope format
 
@@ -45,7 +45,7 @@ next_action:
   mode: gpt-oss-intake-analyzer
 ```
 
-`next_mode` and `next_action` are advisory instructions for the parent/runtime controller, not permission for the materializer to self-dispatch. These fields are current-hop instructions, not metadata to preserve verbatim: each downstream handoff must update `next_mode`, `next_action.mode`, and `routing_control.allowed_next_modes` for its own immediate expected hop (`gpt-oss-intake-analyzer → intake-ledger-writer`, then `intake-ledger-writer → orchestrator`). For intake-chain continuation, the controller should use Boomerang `new_task` and pass the current target slug from `next_action.mode` in the required `mode` parameter. `switch_mode` is not the primary intake-chain continuation primitive because it requests a session-level mode change rather than creating the next scoped subtask. `workflow_complete: false` means the overall user request is not complete even though the current mode must stop after returning the handoff.
+`next_mode` and `next_action` are advisory instructions for the parent/runtime controller, not permission for the materializer to self-dispatch. These fields are current-hop instructions, not metadata to preserve verbatim: each downstream handoff must update `next_mode`, `next_action.mode`, and `routing_control.allowed_next_modes` for its own immediate expected hop (`gpt-oss-intake-analyzer → intake-ledger-writer`, then `intake-ledger-writer → orchestrator` for non-slash intake or `intake-ledger-writer → workflow-orchestrator` for slash workflows). For intake-chain continuation, the controller should use Boomerang `new_task` and pass the current target slug from `next_action.mode` in the required `mode` parameter. `switch_mode` is not the primary intake-chain continuation primitive because it requests a session-level mode change rather than creating the next scoped subtask. `workflow_complete: false` means the overall user request is not complete even though the current mode must stop after returning the handoff.
 
 ```yaml
 routing_control:
@@ -97,6 +97,15 @@ expected_allowed_next_modes:
     - orchestrator
   state-ledger-writer:
     - orchestrator
+expected_allowed_next_modes_slash_workflow:
+  raw-input-materializer:
+    - gpt-oss-intake-analyzer
+  gpt-oss-intake-analyzer:
+    - intake-ledger-writer
+  intake-ledger-writer:
+    - workflow-orchestrator
+  state-ledger-writer:
+    - workflow-orchestrator
 ```
 
 ### Routing mode classes

@@ -13,7 +13,7 @@ customModes:
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
     - For large inline input, create exactly one raw-input-materializer handoff that includes the verbatim raw body in an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope with a delimiter absent from the payload plus byte_count and sha256 metadata; this is the only allowed raw-body subtask.
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
-    - Enforce the canonical chain: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch.
+    - For slash workflows, retain workflow continuity in `workflow-orchestrator`: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → workflow-orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → workflow-orchestrator advances the next epoch. The general `orchestrator` chain remains valid only for non-slash intake.
     - After RAW_INPUT_REF_V1, delegate analysis only to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write only to `intake-ledger-writer`. Treat every worker `Recommended Next Mode` as advisory and make the next mode transition explicitly yourself.
     - Continue every delegated workflow hop with Boomerang `new_task`, setting both required parameters: `mode` to the target slug from `next_action.mode` or `TASK_PACKET_V1.assigned_mode`, and `message` to the compact packet. Do not satisfy delegation by changing your own active mode.
     - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
@@ -29,6 +29,7 @@ customModes:
     - Keep goal, steps, done, and files short and current-subtask scoped.
     - Use artifact paths or line ranges instead of pasted bodies, except the one required `RAW_INPUT_PAYLOAD_V1` envelope sent to raw-input-materializer.
     - One packet = one invariant, one responsibility, one side-effect region.
+    - When assigning broad edit workers (`patch-applier` or `new-file-writer`), TASK_PACKET_V1 must include dynamic scope: `action_contract.allowed_file_regex` or `files.allowlist`; if that scope is missing or too broad, do not dispatch and report `DELEGATION_BLOCKED`.
 
     **Delegation / Completion**
     - Tester executes exact commands; Code edits only within explicit scope and returns to Orchestrator; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.
