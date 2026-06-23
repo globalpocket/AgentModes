@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import re
 import shutil
 import subprocess
 
@@ -25,9 +27,53 @@ def load_yaml(path: Path):
     )
     if proc.returncode != 0:
         fail(f"YAML parse failed for {path}: {proc.stderr.strip()}")
-    import json
     return json.loads(proc.stdout)
 
+
+
+def load_yaml_text(text: str, label: str):
+    ruby = shutil.which("ruby")
+    if ruby is None:
+        fail("ruby is required for YAML validation")
+    proc = subprocess.run(
+        [ruby, "-r", "yaml", "-r", "json", "-e", "puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Symbol], aliases: true))"],
+        input=text,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        fail(f"YAML parse failed for {label}: {proc.stderr.strip()}")
+    return json.loads(proc.stdout)
+
+
+def fenced_yaml_blocks(markdown: str, label: str) -> list[dict]:
+    blocks: list[dict] = []
+    for index, match in enumerate(re.finditer(r"```yaml\n(.*?)\n```", markdown, flags=re.DOTALL), start=1):
+        parsed = load_yaml_text(match.group(1), f"{label} fenced yaml block {index}")
+        if not isinstance(parsed, dict):
+            fail(f"{label} fenced yaml block {index}: expected mapping")
+        blocks.append(parsed)
+    return blocks
+
+
+def find_yaml_mapping(blocks: list[dict], key: str, label: str) -> dict:
+    for block in blocks:
+        if key in block:
+            value = block[key]
+            if not isinstance(value, dict):
+                fail(f"{label}: {key} must be a mapping")
+            return value
+    fail(f"{label}: missing fenced yaml mapping {key}")
+
+
+def require_list(mapping: dict, key: str, expected: list[str], label: str) -> None:
+    value = mapping.get(key)
+    if not isinstance(value, list):
+        fail(f"{label}: {key} must be a list")
+    missing = [item for item in expected if item not in value]
+    if missing:
+        fail(f"{label}: {key} missing {missing}")
 
 def mode_text(mode: dict) -> str:
     return mode.get("customInstructions") or ""
@@ -63,8 +109,24 @@ def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
         "Do not forward, echo, excerpt, or repackage the raw body",
         "Recommended Next Mode: gpt-oss-intake-analyzer",
         "MATERIALIZATION_STALLED_V1",
+        "never recommend `code`",
+        "raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator",
+        "routing_control",
+        "allowed_next_modes: [gpt-oss-intake-analyzer]",
+        "completion_unwind.return_to_mode: raw-input-materializer",
+        "test-writer",
+        "patch-applier",
+        "new-file-writer",
+        "forbidden_next_mode_classes: [implementation, test, worker]",
+        "terminal forbidden modes/classes",
     ]:
         require(mode, needle)
+    for forbidden in [
+        "before handing off to gpt-oss-intake-analyzer",
+        "every other responsibility belongs to the next mode",
+    ]:
+        if forbidden in (mode.get("roleDefinition", "") + "\n" + mode.get("whenToUse", "")):
+            fail(f"raw-input-materializer retains direct handoff wording: {forbidden}")
 
 
 def validate_external_common_contract() -> None:
@@ -93,9 +155,61 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "byte count, and sha256",
         "No downstream mode may receive the raw body inline",
         "ZooCodeCustom/runtime pre-LLM materialization",
+        "must never recommend or route to `code`",
+        "canonical post-materialization chain",
+        "routing_control",
+        "return_to_mode: raw-input-materializer",
+        "terminal_mode_must_not_be: code",
+        "Current-hop allowlist",
+        "test-writer",
+        "patch-applier",
+        "new-file-writer",
+        "forbidden_next_mode_classes",
+        "terminal_forbidden_modes",
+        "terminal_forbidden_mode_classes",
+        "expected_allowed_next_modes",
+        "routing_mode_classes",
     ]:
         if needle not in raw_contract:
             fail(f"raw-input-materialization contract missing: {needle}")
+    raw_blocks = fenced_yaml_blocks(raw_contract, "raw-input-materialization contract")
+    routing_control = find_yaml_mapping(raw_blocks, "routing_control", "raw-input-materialization contract")
+    require_list(routing_control, "allowed_next_modes", ["gpt-oss-intake-analyzer"], "routing_control")
+    require_list(routing_control, "forbidden_next_modes", ["code", "tester", "test-writer", "refactorer", "patch-applier", "new-file-writer"], "routing_control")
+    require_list(routing_control, "forbidden_next_mode_classes", ["implementation", "test", "worker"], "routing_control")
+    completion_unwind = routing_control.get("completion_unwind")
+    if not isinstance(completion_unwind, dict):
+        fail("routing_control: completion_unwind must be a mapping")
+    if completion_unwind.get("return_to_mode") != "raw-input-materializer":
+        fail("routing_control: completion_unwind.return_to_mode must be raw-input-materializer")
+    if completion_unwind.get("policy") != "unwind_parent_chain":
+        fail("routing_control: completion_unwind.policy must be unwind_parent_chain")
+    require_list(completion_unwind, "terminal_forbidden_modes", ["code", "tester", "test-writer", "refactorer", "patch-applier", "new-file-writer"], "completion_unwind")
+    require_list(completion_unwind, "terminal_forbidden_mode_classes", ["implementation", "test", "worker"], "completion_unwind")
+
+    expected_allowed = find_yaml_mapping(raw_blocks, "expected_allowed_next_modes", "raw-input-materialization contract")
+    expected_hops = {
+        "raw-input-materializer": ["gpt-oss-intake-analyzer"],
+        "gpt-oss-intake-analyzer": ["intake-ledger-writer"],
+        "intake-ledger-writer": ["orchestrator"],
+        "state-ledger-writer": ["orchestrator"],
+    }
+    for slug, expected in expected_hops.items():
+        require_list(expected_allowed, slug, expected, "expected_allowed_next_modes")
+
+    mode_classes = find_yaml_mapping(raw_blocks, "routing_mode_classes", "raw-input-materialization contract")
+    expected_classes = {
+        "code": "implementation",
+        "refactorer": "implementation",
+        "tester": "test",
+        "test-writer": "test",
+        "patch-applier": "worker",
+        "new-file-writer": "worker",
+    }
+    for slug, expected_class in expected_classes.items():
+        if mode_classes.get(slug) != expected_class:
+            fail(f"routing_mode_classes: {slug} must be {expected_class}")
+
     for needle in [
         "Keep `new_task.message` small enough",
         "single `raw-input-materializer` subtask",
@@ -103,6 +217,13 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "Do not paste raw user prompts",
         "artifact paths, line ranges, hashes, issue IDs, and exact commands",
         "remaining context can carry the task evidence",
+        "The next step after materialization is intake analysis, not `code`",
+        "preserve `routing_control.completion_unwind`",
+        "final completion must unwind to `return_to_mode: raw-input-materializer`",
+        "allowed_next_modes` is current-hop only",
+        "concrete forbidden implementation/test/worker slugs/classes",
+        "terminal forbidden modes/classes",
+        "expected current-hop map",
     ]:
         if needle not in contract:
             fail(f"TASK_PACKET_V1 contract missing: {needle}")
@@ -115,6 +236,47 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         require(mode, "artifact paths or line ranges")
         if "1200" in mode_text(mode) or "target <=" in mode_text(mode):
             fail(f"{slug}: character-budget checking wording remains")
+
+    cross_mode_needles = {
+        "code": [
+            "do not accept direct handoff from raw-input-materializer",
+            "preserve it in your handoff unchanged",
+            "never set yourself as terminal completion target",
+        ],
+        "intake-ledger-writer": [
+            "Recommended Next Mode: orchestrator only",
+            "completion_unwind.return_to_mode: raw-input-materializer",
+            "allowed_next_modes: [orchestrator]",
+            "terminal forbidden modes/classes",
+        ],
+        "state-ledger-writer": [
+            "Return Recommended Next Mode: orchestrator",
+            "do not replace the original `return_to_mode`",
+            "allowed_next_modes: [orchestrator]",
+            "terminal forbidden modes/classes",
+        ],
+        "orchestrator": [
+            "Reject or correct any handoff that jumps from intake/materialization directly to `code`",
+            "Preserve `routing_control.completion_unwind`",
+            "allowed_next_modes` as current-hop only",
+            "terminal forbidden modes/classes",
+        ],
+        "workflow-orchestrator": [
+            "Reject or correct any handoff that jumps from intake/materialization directly to `code`",
+            "Preserve `routing_control.completion_unwind`",
+            "allowed_next_modes` as current-hop only",
+            "terminal forbidden modes/classes",
+        ],
+        "gpt-oss-intake-supervisor": [
+            "routing_control.completion_unwind.return_to_mode",
+            "runtime repair or re-materialization",
+            "Do not synthesize missing routing_control",
+        ],
+    }
+    for slug, needles in cross_mode_needles.items():
+        mode = modes.get(slug) or fail(f"missing {slug}")
+        for needle in needles:
+            require(mode, needle)
 
 
 def validate_externalized_boilerplate(modes: dict[str, dict]) -> None:

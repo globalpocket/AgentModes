@@ -10,7 +10,9 @@ Large inline input has one deliberate exception to the compact packet rule: the 
 - The orchestrator must choose a delimiter string that does not occur anywhere in the raw body; if no safe delimiter can be selected within the current request, it must use ZooCodeCustom/runtime pre-LLM materialization instead.
 - The materializer must verify the closing delimiter, byte count, and sha256 before writing artifacts; mismatches produce `MATERIALIZATION_STALLED_V1` and must not create a best-effort raw artifact.
 - The packet must instruct the materializer to write only `artifacts/intake/<run-id>/raw-request.md`, optional size chunks, and `raw-request.manifest.json`.
-- The materializer returns `RAW_INPUT_REF_V1` path metadata and stops.
+- The materializer returns `RAW_INPUT_REF_V1` path metadata with `next_mode: gpt-oss-intake-analyzer` and `routing_control`, then stops; it must never recommend or route to `code`, implementation, test, or worker modes.
+- `routing_control` must include current-hop `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing concrete implementation/test/worker slugs such as `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]` for future modes, and `completion_unwind` with `return_to_mode: raw-input-materializer` plus `policy: unwind_parent_chain`.
+- The canonical post-materialization chain is `raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch`. Completion must preserve `routing_control.completion_unwind` and unwind through the parent/controller chain to `return_to_mode: raw-input-materializer` instead of ending in an implementation mode.
 
 ## Envelope format
 
@@ -28,8 +30,79 @@ END_RAW_INPUT_PAYLOAD_V1
 
 The delimiter line is control metadata, not part of the payload. The payload starts immediately after the first delimiter line ending and ends immediately before the second delimiter line ending. The selected delimiter must be high-entropy enough to make accidental collision unlikely and must be scanned against the payload before send. The length and hash are authoritative integrity checks so delimiter parsing cannot silently truncate, extend, or alter the body.
 
+## Routing control
+
+Every post-materialization handoff must preserve this routing metadata until final completion:
+
+```yaml
+routing_control:
+  # Current-hop allowlist; downstream modes may replace it for their immediate next hop.
+  allowed_next_modes:
+    - gpt-oss-intake-analyzer
+  forbidden_next_modes:
+    - code
+    - tester
+    - test-writer
+    - refactorer
+    - patch-applier
+    - new-file-writer
+    - implementation
+    - test
+    - worker
+  forbidden_next_mode_classes:
+    - implementation
+    - test
+    - worker
+  completion_unwind:
+    return_to_mode: raw-input-materializer
+    policy: unwind_parent_chain
+    terminal_mode_must_not_be: code
+    terminal_forbidden_modes:
+      - code
+      - tester
+      - test-writer
+      - refactorer
+      - patch-applier
+      - new-file-writer
+    terminal_forbidden_mode_classes:
+      - implementation
+      - test
+      - worker
+```
+
+`allowed_next_modes` is a current-hop allowlist, not a full chain history. Downstream modes may replace it for their immediate next hop according to the expected-hop map below, but must not remove `completion_unwind`, replace the original `return_to_mode`, or delete concrete implementation/test/worker slugs/classes from `forbidden_next_modes`, `forbidden_next_mode_classes`, `terminal_forbidden_modes`, or `terminal_forbidden_mode_classes`.
+
+### Expected current-hop allowlists
+
+```yaml
+expected_allowed_next_modes:
+  raw-input-materializer:
+    - gpt-oss-intake-analyzer
+  gpt-oss-intake-analyzer:
+    - intake-ledger-writer
+  intake-ledger-writer:
+    - orchestrator
+  state-ledger-writer:
+    - orchestrator
+```
+
+### Routing mode classes
+
+Runtime enforcement should classify concrete mode slugs with this registry in addition to reading the class-level forbidden lists:
+
+```yaml
+routing_mode_classes:
+  code: implementation
+  refactorer: implementation
+  tester: test
+  test-writer: test
+  patch-applier: worker
+  new-file-writer: worker
+```
+
 ## Forbidden after materialization
 
 - No downstream mode may receive the raw body inline.
+- No intake handoff may skip directly from raw materialization or intake analysis to `code`; implementation starts only after Orchestrator/epoch decomposition.
 - GPT-OSS intake, epoch orchestrators, workers, reviewers, testers, documenters, and response composers must use `RAW_INPUT_REF_V1`, manifest paths, chunk paths, line ranges, or derived artifacts.
 - If the raw body cannot fit into the first materializer handoff before API send, ZooCodeCustom/runtime pre-LLM materialization must create the artifacts instead.

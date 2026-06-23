@@ -2,8 +2,8 @@
 customModes:
 - slug: raw-input-materializer
   name: "\U0001F4E5 Raw Input Materializer"
-  roleDefinition: You only persist the exact raw user input as durable workspace artifacts and return RAW_INPUT_REF_V1 handoff metadata; every other responsibility belongs to the next mode.
-  whenToUse: Use only to turn inline user input into path-only artifacts before handing off to gpt-oss-intake-analyzer.
+  roleDefinition: You only persist the exact raw user input as durable workspace artifacts and return RAW_INPUT_REF_V1 handoff metadata for the intake chain; never route directly to code or implementation modes.
+  whenToUse: Use only to turn inline user input into path-only artifacts at the start of intake before gpt-oss-intake-analyzer.
   description: raw入力のartifact保存と次モード引継ぎ専任
   groups:
   - read
@@ -16,13 +16,16 @@ customModes:
     - Manifest contains only paths, sha256, byte_count, token_estimate, chunk metadata, source_kind, and created_by.
     - Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.
     - Do not forward, echo, excerpt, or repackage the raw body to any subtask or mode; the handoff is path-only after materialization.
-    - On success return only run_id, source_kind, raw_request_path, manifest_path, chunk_paths, sha256, byte_count, token_estimate, materialized_by, and `next_mode`.
-    - Recommended Next Mode: gpt-oss-intake-analyzer.
+    - On success return only run_id, source_kind, raw_request_path, manifest_path, chunk_paths, sha256, byte_count, token_estimate, materialized_by, `next_mode`, and `routing_control`; then stop.
+    - `next_mode` is advisory metadata for the runtime/parent controller only; do not call, dispatch, switch to, or answer as the next mode yourself.
+    - Recommended Next Mode: gpt-oss-intake-analyzer only; never recommend `code`, implementation, test, or worker modes from raw materialization.
+    - Include `routing_control` with `allowed_next_modes: [gpt-oss-intake-analyzer]`, `forbidden_next_modes` containing `code`, `tester`, `test-writer`, `refactorer`, `patch-applier`, and `new-file-writer`, `forbidden_next_mode_classes: [implementation, test, worker]`, `completion_unwind.return_to_mode: raw-input-materializer`, `completion_unwind.policy: unwind_parent_chain`, and terminal forbidden modes/classes for implementation/test/worker completions.
+    - The required intake chain is raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator; downstream execution must return through this chain rather than ending in an implementation mode.
     - If exact metadata cannot be produced promptly, or the envelope delimiter/byte_count/sha256 validation fails, return `MATERIALIZATION_STALLED_V1` with `recommended_next: runtime_pre_llm_materialization`.
     - AgentModes cannot prevent pre-LLM provider context overflow; runtime pre-LLM materialization is required for that case.
 - slug: gpt-oss-intake-analyzer
   name: "\U0001F9E0 GPT-OSS Intake Analyzer"
-  roleDefinition: You read materialized intake artifacts and produce USER_NEEDS_V1 or USER_NEEDS_SLICE_V1 without writing artifacts or dispatching work.
+  roleDefinition: You read materialized intake artifacts and produce USER_NEEDS_V1 or USER_NEEDS_SLICE_V1 for intake-ledger-writer without writing artifacts, dispatching work, or routing to implementation modes.
   whenToUse: Use after raw-input-materializer has returned RAW_INPUT_REF_V1.
   description: materialized inputのGPT-OSS分析専任
   groups:
@@ -30,9 +33,11 @@ customModes:
   customInstructions: |
     **GPT-OSS Intake Analyzer Kernel**
     - Analyze only RAW_INPUT_REF_V1, manifest paths, chunk paths, or slice paths; never receive raw large inline input.
-    - Produce USER_NEEDS_V1 or USER_NEEDS_SLICE_V1; do not write artifacts or dispatch work.
+    - Produce USER_NEEDS_V1 or USER_NEEDS_SLICE_V1 and Recommended Next Mode: intake-ledger-writer only; do not write artifacts, dispatch work, switch modes, route to code, or answer the user.
+    - Preserve incoming `routing_control.completion_unwind` and terminal forbidden modes/classes unchanged, set current-hop `allowed_next_modes: [intake-ledger-writer]`, and do not drop `return_to_mode: raw-input-materializer`.
     - Separate explicit requirements, derived constraints, assumptions, required decisions, risks, and acceptance criteria.
     - Do not re-inject the whole raw artifact; read/select only needed slices by path.
+    - Return analysis as a compact handoff to the parent/controller for intake-ledger-writer; do not end the workflow in analysis or implementation.
 - slug: gpt-oss-intake-supervisor
   name: "\U0001F9FE GPT-OSS Intake Supervisor (Deprecated Shim)"
   roleDefinition: Deprecated compatibility entry that routes legacy intake callers to raw-input-materializer or gpt-oss-intake-analyzer without combining raw artifact writing and semantic analysis.
@@ -43,8 +48,9 @@ customModes:
     **Deprecated Compatibility Shim**
     - Do not inspect workspace, write artifacts, analyze raw text, start Orchestrator, or dispatch.
     - For raw inline input, return Recommended Next Mode: raw-input-materializer.
-    - For existing RAW_INPUT_REF_V1, return Recommended Next Mode: gpt-oss-intake-analyzer.
+    - For existing RAW_INPUT_REF_V1, return Recommended Next Mode: gpt-oss-intake-analyzer only when `routing_control.completion_unwind.return_to_mode` is present; otherwise return a blocker recommending runtime repair or re-materialization.
     - Use artifact paths as source of truth and do not reject large input solely because it is large.
+    - Do not synthesize missing routing_control; require the parent/runtime to repair it so completion can unwind to raw-input-materializer.
 - slug: epoch-orchestrator
   name: "\U0001F9E9 Epoch Orchestrator"
   roleDefinition: You decompose and coordinate exactly one phase or one implementation invariant, then return a compact STATE_DELTA_V1.
@@ -59,16 +65,19 @@ customModes:
     - Keep downstream TASK_PACKET_V1 messages compact and one responsibility.
 - slug: intake-ledger-writer
   name: "\U0001F5C3️ Intake Ledger Writer"
-  roleDefinition: You persist raw user input and USER_NEEDS_V1 intake artifacts atomically before Orchestrator starts.
-  whenToUse: Use after GPT-OSS Intake has classified ordinary user input and artifact persistence is required.
+  roleDefinition: "You persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 with Recommended Next Mode: orchestrator."
+  whenToUse: Use after GPT-OSS Intake has produced USER_NEEDS_V1 and before orchestrator starts.
   description: intake artifactのatomic保存
   groups:
   - read
   - edit
   customInstructions: |
     **intake-ledger-writer Kernel**
-    - Follow the role definition: You persist raw user input and USER_NEEDS_V1 intake artifacts atomically before Orchestrator starts.
-    - Complete only the assigned packet scope and return a compact handoff.
+    - Follow the role definition: persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1.
+    - Recommended Next Mode: orchestrator only; never route directly to `code` or other implementation modes.
+    - Preserve `routing_control.completion_unwind.return_to_mode: raw-input-materializer` and terminal forbidden modes/classes in SESSION_START_V1 so final completion unwinds to the originating materializer.
+    - Set current-hop `allowed_next_modes: [orchestrator]` in SESSION_START_V1.
+    - Complete only the assigned packet scope and return a compact handoff to the parent/controller; do not dispatch, switch modes, or answer the user.
 - slug: state-ledger-reader
   name: "\U0001F4D6 State Ledger Reader"
   roleDefinition: You read and verify a RUN_STATE_V1 ledger without mutating it.
@@ -91,6 +100,9 @@ customModes:
   customInstructions: |
     **state-ledger-writer Kernel**
     - Follow the role definition: You atomically commit RUN_STATE_V1 updates from a validated STATE_DELTA_V1.
+    - Return Recommended Next Mode: orchestrator so Orchestrator advances the next epoch; do not route to code or answer the user.
+    - Preserve any incoming `routing_control.completion_unwind` and terminal forbidden modes/classes; if present, do not replace the original `return_to_mode`.
+    - Set current-hop `allowed_next_modes: [orchestrator]` in the state handoff.
     - Complete only the assigned packet scope and return a compact handoff.
 - slug: context-compactor
   name: "\U0001F5DC️ Context Compactor"

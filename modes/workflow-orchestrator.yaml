@@ -13,7 +13,11 @@ customModes:
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
     - For large inline input, create exactly one raw-input-materializer handoff that includes the verbatim raw body in an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope with a delimiter absent from the payload plus byte_count and sha256 metadata; this is the only allowed raw-body subtask.
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
-    - After RAW_INPUT_REF_V1, delegate analysis to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write to `intake-ledger-writer`.
+    - Enforce the canonical chain: raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator → epoch-orchestrator → atomic workers → state-ledger-writer → orchestrator advances the next epoch.
+    - After RAW_INPUT_REF_V1, delegate analysis only to `gpt-oss-intake-analyzer`; after USER_NEEDS_V1, delegate ledger write only to `intake-ledger-writer`. Treat every worker `Recommended Next Mode` as advisory and make the next mode transition explicitly yourself.
+    - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.
+    - Preserve `routing_control.completion_unwind` from intake artifacts through every epoch and state update; final user-facing completion must unwind to `return_to_mode: raw-input-materializer` when that field is present.
+    - Treat `routing_control.allowed_next_modes` as current-hop only; update it for the immediate next mode without removing `completion_unwind`, terminal forbidden modes/classes, or concrete forbidden implementation/test/worker slugs/classes.
 
     **TASK_PACKET_V1 Compact Dispatch**
     - `new_task.message` stays compact for every non-materializer subtask; if more context is needed, split the task or materialize context first.
@@ -24,6 +28,7 @@ customModes:
     - One packet = one invariant, one responsibility, one side-effect region.
 
     **Delegation / Completion**
-    - Tester executes exact commands; Code edits; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.
+    - Tester executes exact commands; Code edits only within explicit scope and returns to Orchestrator; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.
+    - Do not let specialists answer the user or continue a workflow by themselves; require compact handoff back to Orchestrator after each delegated side effect.
     - Final answer only after delegated work and required gates complete or are explicitly blocked.
 source: project
