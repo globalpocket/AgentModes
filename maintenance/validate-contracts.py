@@ -648,9 +648,60 @@ def validate_readme() -> None:
         "raw入力をartifactへ保存し、`RAW_INPUT_REF_V1`で次モードへ渡すだけ",
         "`TASK_PACKET_V1` is sparse and compact",
         "common control-plane/slash/todo/routing/post-condense boilerplate is installed as Zoo/Roo Global Rules from `rules/`",
+        "docs/contracts/gpt-oss-downstream-compatible-output-policy.md",
     ]:
         if needle not in text:
             fail(f"README missing: {needle}")
+
+
+def load_gpt_oss_policy_coverage() -> tuple[list[str], list[str]]:
+    contract_path = ROOT / "docs" / "contracts" / "gpt-oss-downstream-compatible-output-policy.md"
+    text = contract_path.read_text(encoding="utf-8")
+    for needle in [
+        "gpt_oss_downstream_compatible_output_policy",
+        "gpt_oss_policy_coverage",
+        "gpt_oss_standard_schema_map",
+        "Schema field contracts",
+        "downstream_must_not_reinfer: true",
+    ]:
+        if needle not in text:
+            fail(f"{contract_path.relative_to(ROOT)} missing: {needle}")
+
+    blocks = fenced_yaml_blocks(text, str(contract_path.relative_to(ROOT)))
+    coverage = find_yaml_mapping(blocks, "gpt_oss_policy_coverage", str(contract_path.relative_to(ROOT)))
+    producer_slugs = coverage.get("producer_slugs")
+    consumer_slugs = coverage.get("consumer_slugs")
+    if not isinstance(producer_slugs, list) or not all(isinstance(slug, str) and slug for slug in producer_slugs):
+        fail("gpt_oss_policy_coverage.producer_slugs must be a non-empty list of strings")
+    if not isinstance(consumer_slugs, list) or not all(isinstance(slug, str) and slug for slug in consumer_slugs):
+        fail("gpt_oss_policy_coverage.consumer_slugs must be a non-empty list of strings")
+    return producer_slugs, consumer_slugs
+
+
+def validate_gpt_oss_downstream_policy(modes: dict[str, dict]) -> None:
+    producer_slugs, consumer_slugs = load_gpt_oss_policy_coverage()
+    for slug in producer_slugs:
+        mode = modes.get(slug) or fail(f"missing GPT-OSS producer mode: {slug}")
+        for needle in [
+            "GPT-OSS Downstream-Compatible Output Policy",
+            "docs/contracts/gpt-oss-downstream-compatible-output-policy.md",
+            "downstream-consumable schema artifact",
+            "downstream_must_not_reinfer: true",
+            "downstream_should_escalate_if_fields_missing: true",
+            "recommended_next_mode",
+            "confidence",
+        ]:
+            require(mode, needle)
+
+    for slug in consumer_slugs:
+        mode = modes.get(slug) or fail(f"missing GPT-OSS consumer mode: {slug}")
+        text = mode_text(mode)
+        if (
+            "GPT-OSS" not in text
+            or "do not reinterpret" not in text
+            or "docs/contracts/gpt-oss-downstream-compatible-output-policy.md" not in text
+        ):
+            fail(f"{slug}: missing GPT-OSS explicit-field consumption rule")
 
 
 def validate_generated_count(expected: int) -> None:
@@ -672,6 +723,7 @@ def main() -> None:
     validate_visible_todo_formatting_contract()
     validate_workflow_skill_phase_contracts()
     validate_readme()
+    validate_gpt_oss_downstream_policy(modes)
     print("contract validation ok")
     print(f"customModes count = {len(modes)}")
 

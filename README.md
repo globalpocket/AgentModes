@@ -57,9 +57,57 @@ python maintenance/validate-contracts.py
 
 `GPT-OSS-120B` を使うmodeは、後続の `Qwen3.6-9B` に「考え方」を継承させる前提ではなく、後続が機械的に参照できる durable artifact を作る前提で使います。したがって、GPT-OSS mode の完了条件は「説明が詳しいこと」ではなく、次の条件を満たすことです。
 
-- must: schema名、artifact path、根拠path、決定事項、未決事項、制約、優先度、acceptance criteria、blocker、推奨next modeを明示する。
-- must not: 長い自由文の推論過程、暗黙の前提、会話履歴だけに依存する判断、後続modeに再解釈を要求する曖昧な助言を渡す。
-- if needed: `Qwen3.6-9B` が判断を再現できない粒度なら、handoffを薄めずに `Qwen3.5-122B` の `epoch-orchestrator`、`GPT-OSS-120B` の `reviewer` / `security-auditor` / `recovery-supervisor`、または該当 atomic classifier へ再委譲する。
+- must: GPT-OSS mode は free-form advisor ではなく high-reasoning artifact producer として終了する。schema名、producer_mode、intended_consumer、source_of_truth、objective、artifact path、根拠path、決定事項、未決事項、制約、優先度、acceptance criteria、blocker、推奨next mode、confidenceを明示する。
+- must: `handoff_policy` を含め、`downstream_must_not_reinfer: true`、`downstream_should_treat_as_advisory: true`、`downstream_should_escalate_if_fields_missing: true`、`downstream_high_reasoning_delegate: epoch-orchestrator` を宣言する。
+- must not: Harmony-specific構造、長い自由文の推論過程、暗黙の前提、会話履歴だけに依存する判断、後続modeに再解釈を要求する曖昧な助言を渡す。
+- if needed: `Qwen3.6-9B` が明示フィールドだけで実行管理できない粒度なら、handoffを薄めずに `Qwen3.5-122B` の `epoch-orchestrator`、`GPT-OSS-120B` の `reviewer` / `security-auditor` / `recovery-supervisor`、または該当 atomic classifier へ再委譲する。
+
+
+Required GPT-OSS downstream-compatible output fields（canonical contract: `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`）:
+
+```yaml
+GPT_OSS_DOWNSTREAM_COMPATIBLE_OUTPUT_POLICY:
+  principle:
+    - GPT-OSS modes must not hand off raw reasoning, long free-form advice, or Harmony-specific structure.
+    - GPT-OSS modes must finish by producing a downstream-consumable schema artifact.
+    - Downstream Qwen modes must not be required to reinterpret GPT-OSS reasoning.
+  required_fields:
+    - schema
+    - producer_mode
+    - intended_consumer
+    - source_of_truth
+    - objective
+    - decisions
+    - assumptions
+    - constraints
+    - acceptance_criteria
+    - blockers
+    - recommended_next_mode
+    - confidence
+  optional_but_recommended_fields:
+    - artifact_path
+    - evidence_paths
+    - unresolved_questions
+    - handoff_policy
+    - loss_report
+  handoff_policy:
+    downstream_must_not_reinfer: true
+    downstream_should_treat_as_advisory: true
+    downstream_should_escalate_if_fields_missing: true
+    downstream_high_reasoning_delegate: epoch-orchestrator
+```
+
+GPT-OSS推奨modeごとの標準artifact schema:
+
+- `gpt-oss-needs-analyzer`: `ORCHESTRATOR_BRIEF_V1`
+- `gpt-oss-intake-analyzer`: `USER_NEEDS_V1` / `USER_NEEDS_SLICE_V1`
+- `gpt-oss-intake-supervisor`: `GPT_OSS_SHIM_HANDOFF_V1`（deprecated compatibility shim）
+- `architect`: `ARCHITECTURE_PLAN_V1` / `TASK_DECOMPOSITION_V1`
+- `reviewer` と atomic reviewer 群: `REVIEW_FINDING_V1` / `REVIEW_REPORT_V1`
+- `security-auditor`、`security-risk-classifier`、atomic security auditor 群: `SECURITY_FINDING_V1` / `SECURITY_AUDIT_REPORT_V1`
+- `recovery-supervisor`: `RECOVERY_PLAN_V1`
+
+READMEで `GPT-OSS-120B` または `GPT-OSS-*` 推奨として列挙するmodeは、deprecated shimを含め、上記schemaまたは明示された互換schemaでこのpolicyを満たす。producer / consumer の対象一覧と schema field contract は `docs/contracts/gpt-oss-downstream-compatible-output-policy.md` を source of truth とし、validator はその一覧から検査対象を読む。
 
 このため、`orchestrator` や `workflow-orchestrator` を `Qwen3.6-9B` にしても、GPT-OSS の成果は「会話の文脈」ではなく ledger / brief / finding / plan のフィールドとして利用できます。逆に、GPT-OSS の出力が schema 化されていない場合は、後続Qwenで活かせる保証がないため、その出力は不完全なhandoffとして扱います。
 
