@@ -36,43 +36,54 @@ python maintenance/validate-yaml.py
 python maintenance/validate-contracts.py
 ```
 
-## 推奨モデル割り当て設定例（durable ledger方針に更新済み）
+## 推奨モデル割り当て設定例（全mode対応 / durable ledger方針）
 
-以下は、このワークスペースのモード設計に対応した推奨割り当て例です。
+以下は、`modes/*.yaml` に定義されている全 custom mode を対象にした推奨割り当て例です。source of truth は `modes/` であり、この表は運用時の model profile 選定例です。
 
 前提:
-- GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
-- `qwen35-MTP` は `orchestrator`、`workflow-orchestrator`、`code`、`debug`、`recovery-supervisor` には割り当てない
-- MTP系モデルはread-only索引、定型command実行、定型文生成など、control-plane判断や精密patch生成を必要としない責務に限定する
-- 推論設定はモデル能力ではなくモード責務で決める
-- `Qwen3.5-122B` は短命な `epoch-orchestrator`、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う
-- `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う
-- `Gemma4-12B-it` は documenter / user-response-composer のような文章生成・整形系に使う。文書化の根拠収集は `doc-evidence-reader` に分離する
-- `tester` / `artifact-manager` は推論オフを推奨し、過剰判断や completion ループを避ける
+- GPT系モデルは `GPT-OSS-*` のみを推奨表に含める。
+- `qwen35-MTP` は `orchestrator`、`workflow-orchestrator`、`epoch-orchestrator`、`code`、`debug`、精密patch worker、`recovery-supervisor` には割り当てない。
+- MTP系モデルはread-only索引、定型command実行、定型文生成など、control-plane判断や精密patch生成を必要としない責務に限定する。
+- 推論設定はモデル能力ではなくモード責務で決める。
+- `Qwen3.6-9B` は長寿命cursor管理、ledger I/O、構造化compaction、定型command metadataに使う。
+- `Qwen3.5-122B` は短命な `epoch-orchestrator`、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う。
+- `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う。
+- `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う。文書化の根拠収集は `doc-evidence-reader` に分離する。
+- `tester` / `artifact-manager` / command runner系 atomic worker は推論オフを推奨し、過剰判断や completion ループを避ける。
+
+### Durable intake / control-plane modes
 
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
-| `raw-input-materializer` | `Qwen large-context` | 低 | raw入力をartifactへ保存し、`RAW_INPUT_REF_V1`で次モードへ渡すだけ。要件分析・計画・実装を行わない |
+| `raw-input-materializer` | `Qwen3.6-9B` | オフ〜低 | raw入力をartifactへ保存し、`RAW_INPUT_REF_V1`で次モードへ渡すだけ。要件分析・計画・実装を行わない |
 | `gpt-oss-intake-analyzer` | `GPT-OSS-120B` | オン / 最高 | materialized inputからUSER_NEEDS_V1を生成する分析専任 |
-| `intake-ledger-writer` | `Qwen3.5-9Bまたは小型` | オフ〜低 | RAW_INPUT_REF_V1とUSER_NEEDS_V1を永続化しSESSION_START_V1を返す |
+| `gpt-oss-intake-supervisor` | `GPT-OSS-120B` | オン / 低 | 互換shim。主経路ではなく新intake modeへの誘導のみ |
+| `intake-ledger-writer` | `Qwen3.6-9B` | オフ〜低 | RAW_INPUT_REF_V1とUSER_NEEDS_V1を永続化しSESSION_START_V1を返す |
+| `state-ledger-reader` | `Qwen3.6-9B` | オフ〜低 | RUN_STATE_V1の検証とcursor復元に限定する |
+| `state-ledger-writer` | `Qwen3.6-9B` | オフ〜低 | 状態遷移、hash、checksum、重複commit拒否を機械的に永続化する |
+| `context-compactor` | `Qwen3.6-9B` | オン / 中 | conversationではなく永続state artifactを構造化compactionする |
 | `orchestrator` | `Qwen3.6-9B` | オン / 中 | path-onlyのdurable continuity supervisor |
 | `workflow-orchestrator` | `Qwen3.6-9B` | オン / 中 | 明示Workflowのcursor管理に限定し、高推論分解は短命epochへ委譲するため |
 | `epoch-orchestrator` | `Qwen3.5-122B` | オン / 高 | 1 epoch / 1 invariantの短命高推論 |
-| `gpt-oss-intake-supervisor` | `GPT-OSS-120B` | オン / 低 | 互換shim。主経路ではなく新intake modeへの誘導のみ |
 | `gpt-oss-needs-analyzer` | `GPT-OSS-120B` | オン / 最高 | dispatchしない純粋分析worker。取得済み事実から ORCHESTRATOR_BRIEF_V1 だけを生成 |
-| `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
 | `recovery-supervisor` | `GPT-OSS-120B` | オン / 最高 | ループ脱出、失敗分類、再委任設計、停止条件判断が最も重い |
-| `reviewer` | `GPT-OSS-120B` | オン / 高 | 最終品質レビュー、設計整合性、保守性、性能、残リスク判断が必要 |
-| `security-auditor` | `GPT-OSS-120B` | オン / 高 | セキュリティ・依存関係・捏造ライブラリ検知は誤判定コストが高い |
+
+### Primary specialist modes
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
 | `code` | `Qwen3.5-122B` | オン / 高 | 最小差分実装でも API 契約、スコープ、副作用確認が必要 |
 | `debug` | `Qwen3.5-122B` | オン / 高 | 失敗シグネチャから根本原因を特定し、局所修正する必要がある |
 | `refactorer` | `Qwen3.5-122B` | オン / 中〜高 | 振る舞い不変性を維持しながら構造改善する必要がある |
 | `test-writer` | `Qwen3.5-122B` | オン / 高 | Red条件、境界値、契約テストの設計に推論が必要 |
-| `tester` | `Qwen3.5-9B` | オフ | 指定コマンドの実行とメタデータ返却が主責務で、判断を持たせないため |
+| `tester` | `Qwen3.6-9B` | オフ | 指定コマンドの実行とメタデータ返却が主責務で、判断を持たせないため |
+| `reviewer` | `GPT-OSS-120B` | オン / 高 | 最終品質レビュー、設計整合性、保守性、性能、残リスク判断が必要 |
+| `security-auditor` | `GPT-OSS-120B` | オン / 高 | セキュリティ・依存関係・捏造ライブラリ検知は誤判定コストが高い |
 | `consistency-checker` | `Qwen3.5-122B` | オン / 中 | Artifact、契約、Coverage、スコープ整合の判定が必要 |
 | `librarian` | `Qwen3.5-9B` | オン / 中 | 探索順序、候補絞り込み、索引要約に限定的な推論が有効 |
 | `analyzer` | `Qwen3.5-9B` | オン / 中 | 差分適用位置、行範囲、周辺アンカー抽出に局所推論が必要 |
-| `artifact-manager` | `Qwen3.5-9B` | オフ | artifacts 配下の初期化・prepare・verifyのみで判断を膨らませないため |
+| `artifact-manager` | `Qwen3.6-9B` | オフ | artifacts 配下の初期化・prepare・verifyのみで判断を膨らませないため |
 | `issue-tracker` | `Qwen3.5-122B` | オン / 中 | Issue本文、親子Issue、進捗コメント、sub-issue選択の文脈判断が必要 |
 | `release-manager` | `Qwen3.5-122B` | オン / 中 | version bump、tag、push単位の整合判断が必要 |
 | `segregated-devops` | `Qwen3.5-122B` | オン / 高 | 依存関係、CI、環境、Provider復旧は判断密度が高い |
@@ -81,6 +92,83 @@ python maintenance/validate-contracts.py
 | `documenter` | `Gemma4-12B-it` | オフ | `DOC_FACTS_V1` からMarkdown文書を生成・整形する専任で、事実収集や仕様解釈を行わないため |
 | `ask` | `Qwen3.5-122B` | オン / 中 | 技術説明、既存コード理解、計画相談に文脈理解が必要 |
 | `user-response-composer` | `Gemma4-12B-it` | オフ | 上流結果を最終ユーザー向け文面に整形するだけで、判断や追加事実生成を禁止するため |
+
+### Atomic read / index workers
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `tree-indexer` | `Qwen3.5-9B` | オフ〜低 | ファイル構造索引に限定し、設計判断を行わない |
+| `text-searcher` | `Qwen3.5-9B` | オフ〜低 | 指定scopeの検索結果抽出だけを行う |
+| `source-excerpt-reader` | `Qwen3.5-9B` | 低 | 指定範囲の抜粋と短い事実報告に限定する |
+| `artifact-reader` | `Qwen3.5-9B` | 低 | artifact pathから必要事実だけを読む |
+| `git-state-reader` | `Qwen3.6-9B` | オフ〜低 | git状態の読み取りとメタデータ返却に限定する |
+| `dependency-manifest-reader` | `Qwen3.5-9B` | 低 | manifestの依存関係・script情報の抽出だけを行う |
+| `issue-reader` | `Qwen3.5-9B` | 低 | Issue本文・関係情報の読み取りに限定する |
+
+### Atomic edit / mutation workers
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `patch-applier` | `Qwen3.5-122B` | オン / 中〜高 | allowed scope内で精密patchを適用するためMTPを避ける |
+| `new-file-writer` | `Qwen3.5-122B` | オン / 中〜高 | 新規ファイル作成は契約・配置・命名の判断が必要 |
+| `test-patch-writer` | `Qwen3.5-122B` | オン / 高 | テスト意図、失敗条件、既存fixture整合の判断が必要 |
+| `manifest-editor` | `Qwen3.5-122B` | オン / 中 | package/pyproject等の影響範囲と整合性を判断する |
+| `ci-workflow-writer` | `Qwen3.5-122B` | オン / 中〜高 | CI構文、secret境界、実行環境差分の判断が必要 |
+| `dependency-editor` | `Qwen3.5-122B` | オン / 高 | 依存衝突、lockfile、peer rangeの判断が必要 |
+| `issue-comment-writer` | `Qwen3.5-9B` | 低 | 事実に基づく短い定型コメント作成に限定する |
+| `sub-issue-creator` | `Qwen3.5-122B` | オン / 中 | 親子Issue関係とTDD単位分解の判断が必要 |
+| `issue-closer` | `Qwen3.5-9B` | オフ〜低 | 指定Issue closeと定型メタデータ返却に限定する |
+
+### Atomic command / environment workers
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `exact-command-runner` | `Qwen3.6-9B` | オフ | 指定コマンド実行と終了コード・stdout/stderr要約だけを行う |
+| `test-runner` | `Qwen3.6-9B` | オフ | テストコマンド実行結果の機械的返却に限定する |
+| `coverage-runner` | `Qwen3.6-9B` | オフ | coverageコマンド実行と出力path/数値返却に限定する |
+| `format-lint-runner` | `Qwen3.6-9B` | オフ | format/lintコマンドの実行とメタデータ返却に限定する |
+| `build-runner` | `Qwen3.6-9B` | オフ | buildコマンドの実行結果返却に限定する |
+| `provider-operator` | `Qwen3.5-122B` | オン / 中〜高 | provider復旧や設定変更は環境判断と停止条件が必要 |
+| `container-operator` | `Qwen3.5-122B` | オン / 中 | container操作は副作用範囲と復旧判断が必要 |
+| `environment-inspector` | `Qwen3.6-9B` | 低 | 環境情報の取得と短い診断材料化に限定する |
+
+### Atomic classifier / checker workers
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `compiler-diagnostic-classifier` | `Qwen3.5-122B` | オン / 中 | compiler診断から原因カテゴリと次手を分類する |
+| `test-result-classifier` | `Qwen3.5-122B` | オン / 中 | test failureの種類、flake、契約違反を分類する |
+| `coverage-checker` | `Qwen3.5-9B` | 低 | coverage閾値と対象範囲の機械的照合に限定する |
+| `scope-checker` | `Qwen3.5-9B` | 低 | 変更scopeとTASK_PACKET制約の照合に限定する |
+| `contract-checker` | `Qwen3.5-122B` | オン / 中 | schema/protocol/state transitionの契約整合判断が必要 |
+| `test-inventory-checker` | `Qwen3.5-9B` | 低 | テスト分類・件数・配置の棚卸しに限定する |
+| `ledger-consistency-checker` | `Qwen3.6-9B` | 低 | RUN_STATE_V1、hash、transitionの整合照合に限定する |
+| `handoff-consistency-checker` | `Qwen3.6-9B` | 低 | TASK_PACKET/STATE_DELTA/handoffの形式整合を照合する |
+| `workflow-phase-checker` | `Qwen3.6-9B` | 低 | workflow phase cursorと完了条件の照合に限定する |
+| `github-relationship-checker` | `Qwen3.5-9B` | 低 | GitHub親子Issue関係の読取・整合チェックに限定する |
+| `review-risk-classifier` | `Qwen3.5-122B` | オン / 中 | review指摘の重大度・残リスク分類が必要 |
+| `security-risk-classifier` | `GPT-OSS-120B` | オン / 高 | security findingの重大度・悪用可能性分類は誤判定コストが高い |
+| `context-metrics-reader` | `Qwen3.6-9B` | 低 | context/ledger metricsの読み取りと集計に限定する |
+| `rehydration-auditor` | `Qwen3.6-9B` | オン / 中 | durable ledgerからの再開可能性と欠落を照合する |
+| `handoff-budget-checker` | `Qwen3.5-9B` | 低 | handoffサイズ・行数・budget違反の照合に限定する |
+| `model-lifetime-checker` | `Qwen3.5-9B` | 低 | 長寿命/短命mode割り当て違反を機械的に検知する |
+
+### Atomic security / review / artifact workers
+
+| モード | 推奨モデル | 推論設定 | 理由 |
+|---|---|---|---|
+| `secret-auditor` | `GPT-OSS-120B` | オン / 高 | secret露出検知は誤判定コストが高い |
+| `dependency-auditor` | `GPT-OSS-120B` | オン / 高 | 依存関係リスク、脆弱性、捏造ライブラリの判断が必要 |
+| `unsafe-code-auditor` | `GPT-OSS-120B` | オン / 高 | unsafe patternや危険APIの文脈判断が必要 |
+| `fabricated-package-auditor` | `GPT-OSS-120B` | オン / 高 | 実在しないpackageやtyposquatの検知が必要 |
+| `implementation-reviewer` | `GPT-OSS-120B` | オン / 高 | 実装品質、保守性、契約遵守のレビュー判断が必要 |
+| `architecture-reviewer` | `GPT-OSS-120B` | オン / 高 | 設計整合と境界責務のレビュー判断が必要 |
+| `test-reviewer` | `GPT-OSS-120B` | オン / 高 | テスト妥当性、過不足、回帰価値の判断が必要 |
+| `performance-risk-reviewer` | `GPT-OSS-120B` | オン / 高 | 性能リスクと複雑度の文脈判断が必要 |
+| `artifact-indexer` | `Qwen3.5-9B` | オフ〜低 | artifact一覧・path索引作成に限定する |
+| `artifact-conflict-checker` | `Qwen3.6-9B` | 低 | artifact重複、競合、所有境界の照合に限定する |
+| `artifact-materializer` | `Qwen3.6-9B` | オフ〜低 | bulky evidenceをartifact化しpathを返すだけに限定する |
+| `artifact-retention-planner` | `Qwen3.5-9B` | 低 | 保存/削除候補の定型分類に限定する |
 
 ## 最小運用ポリシー
 
