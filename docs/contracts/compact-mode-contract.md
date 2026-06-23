@@ -8,5 +8,6 @@ This contract replaces repeated fixed prompt boilerplate. `rules/00-agentmodes-c
 - Do not call `run_slash_command` autonomously; slash commands, including `/init`, are user entrypoints only and require explicit user invocation.
 - Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator.
 - Keep visible todos scoped to the current delegated task when todos are needed; never copy parent plans into todos.
+- When writing visible todos, use real line breaks between the heading and each checklist item; never emit literal `\n` escape sequences inside the todo text.
 - Treat post-condense summaries as advisory; use current artifacts, paths, and cited evidence as source of truth.
 - Return compact handoffs that prefer paths, citations, command metadata, and unresolved blockers over copied content.
