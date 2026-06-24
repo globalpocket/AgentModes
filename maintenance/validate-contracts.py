@@ -706,6 +706,8 @@ def validate_verified_completion_contract(modes: dict[str, dict]) -> None:
     for needle in [
         "bounded integration verifier",
         "Completion requires explicit verification evidence.",
+        "Require explicit edit scope through files.allowlist, action_contract.allowed_file_regex, or clearly bounded delegated paths.",
+        "If edit scope is missing, too broad, or ambiguous, return VERIFICATION_BLOCKED instead of editing.",
         "VERIFICATION_BLOCKED",
         "IMPLEMENTATION_ONLY",
         "Run delegated or inferred verification gates.",
@@ -715,6 +717,7 @@ def validate_verified_completion_contract(modes: dict[str, dict]) -> None:
         "static_checks",
         "exit_status",
         "artifact_path",
+        "For non-trivial verification output, store command logs under artifacts/ and reference artifact_path.",
         "completion_status may be COMPLETE only if all required quality_gates and static_checks are PASS.",
     ]:
         require(verified, needle)
