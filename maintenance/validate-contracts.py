@@ -102,10 +102,12 @@ def require(mode: dict, needle: str) -> None:
 def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
     mode = modes.get("raw-input-materializer") or fail("missing raw-input-materializer")
     for needle in [
-        "Sole responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`.",
+        "Primary responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`",
         "escape-safe `RAW_INPUT_PAYLOAD_V1` envelope",
         "byte_count, and sha256",
-        "Do not analyze, summarize, classify, plan, implement, test, dispatch, or answer the substantive request.",
+        "integrity_status: deferred_to_verified_integrator",
+        "requires_active_controller_dispatch",
+        "Do not analyze, summarize, classify, plan, implement, test, or answer the substantive request.",
         "Do not forward, echo, excerpt, or repackage the raw body",
         "Recommended Next Mode: gpt-oss-intake-analyzer",
         "handoff_status: requires_parent_dispatch",
@@ -116,6 +118,13 @@ def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
         "MATERIALIZATION_STALLED_V1",
         "never recommend `code`",
         "raw-input-materializer → gpt-oss-intake-analyzer → intake-ledger-writer → orchestrator",
+        "entry controller",
+        "Entry-controller tool sequence",
+        "USER_NEEDS_V1 or USER_NEEDS_SLICE_V1",
+        "next_action.mode: intake-ledger-writer",
+        "SESSION_START_V1",
+        "Do not call `attempt_completion`",
+        "DELEGATION_BLOCKED",
         "routing_control",
         "allowed_next_modes: [gpt-oss-intake-analyzer]",
         "completion_unwind.return_to_mode: user-response-composer",
@@ -126,12 +135,28 @@ def validate_raw_input_materializer(modes: dict[str, dict]) -> None:
         "terminal forbidden modes/classes",
     ]:
         require(mode, needle)
-    for forbidden in [
-        "before handing off to gpt-oss-intake-analyzer",
-        "every other responsibility belongs to the next mode",
-    ]:
-        if forbidden in (mode.get("roleDefinition", "") + "\n" + mode.get("whenToUse", "")):
-            fail(f"raw-input-materializer retains direct handoff wording: {forbidden}")
+    scan_roots = [ROOT / "README.md", ROOT / "docs", ROOT / "modes", ROOT / "rules", ROOT / "all-agents.yaml"]
+    stale_patterns = [
+        "return path metadata, and stop",
+        "persist the raw input verbatim, return path metadata",
+        "orchestrator sends the raw body exactly once to `raw-input-materializer`",
+        "do not invoke `raw-input-materializer` as the user entry mode",
+        "do not select this as the user entry mode",
+        "the materializer never creates its successor itself",
+        "then stop this mode only",
+    ]
+    files_to_scan = []
+    for root_path in scan_roots:
+        if root_path.is_file():
+            files_to_scan.append(root_path)
+        else:
+            files_to_scan.extend(p for p in root_path.rglob("*") if p.suffix in {".md", ".yaml", ".yml"})
+    for path in sorted(set(files_to_scan)):
+        text = path.read_text(encoding="utf-8")
+        rel = path.relative_to(ROOT)
+        for stale in stale_patterns:
+            if stale in text.lower():
+                fail(f"{rel}: stale raw-input-materializer wording remains: {stale}")
 
 
 def validate_external_common_contract() -> None:
@@ -144,8 +169,8 @@ def validate_external_common_contract() -> None:
     for needle in [
         "replaces repeated fixed prompt boilerplate",
         "Do not call `run_slash_command` autonomously",
-        "Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator",
-        "Orchestrator delegation means creating a child task with Boomerang `new_task(mode, message)`",
+        "Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator or an explicit intake controller",
+        "Controller delegation means creating a child task with Boomerang `new_task(mode, message)`",
         "A `switch_mode` transition can be valid as part of runtime setup",
         "DELEGATION_BLOCKED",
         "Treat post-condense summaries as advisory",
@@ -157,6 +182,15 @@ def validate_external_common_contract() -> None:
 def validate_task_packet_contract(modes: dict[str, dict]) -> None:
     contract = (ROOT / "docs" / "contracts" / "task-packet-v1.md").read_text(encoding="utf-8")
     raw_contract = (ROOT / "docs" / "contracts" / "raw-input-materialization.md").read_text(encoding="utf-8")
+    intake_contract = (ROOT / "docs" / "contracts" / "intake-contracts.md").read_text(encoding="utf-8")
+    for needle in [
+        "integrity_status: verified | deferred_to_verified_integrator",
+        "dispatch_owner: parent_controller | active_controller",
+        "requires_active_controller_dispatch",
+        "deferred_to_verified_integrator",
+    ]:
+        if needle not in intake_contract:
+            fail(f"intake-contracts missing: {needle}")
     for needle in [
         "escape-safe `RAW_INPUT_PAYLOAD_V1` envelope carrying the exact raw input body",
         "delimiter string that does not occur anywhere in the raw body",
@@ -183,6 +217,9 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "expected_allowed_next_modes",
         "expected_allowed_next_modes_slash_workflow",
         "routing_mode_classes",
+        "Runtime integration verification boundary",
+        "cannot execute Zoo/Roo Boomerang tools",
+        "starting in `raw-input-materializer` can create child tasks in order",
     ]:
         if needle not in raw_contract:
             fail(f"raw-input-materialization contract missing: {needle}")

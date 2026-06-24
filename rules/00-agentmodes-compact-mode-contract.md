@@ -6,8 +6,8 @@ This contract replaces repeated fixed prompt boilerplate. `rules/00-agentmodes-c
 - Use current task facts, artifact paths, line ranges, hashes, issue IDs, and exact commands instead of pasted bodies.
 - Do not paste full specs, raw prompts, full logs, full diffs, full files, prior handoffs, parent plans, hidden reasoning, or condensed summaries.
 - Do not call `run_slash_command` autonomously; slash commands, including `/init`, are user entrypoints only and require explicit user invocation.
-- Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator.
-- Orchestrator delegation means creating a child task with Boomerang `new_task(mode, message)` and then stopping the parent turn until the child returns a completion summary; it is not a same-task mode change.
+- Do not self-dispatch with `new_task` or `switch_mode` unless the mode is an orchestrator or an explicit intake controller such as `raw-input-materializer`.
+- Controller delegation means creating a child task with Boomerang `new_task(mode, message)` and then stopping the parent turn until the child returns a completion summary; it is not a same-task mode change. Orchestrator modes use this for work decomposition; `raw-input-materializer` uses it only to continue the fixed intake chain after writing RAW_INPUT_REF_V1.
 - A `switch_mode` transition can be valid as part of runtime setup or an explicit session-level mode change, but it does not constitute delegation by itself. If no child task is created with `new_task`, report `DELEGATION_BLOCKED` instead of continuing delegated work in the current task.
 - Keep visible todos scoped to the current delegated task when todos are needed; never copy parent plans into todos.
 - When writing visible todos, use real line breaks between the heading and each checklist item; never emit literal `\n` escape sequences inside the todo text.

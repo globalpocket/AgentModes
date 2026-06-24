@@ -14,6 +14,8 @@ RAW_INPUT_REF_V1:
   byte_count: 0
   token_estimate: 0
   materialized_by: raw-input-materializer
+  integrity_status: verified | deferred_to_verified_integrator
+  dispatch_owner: parent_controller | active_controller
   handoff_status: requires_parent_dispatch
   workflow_complete: false
   recommended_next_mode: gpt-oss-intake-analyzer
@@ -23,6 +25,8 @@ RAW_INPUT_REF_V1:
     tool: new_task
     mode: gpt-oss-intake-analyzer
 ```
+
+`integrity_status: deferred_to_verified_integrator` is used when direct user-entry raw input has no declared delimiter/byte_count/sha256 metadata; downstream verified-integrator or runtime evidence must perform any required checksum validation. `requires_parent_dispatch` is retained for compatibility; when `dispatch_owner: active_controller`, interpret it as `requires_active_controller_dispatch` by `raw-input-materializer`.
 
 ## RAW_INPUT_MANIFEST_V1
 
