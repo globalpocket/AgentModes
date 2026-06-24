@@ -36,6 +36,18 @@ python maintenance/validate-yaml.py
 python maintenance/validate-contracts.py
 ```
 
+## Verified completion operation
+
+`docs/contracts/verified-completion-contract.md` defines the generic completion contract for implementation, configuration, CI, docs, schema, generated artifact, workflow, infrastructure, and test-framework changes. The policy is language/task agnostic: Rust, TypeScript, Python, Go, CI, YAML/schema, docs, and infrastructure commands are examples only.
+
+- `verified-integrator` is the bounded edit+command mode for cross-file or cross-component work that must be verified with explicit quality gates and static checks before completion.
+- `verification-planner` is a read-only helper that inspects manifests and configured scripts to recommend `VERIFICATION_PLAN_V1` quality gates when Orchestrator cannot choose commands confidently.
+- `orchestrator` must require verification evidence before final completion; implementation handoff, a diff, or a written claim is advisory until required gates report `exit_status=0` and static invariants pass.
+- `code` is implementation-only and does not verify. It must return `UNVERIFIED_IMPLEMENTATION` with suggested commands unless valid verification evidence is supplied in the task packet.
+- `tester` executes one command only (`commands[0]`) and returns `TEST_RESULT_V1` with `exit_status`, `result`, and `gate_partial` metadata; one passing tester result does not prove a multi-command workflow is complete.
+- After changing `modes/*.yaml`, regenerate `all-agents.yaml` with `python maintenance/generate-all-agents.py`; never edit `all-agents.yaml` directly.
+
+
 ## 推奨モデル割り当て設定例（全mode対応 / durable ledger方針）
 
 以下は、`modes/*.yaml` に定義されている全 custom mode を対象にした推奨割り当て例です。source of truth は `modes/` であり、この表は運用時の model profile 選定例です。
@@ -133,11 +145,13 @@ READMEで `GPT-OSS-120B` または `GPT-OSS-*` 推奨として列挙するmode�
 | モード | 推奨モデル | 推論設定 | 理由 |
 |---|---|---|---|
 | `architect` | `GPT-OSS-120B` | オン / 高 | 設計、責務分離、実行計画、TDD単位分解の判断密度が高い |
-| `code` | `Qwen3.5-122B` | オン / 高 | 最小差分実装でも API 契約、スコープ、副作用確認が必要 |
+| `code` | `Qwen3.5-122B` | オン / 高 | 最小差分実装担当。実行証跡なしに verified completion を主張せず、`UNVERIFIED_IMPLEMENTATION` を返す |
 | `debug` | `Qwen3.5-122B` | オン / 高 | 失敗シグネチャから根本原因を特定し、局所修正する必要がある |
+| `verified-integrator` | 高精度実装モデル | オン / 中〜高 | cross-file integration、command evidence、static invariant checksが必要 |
+| `verification-planner` | 9B〜35B | 低〜中 | read-only manifest inspection and gate planning |
 | `refactorer` | `Qwen3.5-122B` | オン / 中〜高 | 振る舞い不変性を維持しながら構造改善する必要がある |
 | `test-writer` | `Qwen3.5-122B` | オン / 高 | Red条件、境界値、契約テストの設計に推論が必要 |
-| `tester` | `Qwen3.6-9B` | オフ | 指定コマンドの実行とメタデータ返却が主責務で、判断を持たせないため |
+| `tester` | `Qwen3.6-9B` | オフ | `commands[0]`のみを実行し、`TEST_RESULT_V1`と`gate_partial`を返すため |
 | `reviewer` | `GPT-OSS-120B` | オン / 高 | 最終品質レビュー、設計整合性、保守性、性能、残リスク判断が必要 |
 | `security-auditor` | `GPT-OSS-120B` | オン / 高 | セキュリティ・依存関係・捏造ライブラリ検知は誤判定コストが高い |
 | `consistency-checker` | `Qwen3.5-122B` | オン / 中 | Artifact、契約、Coverage、スコープ整合の判定が必要 |
@@ -245,6 +259,9 @@ READMEで `GPT-OSS-120B` または `GPT-OSS-*` 推奨として列挙するmode�
 - Qwen担当モードは推論過程や自己対話を出力せず、外部出力はツール実行または固定形式の短い事実報告に限定する
 - write権限を持つモードのうち、`code` / `test-writer` / `refactorer` は、Orchestratorによる極小タスク分解を前提に運用
 - `code` / `debug` は実装・修正の担当であり、テスト実行、Coverage測定、依存関係操作を行わない
+- `code` は自己完了を禁止し、検証証跡がない場合は `UNVERIFIED_IMPLEMENTATION` として Orchestrator に戻す
+- `orchestrator` は実装handoffだけで完了扱いせず、必要な quality gates、static checks、artifact checks の証跡を要求する
+- 横断的な実装・設定・CI・schema・docs・生成物修正は、必要に応じて `verified-integrator` または `verification-planner` を使い、定義された品質ゲートが通るまで final completion にしない
 - テスト実行とCoverage測定は `tester`、依存関係追加・peer依存衝突・lockfile更新は `segregated-devops` に分離する
 - AIエージェント向け軽量TDDを標準とし、通常タスクはLevel 1 Contract TestまたはLevel 2 Behavior Testから開始する。Level 4 Full TDDを初手にしない
 - テスト分類は `contract` / `behavior` / `regression` / `exploratory` に限定し、タスク開始時の新規テストは最大3個までにする

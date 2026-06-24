@@ -654,6 +654,134 @@ def validate_readme() -> None:
             fail(f"README missing: {needle}")
 
 
+def validate_verified_completion_contract(modes: dict[str, dict]) -> None:
+    contract_path = ROOT / "docs" / "contracts" / "verified-completion-contract.md"
+    text = contract_path.read_text(encoding="utf-8")
+    for needle in [
+        "# Verified Completion Contract",
+        "A diff is not completion.",
+        "A mode handoff is not completion.",
+        "A written claim is not completion.",
+        "Completion requires evidence that the delegated acceptance criteria and quality gates passed.",
+        "COMPLETE: all required gates passed",
+        "FAILED: implementation or verification failed",
+        "PARTIAL: some gates passed but not all",
+        "VERIFICATION_BLOCKED: verification could not be run",
+        "IMPLEMENTATION_ONLY: code/config/docs were changed but not verified",
+        "command",
+        "cwd",
+        "exit_status",
+        "artifact_path or compact output summary",
+        "static check result when applicable",
+        "Implementation: format/lint/typecheck/build/test as relevant",
+        "Schema/config change: schema validation and generator/contract checks",
+        "CI change: workflow file validation and repository verification scripts when available",
+        "Docs change: docs generation, markdown validation, links or configured docs checks when available",
+        "Generated artifact change: generator command plus diff/validation of generated output",
+        "Treating code mode output as verified completion",
+        "Treat specialist completion claims as advisory unless evidence is present.",
+        "If evidence is missing, dispatch verification or report VERIFICATION_BLOCKED.",
+        "Do not produce final completion until required gates pass.",
+    ]:
+        if needle not in text:
+            fail(f"{contract_path.relative_to(ROOT)} missing: {needle}")
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for needle in [
+        "docs/contracts/verified-completion-contract.md",
+        "verified-integrator",
+        "verification-planner",
+        "orchestrator` must require verification evidence before final completion",
+        "code` is implementation-only and does not verify",
+        "tester` executes one command only (`commands[0]`) and returns `TEST_RESULT_V1`",
+        "regenerate `all-agents.yaml` with `python maintenance/generate-all-agents.py`; never edit `all-agents.yaml` directly",
+        "language/task agnostic",
+    ]:
+        if needle not in readme:
+            fail(f"README missing verified completion text: {needle}")
+
+    verified = modes.get("verified-integrator") or fail("missing verified-integrator")
+    if group_names(verified) != {"read", "edit", "command"}:
+        fail("verified-integrator: groups must be exactly read/edit/command")
+    for needle in [
+        "bounded integration verifier",
+        "Completion requires explicit verification evidence.",
+        "VERIFICATION_BLOCKED",
+        "IMPLEMENTATION_ONLY",
+        "Run delegated or inferred verification gates.",
+        "Run delegated static checks.",
+        "VERIFIED_INTEGRATION_REPORT_V1",
+        "quality_gates",
+        "static_checks",
+        "exit_status",
+        "artifact_path",
+        "completion_status may be COMPLETE only if all required quality_gates and static_checks are PASS.",
+    ]:
+        require(verified, needle)
+
+    planner = modes.get("verification-planner") or fail("missing verification-planner")
+    if group_names(planner) != {"read"}:
+        fail("verification-planner: groups must be exactly read")
+    for needle in [
+        "Do not edit files, run commands, dispatch tasks, or answer the user directly.",
+        "VERIFICATION_PLAN_V1",
+        "required_quality_gates",
+        "required_static_checks",
+        "artifact_checks",
+        "recommended_next_mode: verified-integrator",
+    ]:
+        require(planner, needle)
+
+    orchestrator = modes.get("orchestrator") or fail("missing orchestrator")
+    for needle in [
+        "do not treat implementation handoff as completion",
+        "Prefer verified-integrator when the task requires both edits and verification.",
+        "Code mode output is UNVERIFIED unless accompanied by valid verification evidence from another mode.",
+        "A workflow is complete only when required quality gates have exit_status=0.",
+        "report VERIFICATION_BLOCKED or delegate verification",
+        "tester executes only commands[0]",
+        "For multi-command gates, require all command results before final completion.",
+        "For static invariants, require static checks before final completion.",
+        "Final user-facing completion must include completion_status, commands run, exit statuses, failed gates if any, and unresolved risks.",
+    ]:
+        require(orchestrator, needle)
+
+    code = modes.get("code") or fail("missing code")
+    for needle in [
+        "Do not execute tests or commands; return suggested verification commands only.",
+        "Code mode must not claim verified completion because it does not execute tests or commands.",
+        "UNVERIFIED_IMPLEMENTATION",
+        "Do not write “verified”, “all tests pass”, “complete”, “done with validation”, or equivalent claims without evidence.",
+        "recommend verified-integrator or tester verification",
+    ]:
+        require(code, needle)
+
+    tester = modes.get("tester") or fail("missing tester")
+    for needle in [
+        "Execute exactly commands[0]",
+        "Return command, cwd, exit_status, duration, artifact_path, stdout/stderr artifact path if available",
+        "PASS only when exit_status == 0.",
+        "FAIL when exit_status != 0.",
+        "gate_partial: true",
+        "VERIFICATION_BLOCKED",
+        "TEST_RESULT_V1",
+    ]:
+        require(tester, needle)
+
+    all_agents_text = (ROOT / "all-agents.yaml").read_text(encoding="utf-8")
+    for needle in [
+        "- slug: verified-integrator",
+        "- slug: verification-planner",
+        "VERIFIED_INTEGRATION_REPORT_V1",
+        "VERIFICATION_PLAN_V1",
+        "UNVERIFIED_IMPLEMENTATION",
+        "TEST_RESULT_V1",
+        "gate_partial",
+    ]:
+        if needle not in all_agents_text:
+            fail(f"all-agents.yaml missing verified completion generated text: {needle}")
+
+
 def load_gpt_oss_policy_coverage() -> tuple[list[str], list[str]]:
     contract_path = ROOT / "docs" / "contracts" / "gpt-oss-downstream-compatible-output-policy.md"
     text = contract_path.read_text(encoding="utf-8")
@@ -723,6 +851,7 @@ def main() -> None:
     validate_visible_todo_formatting_contract()
     validate_workflow_skill_phase_contracts()
     validate_readme()
+    validate_verified_completion_contract(modes)
     validate_gpt_oss_downstream_policy(modes)
     print("contract validation ok")
     print(f"customModes count = {len(modes)}")

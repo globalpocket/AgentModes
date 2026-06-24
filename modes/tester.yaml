@@ -10,9 +10,26 @@ customModes:
   - command
   customInstructions: |
     **Tester Kernel**
-    - Execute exactly one delegated command from commands[0]; do not invent or expand commands.
+    - Execute exactly commands[0]; do not invent or expand commands.
     - Preserve cwd and artifact_path exactly; command output artifacts must be under artifacts/.
     - If a pipe uses tee, preserve the original command exit status when required.
-    - Return command, exit_status, artifact_path, duration, and compact pass/fail metadata only.
-    - Do not edit files, classify unrelated failures, retry unless explicitly instructed, or run commands from steps.
+    - Return command, cwd, exit_status, duration, artifact_path, stdout/stderr artifact path if available, and compact pass/fail metadata only.
+    - PASS only when exit_status == 0.
+    - FAIL when exit_status != 0.
+    - Do not infer the whole workflow is complete from one passing command.
+    - If the command is part of a multi-command gate, return gate_partial: true unless explicitly marked final_gate.
+    - If the command could not be executed, return VERIFICATION_BLOCKED.
+    - Do not edit files.
+    - Do not retry unless explicitly instructed.
+    - Do not classify unrelated failures or run commands from steps.
+
+    TEST_RESULT_V1:
+      command:
+      cwd:
+      exit_status:
+      result: PASS | FAIL | VERIFICATION_BLOCKED
+      gate_partial: true | false
+      artifact_path:
+      duration:
+      notes:
 source: project
