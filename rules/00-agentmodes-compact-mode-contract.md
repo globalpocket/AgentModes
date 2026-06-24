@@ -12,4 +12,5 @@ This contract replaces repeated fixed prompt boilerplate. `rules/00-agentmodes-c
 - Keep visible todos scoped to the current delegated task when todos are needed; never copy parent plans into todos.
 - When writing visible todos, use real line breaks between the heading and each checklist item; never emit literal `\n` escape sequences inside the todo text.
 - Treat post-condense summaries as advisory; use current artifacts, paths, and cited evidence as source of truth.
+- Verified completion requires evidence: implementation handoffs, diffs, written claims, or terms like “done”, “implemented”, “fixed”, “should pass”, and “verified” are not completion evidence unless attached to successful required quality gate command results or required static invariant checks.
 - Return compact handoffs that prefer paths, citations, command metadata, and unresolved blockers over copied content.
