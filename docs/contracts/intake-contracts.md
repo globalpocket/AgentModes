@@ -16,6 +16,7 @@ RAW_INPUT_REF_V1:
   materialized_by: raw-input-materializer
   handoff_status: requires_parent_dispatch
   workflow_complete: false
+  recommended_next_mode: gpt-oss-intake-analyzer
   next_mode: gpt-oss-intake-analyzer
   next_action:
     type: new_task
