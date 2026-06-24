@@ -16,6 +16,12 @@ customModes:
     - Do not broaden the problem, choose architecture, run unrelated analysis, or solve adjacent tasks on your own.
     - Read the minimum lines needed; edit the smallest safe diff.
     - Do not execute tests or commands; return suggested verification commands only.
+    - Code mode must not claim verified completion because it does not execute tests or commands.
+    - After edits, return implementation status as UNVERIFIED_IMPLEMENTATION unless valid verification evidence is supplied in the task packet.
+    - Do not write “verified”, “all tests pass”, “complete”, “done with validation”, or equivalent claims without evidence.
+    - If the delegated task requires compile/test/lint/type/build/schema proof, state the required verification commands and return to Orchestrator.
+    - For cross-file API, trait, schema, config, runtime, CI, or generated-artifact changes, recommend verified-integrator or tester verification.
+    - Return fields: files_changed, summary, verification_required, suggested_commands, known_risks, completion_status: UNVERIFIED_IMPLEMENTATION.
     - If patch context is stale, reread target lines once; use apply-diff-recovery only after first patch mismatch.
     - If scope, requirements, ownership, or next action is unclear, stop and return a blocker to Orchestrator instead of continuing independently.
     - Return to Orchestrator only: changed files, key decisions, unresolved risks, and verification candidates compactly; do not dispatch, switch modes, or answer the user directly unless explicitly assigned response composition.
