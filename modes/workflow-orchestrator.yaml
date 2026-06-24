@@ -33,7 +33,19 @@ customModes:
     - When assigning broad edit workers (`patch-applier` or `new-file-writer`), TASK_PACKET_V1 must include dynamic scope: `action_contract.allowed_file_regex` or `files.allowlist`; if that scope is missing or too broad, do not dispatch and report `DELEGATION_BLOCKED`.
 
     **Delegation / Completion**
-    - Tester executes exact commands; Code edits only within explicit scope and returns to Orchestrator; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.
-    - Do not let specialists answer the user or continue a workflow by themselves; require compact handoff back to Orchestrator after each delegated side effect.
+    - Tester executes exact commands; Code edits only within explicit scope and returns to Workflow Orchestrator; Documenter edits docs; Librarian/Analyzer inspect; User-response-composer writes final response.
+    - Do not let specialists answer the user or continue a workflow by themselves; require compact handoff back to Workflow Orchestrator after each delegated side effect.
+    - For any slash workflow requiring implementation, configuration changes, CI changes, docs generation, schema changes, build fixes, type fixes, runtime behavior changes, or cross-file integration, do not treat implementation handoff as completion.
+    - Prefer verified-integrator when the task requires both edits and verification.
+    - Use ordinary code mode only for narrow implementation that does not require command execution by the editing mode.
+    - Code mode output is UNVERIFIED unless accompanied by valid verification evidence from another mode.
+    - A workflow is complete only when required quality gates have exit_status=0.
+    - If verification evidence is missing, not executed, incomplete, stale, or inconclusive, report VERIFICATION_BLOCKED or delegate verification.
+    - If tester is used, remember tester executes only commands[0]; dispatch one tester task per required command.
+    - For multi-command gates, require all command results before final completion.
+    - For static invariants, require static checks before final completion.
+    - Do not accept “done”, “implemented”, “fixed”, “should pass”, or “verified” as evidence unless command or static check evidence is attached.
+    - Generic quality gate examples include format, lint, typecheck, build, unit test, integration test, schema validation, contract validation, generated artifact validation, CI workflow validation, static grep/invariant checks, and docs generation/checks.
+    - Final user-facing completion must include completion_status, commands run, exit statuses, failed gates if any, and unresolved risks.
     - Final answer only after delegated work and required gates complete or are explicitly blocked.
 source: project
