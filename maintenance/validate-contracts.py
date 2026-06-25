@@ -344,6 +344,14 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "orchestrator": [
             "Boomerang `new_task`, setting both required parameters",
             "Do not satisfy delegation by changing your own active mode",
+            "SESSION_START_V1 routing validation is mandatory before delegation",
+            "`next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`",
+            "ROUTING_CONTROL_CONTRADICTION",
+            "ROUTE_NOT_PERMITTED",
+            "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
+            "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
+            "If the slash-command tool returns content unrelated to the active goal",
+            "do not retry the same slash-command tool call",
             "A mode switch may be part of the runtime transition",
             "If only `switch_mode` occurred",
             "DELEGATION_BLOCKED",
@@ -358,6 +366,14 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
         "workflow-orchestrator": [
             "Boomerang `new_task`, setting both required parameters",
             "Do not satisfy delegation by changing your own active mode",
+            "SESSION_START_V1 routing validation is mandatory before delegation",
+            "`next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`",
+            "ROUTING_CONTROL_CONTRADICTION",
+            "ROUTE_NOT_PERMITTED",
+            "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
+            "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
+            "If the slash-command tool returns content unrelated to the active goal",
+            "do not retry the same slash-command tool call",
             "A mode switch may be part of the runtime transition",
             "If only `switch_mode` occurred",
             "DELEGATION_BLOCKED",
@@ -885,6 +901,147 @@ def validate_gpt_oss_downstream_policy(modes: dict[str, dict]) -> None:
             fail(f"{slug}: missing GPT-OSS explicit-field consumption rule")
 
 
+
+
+def validate_session_start_routing_contract() -> None:
+    contract_path = ROOT / "docs" / "contracts" / "intake-contracts.md"
+    text = contract_path.read_text(encoding="utf-8")
+    for needle in [
+        "SESSION_START_V1 routing is fail-fast before any delegation or slash-command fallback",
+        "assigned_mode: orchestrator",
+        "workflow-orchestrator for slash workflow intake",
+        "type: new_task",
+        "tool: new_task",
+        "mode: orchestrator",
+        "allowed_next_modes:",
+        "forbidden_next_modes:",
+        "next_action.mode` must match `assigned_mode`",
+        "ROUTING_CONTROL_CONTRADICTION",
+        "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
+        "ROUTE_NOT_PERMITTED",
+        "`/init` remains only for explicit AGENTS.md creation",
+        "docs/examples/session-start-routing-*.yaml",
+        "expected_behavior.forbidden_tool_calls",
+        "runtime dispatchers outside this repository must still enforce the same guard",
+        "active parent controller",
+    ]:
+        if needle not in text:
+            fail(f"intake-contracts SESSION_START routing contract missing: {needle}")
+
+    label = str(contract_path.relative_to(ROOT))
+    blocks = fenced_yaml_blocks(text, label)
+    session = find_yaml_mapping(blocks, "SESSION_START_V1", label)
+    assigned_mode = session.get("assigned_mode")
+    if not isinstance(assigned_mode, str) or not assigned_mode:
+        fail(f"{label}: SESSION_START_V1.assigned_mode must be a non-empty string")
+    next_action = session.get("next_action")
+    if not isinstance(next_action, dict):
+        fail(f"{label}: SESSION_START_V1.next_action must be a mapping")
+    if next_action.get("type") != "new_task" or next_action.get("tool") != "new_task":
+        fail(f"{label}: SESSION_START_V1.next_action must use new_task")
+    if next_action.get("mode") != assigned_mode:
+        fail(f"{label}: SESSION_START_V1.next_action.mode must match assigned_mode")
+    routing = session.get("routing_control")
+    if not isinstance(routing, dict):
+        fail(f"{label}: SESSION_START_V1.routing_control must be a mapping")
+    allowed = routing.get("allowed_next_modes")
+    if allowed != [assigned_mode]:
+        fail(f"{label}: SESSION_START_V1.allowed_next_modes must exactly match [assigned_mode]")
+    expected_forbidden = ["code", "tester", "test-writer", "refactorer", "patch-applier", "new-file-writer"]
+    forbidden = routing.get("forbidden_next_modes")
+    if forbidden != expected_forbidden:
+        fail(f"{label}: SESSION_START_V1.forbidden_next_modes must exactly match the documented forbidden set")
+    if assigned_mode in forbidden:
+        fail(f"{label}: SESSION_START_V1 example must not forbid assigned_mode")
+
+def evaluate_session_start_route(session: dict) -> str:
+    assigned_mode = session.get("assigned_mode")
+    routing = session.get("routing_control")
+    if not isinstance(assigned_mode, str) or not assigned_mode:
+        return "ROUTE_NOT_PERMITTED"
+    if not isinstance(routing, dict):
+        return "ROUTE_NOT_PERMITTED"
+    forbidden = routing.get("forbidden_next_modes")
+    next_action = session.get("next_action")
+    if not isinstance(next_action, dict):
+        return "ROUTE_NOT_PERMITTED"
+    next_mode = next_action.get("mode")
+    if next_action.get("type") != "new_task" or next_action.get("tool") != "new_task" or next_mode != assigned_mode:
+        return "ROUTE_NOT_PERMITTED"
+    if isinstance(forbidden, list) and (assigned_mode in forbidden or next_mode in forbidden):
+        return "ROUTING_CONTROL_CONTRADICTION"
+    allowed = routing.get("allowed_next_modes")
+    if not isinstance(allowed, list) or assigned_mode not in allowed or next_mode not in allowed:
+        return "ROUTE_NOT_PERMITTED"
+    return "ROUTE_PERMITTED"
+
+
+def validate_session_start_routing_fixture(path: Path, expected_status: str) -> None:
+    fixture = load_yaml(path)
+    label = str(path.relative_to(ROOT))
+    session = fixture.get("SESSION_START_V1")
+    if not isinstance(session, dict):
+        fail(f"{label} missing SESSION_START_V1")
+    assigned_mode = session.get("assigned_mode")
+    if not isinstance(assigned_mode, str) or not assigned_mode:
+        fail(f"{label} must provide a non-empty assigned_mode")
+    next_action = session.get("next_action")
+    if not isinstance(next_action, dict):
+        fail(f"{label} missing next_action mapping")
+    if next_action.get("type") != "new_task" or next_action.get("tool") != "new_task":
+        fail(f"{label} SESSION_START_V1.next_action must use new_task")
+    if next_action.get("mode") != assigned_mode and expected_status != "ROUTE_NOT_PERMITTED":
+        fail(f"{label} SESSION_START_V1.next_action.mode must match assigned_mode")
+    routing = session.get("routing_control")
+    if not isinstance(routing, dict):
+        fail(f"{label} missing routing_control")
+    expected = fixture.get("expected_behavior")
+    if not isinstance(expected, dict):
+        fail(f"{label} missing expected_behavior")
+    if expected.get("status") != expected_status:
+        fail(f"{label} expected status must be {expected_status}")
+    actual_status = evaluate_session_start_route(session)
+    if actual_status != expected_status:
+        fail(f"{label} routing evaluation mismatch: expected {expected_status}, got {actual_status}")
+    forbidden_calls = expected.get("forbidden_tool_calls")
+    if not isinstance(forbidden_calls, list) or not any(call.get("tool") == "run_slash_command" and call.get("command") == "init" for call in forbidden_calls if isinstance(call, dict)):
+        fail(f"{label} must forbid run_slash_command init")
+    if expected_status == "ROUTING_CONTROL_CONTRADICTION":
+        require_list(routing, "allowed_next_modes", ["orchestrator"], label)
+        require_list(routing, "forbidden_next_modes", ["verified-integrator"], label)
+    if expected_status == "ROUTE_NOT_PERMITTED":
+        allowed = routing.get("allowed_next_modes")
+        next_mode = next_action.get("mode")
+        if isinstance(allowed, list) and assigned_mode in allowed and next_mode == assigned_mode:
+            fail(f"{label}: not-permitted fixture must either disallow assigned_mode or mismatch next_action.mode")
+    if expected_status == "ROUTE_PERMITTED":
+        require_list(routing, "allowed_next_modes", [assigned_mode], label)
+        forbidden = routing.get("forbidden_next_modes")
+        if isinstance(forbidden, list) and assigned_mode in forbidden:
+            fail(f"{label}: valid fixture must not forbid assigned_mode")
+        expected_next_action = expected.get("next_action")
+        if not isinstance(expected_next_action, dict) or expected_next_action.get("type") != "new_task" or expected_next_action.get("mode") != assigned_mode:
+            fail(f"{label}: valid fixture must expect new_task to assigned_mode")
+
+
+def validate_session_start_routing_fixtures() -> None:
+    validate_session_start_routing_fixture(
+        ROOT / "docs" / "examples" / "session-start-routing-contradiction.yaml",
+        "ROUTING_CONTROL_CONTRADICTION",
+    )
+    validate_session_start_routing_fixture(
+        ROOT / "docs" / "examples" / "session-start-routing-not-permitted.yaml",
+        "ROUTE_NOT_PERMITTED",
+    )
+    validate_session_start_routing_fixture(
+        ROOT / "docs" / "examples" / "session-start-routing-next-action-mismatch.yaml",
+        "ROUTE_NOT_PERMITTED",
+    )
+    validate_session_start_routing_fixture(
+        ROOT / "docs" / "examples" / "session-start-routing-valid.yaml",
+        "ROUTE_PERMITTED",
+    )
+
 def validate_generated_count(expected: int) -> None:
     generated = load_yaml(ROOT / "all-agents.yaml")
     count = len(generated.get("customModes", []))
@@ -906,6 +1063,8 @@ def main() -> None:
     validate_readme()
     validate_verified_completion_contract(modes)
     validate_gpt_oss_downstream_policy(modes)
+    validate_session_start_routing_contract()
+    validate_session_start_routing_fixtures()
     print("contract validation ok")
     print(f"customModes count = {len(modes)}")
 

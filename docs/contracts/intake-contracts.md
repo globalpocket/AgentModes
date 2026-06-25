@@ -53,5 +53,29 @@ SESSION_START_V1:
   raw_manifest_path: "artifacts/intake/<run-id>/raw-request.manifest.json"
   user_needs_path: "artifacts/intake/<run-id>/user-needs.yaml"
   state_path: "artifacts/state/<run-id>.json"
-  next_action: load_durable_intake
+  assigned_mode: orchestrator # or workflow-orchestrator for slash workflow intake
+  next_action:
+    type: new_task
+    tool: new_task
+    mode: orchestrator # must be the active parent controller and match assigned_mode
+  routing_control:
+    allowed_next_modes:
+      - orchestrator # or workflow-orchestrator for slash workflow intake
+    forbidden_next_modes:
+      - code
+      - tester
+      - test-writer
+      - refactorer
+      - patch-applier
+      - new-file-writer
 ```
+
+SESSION_START_V1 routing is fail-fast before any delegation or slash-command fallback:
+
+- `assigned_mode` must be a non-empty active parent controller mode slug (`orchestrator` for ordinary intake or `workflow-orchestrator` for slash workflow intake).
+- `next_action` must be `new_task`, and `next_action.mode` must match `assigned_mode`; the SESSION_START handoff returns to the active parent controller, which then applies these safeguards before starting the epoch.
+- If either `assigned_mode` or `next_action.mode` appears in `routing_control.forbidden_next_modes`, the orchestrator must report `ROUTING_CONTROL_CONTRADICTION`.
+- If `routing_control.allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`, the orchestrator must report `ROUTE_NOT_PERMITTED`.
+- These blockers must not be repaired by selecting unrelated slash commands; `/init` remains only for explicit AGENTS.md creation.
+
+Regression fixtures for this contract live under `docs/examples/session-start-routing-*.yaml`. Each fixture contains `SESSION_START_V1`, `expected_behavior.status`, and `expected_behavior.forbidden_tool_calls` including the forbidden `run_slash_command` `init` call. Repository validation evaluates these fixtures as contract-level regression checks; runtime dispatchers outside this repository must still enforce the same guard before invoking tools.

@@ -1,0 +1,30 @@
+# Regression fixture: SESSION_START_V1 with allowed assigned_mode but forbidden next_action.mode must fail fast.
+# Expected behavior: Orchestrator reports ROUTE_NOT_PERMITTED before any delegation and makes no /init call.
+SESSION_START_V1:
+  run_id: rust-runtime-session-start-next-action-mismatch
+  raw_request_path: artifacts/intake/rust-runtime-session-start-next-action-mismatch/raw-request.md
+  raw_manifest_path: artifacts/intake/rust-runtime-session-start-next-action-mismatch/raw-request.manifest.json
+  user_needs_path: artifacts/intake/rust-runtime-session-start-next-action-mismatch/user-needs.yaml
+  state_path: artifacts/state/rust-runtime-session-start-next-action-mismatch.json
+  next_action:
+    type: new_task
+    tool: new_task
+    mode: code
+  assigned_mode: orchestrator
+  goal: Reject a malformed SESSION_START that attempts to bypass parent-controller routing.
+  routing_control:
+    allowed_next_modes:
+      - orchestrator
+    forbidden_next_modes:
+      - code
+      - tester
+      - test-writer
+      - refactorer
+      - patch-applier
+      - new-file-writer
+expected_behavior:
+  status: ROUTE_NOT_PERMITTED
+  reason: next_action.mode code does not match assigned_mode orchestrator and is not an allowed parent-controller route.
+  forbidden_tool_calls:
+    - tool: run_slash_command
+      command: init
