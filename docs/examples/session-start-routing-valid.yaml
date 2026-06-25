@@ -1,0 +1,32 @@
+# Regression fixture: valid SESSION_START_V1 routing must remain permitted.
+# Expected behavior: Orchestrator delegates with new_task and does not use slash-command fallback.
+SESSION_START_V1:
+  run_id: rust-runtime-session-start-valid-route
+  raw_request_path: artifacts/intake/rust-runtime-session-start-valid-route/raw-request.md
+  raw_manifest_path: artifacts/intake/rust-runtime-session-start-valid-route/raw-request.manifest.json
+  user_needs_path: artifacts/intake/rust-runtime-session-start-valid-route/user-needs.yaml
+  state_path: artifacts/state/rust-runtime-session-start-valid-route.json
+  next_action:
+    type: new_task
+    tool: new_task
+    mode: epoch-orchestrator
+  assigned_mode: epoch-orchestrator
+  goal: Plan the next Rust runtime implementation epoch from durable SESSION_START artifacts.
+  routing_control:
+    allowed_next_modes:
+      - epoch-orchestrator
+    forbidden_next_modes:
+      - code
+      - tester
+      - test-writer
+      - refactorer
+      - patch-applier
+      - new-file-writer
+expected_behavior:
+  status: ROUTE_PERMITTED
+  next_action:
+    type: new_task
+    mode: epoch-orchestrator
+  forbidden_tool_calls:
+    - tool: run_slash_command
+      command: init

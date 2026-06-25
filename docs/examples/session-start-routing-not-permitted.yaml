@@ -1,0 +1,30 @@
+# Regression fixture: SESSION_START_V1 assigned_mode absent from allowed_next_modes must fail fast.
+# Expected behavior: Orchestrator reports ROUTE_NOT_PERMITTED and makes no /init call.
+SESSION_START_V1:
+  run_id: rust-runtime-session-start-route-not-permitted
+  raw_request_path: artifacts/intake/rust-runtime-session-start-route-not-permitted/raw-request.md
+  raw_manifest_path: artifacts/intake/rust-runtime-session-start-route-not-permitted/raw-request.manifest.json
+  user_needs_path: artifacts/intake/rust-runtime-session-start-route-not-permitted/user-needs.yaml
+  state_path: artifacts/state/rust-runtime-session-start-route-not-permitted.json
+  next_action:
+    type: new_task
+    tool: new_task
+    mode: epoch-orchestrator
+  assigned_mode: epoch-orchestrator
+  goal: Plan the next Rust runtime implementation epoch from durable SESSION_START artifacts.
+  routing_control:
+    allowed_next_modes:
+      - orchestrator
+    forbidden_next_modes:
+      - code
+      - tester
+      - test-writer
+      - refactorer
+      - patch-applier
+      - new-file-writer
+expected_behavior:
+  status: ROUTE_NOT_PERMITTED
+  reason: assigned_mode epoch-orchestrator is absent from routing_control.allowed_next_modes.
+  forbidden_tool_calls:
+    - tool: run_slash_command
+      command: init
