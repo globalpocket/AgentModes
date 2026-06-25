@@ -1089,16 +1089,32 @@ def validate_no_human_as_executor_contract(modes: dict[str, dict]) -> None:
             if needle not in text:
                 fail(f"{mode['slug']}: command-capable blocker missing {needle}")
 
-    for slug in ["orchestrator", "workflow-orchestrator"]:
+    controller_command_delegation_needles = {
+        "orchestrator": "delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`",
+        "workflow-orchestrator": "delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`",
+        "epoch-orchestrator": "delegate exact commands to the smallest command-capable atomic worker with Boomerang `new_task(mode, message)`",
+    }
+    for slug in ["orchestrator", "workflow-orchestrator", "epoch-orchestrator"]:
         mode = modes.get(slug) or fail(f"missing {slug}")
-        text = mode_text(mode)
         for needle in [
-            "delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`",
-            "Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing",
+            controller_command_delegation_needles[slug],
             "return `DELEGATION_BLOCKED`",
-            "never ask the user to run commands, paste output, or provide Git status/logs",
         ]:
             require(mode, needle)
+        if slug in ["orchestrator", "workflow-orchestrator"]:
+            for needle in [
+                "Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing",
+                "never ask the user to run commands, paste output, or provide Git status/logs",
+            ]:
+                require(mode, needle)
+        else:
+            for needle in [
+                "do not run commands, slash commands, Git status leader, or ask the user to run commands or paste output",
+                "Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing",
+                "needed exact command/fact, cwd/scope, missing capability/tool, and next machine-actionable parent-controller step",
+                "never ask the user to perform manual command work",
+            ]:
+                require(mode, needle)
 
     composer = modes.get("user-response-composer") or fail("missing user-response-composer")
     for needle in [
