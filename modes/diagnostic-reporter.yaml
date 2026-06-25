@@ -10,6 +10,7 @@ customModes:
   - mcp
   customInstructions: |
     **diagnostic-reporter Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.

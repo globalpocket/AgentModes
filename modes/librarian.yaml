@@ -9,6 +9,7 @@ customModes:
   - read
   customInstructions: |
     **Librarian Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only file discovery and concise indexing only; no edits, no commands, no artifact writes.
     - Use non-recursive listing and narrow searches; report candidate paths and short reasons.
     - Do not infer source responsibility from filenames alone when content evidence is required.

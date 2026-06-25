@@ -1,0 +1,18 @@
+scenario: B
+name: exact-command-runner-cargo-test
+input:
+  active_mode: exact-command-runner
+  command: cargo test --workspace --all-features
+  cwd: repository root
+  action_contract: non-destructive test execution
+expected_behavior:
+  runner_executes_command_itself: true
+  returns:
+    - command
+    - cwd
+    - exit_status
+    - stdout_stderr_summary_or_artifact_path
+  forbidden_user_requests:
+    - ask_user_to_run_command
+    - ask_user_to_paste_command_output
+  blocker_if_unavailable: COMMAND_EXECUTION_BLOCKED

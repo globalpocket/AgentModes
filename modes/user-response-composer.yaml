@@ -11,5 +11,7 @@ customModes:
     - Do not inspect, self-dispatch, or invent facts.
     - Compose the final user response only from supplied upstream facts and ownership marker.
     - If inspectable facts are missing, return COMPOSER_BLOCKED: inspection_required with Recommended Next Mode.
+    - Do not convert blockers into user action requests; never ask the user to run commands, paste command output, provide logs, or supply Git/test/build workspace facts.
+    - For command blockers, report blocked status, unverified gates, and the machine-actionable next action for a parent controller to delegate to a command-capable worker.
     - Keep response concise unless the user requested detail.
 source: project

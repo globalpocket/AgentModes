@@ -350,7 +350,7 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
             "ROUTE_NOT_PERMITTED",
             "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
             "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
-            "If the slash-command tool returns content unrelated to the active goal",
+            "If an explicitly user-invoked or fixed-workflow slash-command entrypoint returns content unrelated to the active goal",
             "do not retry the same slash-command tool call",
             "A mode switch may be part of the runtime transition",
             "If only `switch_mode` occurred",
@@ -372,7 +372,7 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
             "ROUTE_NOT_PERMITTED",
             "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
             "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
-            "If the slash-command tool returns content unrelated to the active goal",
+            "If an explicitly user-invoked or fixed-workflow slash-command entrypoint returns content unrelated to the active goal",
             "do not retry the same slash-command tool call",
             "A mode switch may be part of the runtime transition",
             "If only `switch_mode` occurred",
@@ -1042,6 +1042,180 @@ def validate_session_start_routing_fixtures() -> None:
         "ROUTE_PERMITTED",
     )
 
+
+def worker_class(mode: dict) -> str:
+    match = re.search(r"worker_contract:\s*\n(?:\s+[^\n]*\n)*?\s+class:\s*([A-Za-z0-9_-]+)", mode_text(mode))
+    return match.group(1) if match else ""
+
+
+def validate_no_human_as_executor_contract(modes: dict[str, dict]) -> None:
+    contract = (ROOT / "docs" / "contracts" / "compact-mode-contract.md").read_text(encoding="utf-8")
+    global_rule = (ROOT / "rules" / "00-agentmodes-compact-mode-contract.md").read_text(encoding="utf-8")
+    if contract != global_rule:
+        fail("compact-mode-contract and global rule must be byte-for-byte identical")
+    for needle in [
+        "# Compact Mode Global Rules Contract",
+        "## No Human-as-Executor Contract",
+        "Inspectable workspace facts",
+        "must not use the user as a command runner",
+        "Do not ask the user to run shell, Git, test, lint, build, typecheck, CI, or workspace inspection commands.",
+        "Do not ask the user to paste stdout, stderr, exit codes, Git status, diffs, test results, build results, logs, workspace state",
+        "execute the command yourself",
+        "return a structured blocker",
+        "COMMAND_EXECUTION_BLOCKED",
+        "DELEGATION_BLOCKED",
+        "required_capability: command",
+        "must not convert an internal blocker into a request for the user to run commands or paste command output",
+    ]:
+        if needle not in contract:
+            fail(f"No Human-as-Executor global contract missing: {needle}")
+
+    command_modes = [m for m in modes.values() if "command" in group_names(m) or worker_class(m) == "command"]
+    if not command_modes:
+        fail("No command-capable modes found")
+    for mode in command_modes:
+        text = mode_text(mode)
+        for needle in [
+            "never ask the user to run",
+            "paste stdout/stderr/exit status" if mode["slug"] != "verified-integrator" else "paste outputs/logs",
+        ]:
+            if needle not in text:
+                fail(f"{mode['slug']}: command-capable mode missing no-human-executor rule: {needle}")
+        if "Run executable exact commands yourself" not in text and not re.search(r"Execute .*commands? yourself|execute .*commands? yourself", text):
+            fail(f"{mode['slug']}: command-capable mode must require executing delegated commands itself")
+        if not any(token in text for token in ["COMMAND_EXECUTION_BLOCKED", "VERIFICATION_BLOCKED", "BLOCKED_DELTA_V1"]):
+            fail(f"{mode['slug']}: command-capable mode missing execution blocker contract")
+        for needle in ["exact command", "cwd"]:
+            if needle not in text:
+                fail(f"{mode['slug']}: command-capable blocker missing {needle}")
+
+    for slug in ["orchestrator", "workflow-orchestrator"]:
+        mode = modes.get(slug) or fail(f"missing {slug}")
+        text = mode_text(mode)
+        for needle in [
+            "delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`",
+            "Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing",
+            "return `DELEGATION_BLOCKED`",
+            "never ask the user to run commands, paste output, or provide Git status/logs",
+        ]:
+            require(mode, needle)
+
+    composer = modes.get("user-response-composer") or fail("missing user-response-composer")
+    for needle in [
+        "Do not convert blockers into user action requests",
+        "never ask the user to run commands, paste command output, provide logs, or supply Git/test/build workspace facts",
+        "machine-actionable next action for a parent controller to delegate to a command-capable worker",
+    ]:
+        require(composer, needle)
+
+    read_or_edit_only = [m for m in modes.values() if "command" not in group_names(m) and group_names(m) & {"read", "edit"}]
+    for mode in read_or_edit_only:
+        text = mode_text(mode)
+        for needle in [
+            "required_capability: command",
+            "exact command or fact needed",
+            "parent delegation target",
+            "never ask the user to run commands or paste output",
+        ]:
+            if needle not in text:
+                fail(f"{mode['slug']}: read/edit-only mode missing command-capability blocker reinforcement: {needle}")
+        forbidden_phrases = [
+            "Please run this command",
+            "Run this and paste the output",
+            "このコマンドを実行してください",
+            "実行結果を貼り付けてください",
+        ]
+        for phrase in forbidden_phrases:
+            if phrase in text:
+                fail(f"{mode['slug']}: forbidden user-as-executor phrase in mode instructions: {phrase}")
+
+
+
+def validate_no_human_as_executor_scenario_fixture(path: Path, expected_scenario: str) -> None:
+    fixture = load_yaml(path)
+    label = str(path.relative_to(ROOT))
+    if fixture.get("scenario") != expected_scenario:
+        fail(f"{label}: scenario must be {expected_scenario}")
+    expected = fixture.get("expected_behavior")
+    if not isinstance(expected, dict):
+        fail(f"{label}: missing expected_behavior mapping")
+    forbidden_user_requests = expected.get("forbidden_user_requests")
+    if not isinstance(forbidden_user_requests, list) or not forbidden_user_requests:
+        fail(f"{label}: expected_behavior.forbidden_user_requests must be a non-empty list")
+    for request in forbidden_user_requests:
+        if not isinstance(request, str) or not request.startswith("ask_user_"):
+            fail(f"{label}: forbidden user request must be a machine-readable ask_user_* identifier")
+
+    if expected_scenario == "A":
+        next_action = expected.get("next_action")
+        if not isinstance(next_action, dict):
+            fail(f"{label}: Scenario A missing next_action")
+        if next_action.get("type") != "new_task" or next_action.get("mode_class") != "command-capable":
+            fail(f"{label}: Scenario A must delegate with new_task to a command-capable mode")
+        commands = next_action.get("commands")
+        if not isinstance(commands, list) or "git status --short" not in commands:
+            fail(f"{label}: Scenario A must delegate exact git status command")
+        forbidden_calls = expected.get("forbidden_tool_calls")
+        if not isinstance(forbidden_calls, list) or not any(call.get("tool") == "run_slash_command" and call.get("command") == "git-status-leader" for call in forbidden_calls if isinstance(call, dict)):
+            fail(f"{label}: Scenario A must forbid /git-status-leader fallback")
+        if expected.get("delegation_blocker_if_unavailable") != "DELEGATION_BLOCKED":
+            fail(f"{label}: Scenario A must block with DELEGATION_BLOCKED when delegation is unavailable")
+    elif expected_scenario == "B":
+        input_map = fixture.get("input")
+        if not isinstance(input_map, dict) or input_map.get("command") != "cargo test --workspace --all-features":
+            fail(f"{label}: Scenario B must use the cargo test exact command")
+        if expected.get("runner_executes_command_itself") is not True:
+            fail(f"{label}: Scenario B must require runner self-execution")
+        returns = expected.get("returns")
+        for field in ["command", "cwd", "exit_status", "stdout_stderr_summary_or_artifact_path"]:
+            if not isinstance(returns, list) or field not in returns:
+                fail(f"{label}: Scenario B expected returns missing {field}")
+        if expected.get("blocker_if_unavailable") != "COMMAND_EXECUTION_BLOCKED":
+            fail(f"{label}: Scenario B must block with COMMAND_EXECUTION_BLOCKED")
+    elif expected_scenario == "C":
+        if expected.get("returns_blocker") is not True:
+            fail(f"{label}: Scenario C must return a blocker")
+        fields = expected.get("blocker_fields")
+        if not isinstance(fields, dict):
+            fail(f"{label}: Scenario C missing blocker_fields")
+        if fields.get("required_capability") != "command":
+            fail(f"{label}: Scenario C blocker must require command capability")
+        if fields.get("exact_command") != "cargo test --workspace --all-features":
+            fail(f"{label}: Scenario C blocker must carry the exact command")
+        if fields.get("parent_delegation_target_class") != "command-capable":
+            fail(f"{label}: Scenario C must identify command-capable parent delegation target")
+    elif expected_scenario == "D":
+        for key in ["reports_blocked_status", "reports_unverified_gates", "reports_machine_actionable_next_action"]:
+            if expected.get(key) is not True:
+                fail(f"{label}: Scenario D must set {key}: true")
+        if expected.get("next_action_owner") != "parent_controller":
+            fail(f"{label}: Scenario D next action owner must be parent_controller")
+    else:
+        fail(f"{label}: unsupported scenario {expected_scenario}")
+
+
+def validate_no_human_as_executor_scenario_fixtures() -> None:
+    for scenario in ["A", "B", "C", "D"]:
+        validate_no_human_as_executor_scenario_fixture(
+            ROOT / "docs" / "examples" / f"no-human-as-executor-scenario-{scenario.lower()}.yaml",
+            scenario,
+        )
+
+def validate_no_human_as_executor_fixtures(modes: dict[str, dict]) -> None:
+    orchestrator = modes["orchestrator"]
+    for needle in ["Never invoke `/git-status-leader`", "delegate exact commands", "DELEGATION_BLOCKED"]:
+        require(orchestrator, needle)
+    exact = modes["exact-command-runner"]
+    for needle in ["Run executable exact commands yourself", "Capture exit code", "COMMAND_EXECUTION_BLOCKED"]:
+        require(exact, needle)
+    analyzer = modes["analyzer"]
+    if "command" in group_names(analyzer):
+        fail("Scenario C fixture requires analyzer to be read-only")
+    if "required_capability: command" not in (ROOT / "docs" / "contracts" / "compact-mode-contract.md").read_text(encoding="utf-8"):
+        fail("Scenario C requires global read-only command blocker rule")
+    composer = modes["user-response-composer"]
+    require(composer, "Do not convert blockers into user action requests")
+
 def validate_generated_count(expected: int) -> None:
     generated = load_yaml(ROOT / "all-agents.yaml")
     count = len(generated.get("customModes", []))
@@ -1065,6 +1239,9 @@ def main() -> None:
     validate_gpt_oss_downstream_policy(modes)
     validate_session_start_routing_contract()
     validate_session_start_routing_fixtures()
+    validate_no_human_as_executor_contract(modes)
+    validate_no_human_as_executor_scenario_fixtures()
+    validate_no_human_as_executor_fixtures(modes)
     print("contract validation ok")
     print(f"customModes count = {len(modes)}")
 

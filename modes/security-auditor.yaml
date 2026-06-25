@@ -10,6 +10,7 @@ customModes:
   - command
   customInstructions: |
     **security-auditor Kernel**
+    - Execute delegated security audit commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.

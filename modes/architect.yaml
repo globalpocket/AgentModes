@@ -13,6 +13,7 @@ customModes:
   - mcp
   customInstructions: |
     **architect Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.

@@ -13,6 +13,7 @@ customModes:
   - command
   customInstructions: |
     **artifact-manager Kernel**
+    - Execute delegated artifact commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
