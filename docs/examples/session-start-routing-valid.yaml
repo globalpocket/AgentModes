@@ -9,12 +9,12 @@ SESSION_START_V1:
   next_action:
     type: new_task
     tool: new_task
-    mode: epoch-orchestrator
-  assigned_mode: epoch-orchestrator
-  goal: Plan the next Rust runtime implementation epoch from durable SESSION_START artifacts.
+    mode: orchestrator
+  assigned_mode: orchestrator
+  goal: Return SESSION_START to the active parent controller before it starts the next Rust runtime implementation epoch.
   routing_control:
     allowed_next_modes:
-      - epoch-orchestrator
+      - orchestrator
     forbidden_next_modes:
       - code
       - tester
@@ -26,7 +26,7 @@ expected_behavior:
   status: ROUTE_PERMITTED
   next_action:
     type: new_task
-    mode: epoch-orchestrator
+    mode: orchestrator
   forbidden_tool_calls:
     - tool: run_slash_command
       command: init

@@ -345,9 +345,10 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
             "Boomerang `new_task`, setting both required parameters",
             "Do not satisfy delegation by changing your own active mode",
             "SESSION_START_V1 routing validation is mandatory before delegation",
+            "`next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`",
             "ROUTING_CONTROL_CONTRADICTION",
             "ROUTE_NOT_PERMITTED",
-            "allowed_next_modes` is missing, malformed, empty, or does not contain `assigned_mode`",
+            "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
             "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
             "If the slash-command tool returns content unrelated to the active goal",
             "do not retry the same slash-command tool call",
@@ -366,9 +367,10 @@ def validate_task_packet_contract(modes: dict[str, dict]) -> None:
             "Boomerang `new_task`, setting both required parameters",
             "Do not satisfy delegation by changing your own active mode",
             "SESSION_START_V1 routing validation is mandatory before delegation",
+            "`next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`",
             "ROUTING_CONTROL_CONTRADICTION",
             "ROUTE_NOT_PERMITTED",
-            "allowed_next_modes` is missing, malformed, empty, or does not contain `assigned_mode`",
+            "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
             "never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs",
             "If the slash-command tool returns content unrelated to the active goal",
             "do not retry the same slash-command tool call",
@@ -906,20 +908,22 @@ def validate_session_start_routing_contract() -> None:
     text = contract_path.read_text(encoding="utf-8")
     for needle in [
         "SESSION_START_V1 routing is fail-fast before any delegation or slash-command fallback",
-        "assigned_mode: epoch-orchestrator",
+        "assigned_mode: orchestrator",
+        "workflow-orchestrator for slash workflow intake",
         "type: new_task",
         "tool: new_task",
-        "mode: epoch-orchestrator",
+        "mode: orchestrator",
         "allowed_next_modes:",
         "forbidden_next_modes:",
         "next_action.mode` must match `assigned_mode`",
         "ROUTING_CONTROL_CONTRADICTION",
-        "allowed_next_modes` is missing, malformed, empty, or does not contain `assigned_mode`",
+        "allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`",
         "ROUTE_NOT_PERMITTED",
         "`/init` remains only for explicit AGENTS.md creation",
         "docs/examples/session-start-routing-*.yaml",
         "expected_behavior.forbidden_tool_calls",
         "runtime dispatchers outside this repository must still enforce the same guard",
+        "active parent controller",
     ]:
         if needle not in text:
             fail(f"intake-contracts SESSION_START routing contract missing: {needle}")
@@ -958,10 +962,16 @@ def evaluate_session_start_route(session: dict) -> str:
     if not isinstance(routing, dict):
         return "ROUTE_NOT_PERMITTED"
     forbidden = routing.get("forbidden_next_modes")
-    if isinstance(forbidden, list) and assigned_mode in forbidden:
+    next_action = session.get("next_action")
+    if not isinstance(next_action, dict):
+        return "ROUTE_NOT_PERMITTED"
+    next_mode = next_action.get("mode")
+    if next_action.get("type") != "new_task" or next_action.get("tool") != "new_task" or next_mode != assigned_mode:
+        return "ROUTE_NOT_PERMITTED"
+    if isinstance(forbidden, list) and (assigned_mode in forbidden or next_mode in forbidden):
         return "ROUTING_CONTROL_CONTRADICTION"
     allowed = routing.get("allowed_next_modes")
-    if not isinstance(allowed, list) or assigned_mode not in allowed:
+    if not isinstance(allowed, list) or assigned_mode not in allowed or next_mode not in allowed:
         return "ROUTE_NOT_PERMITTED"
     return "ROUTE_PERMITTED"
 
@@ -980,7 +990,7 @@ def validate_session_start_routing_fixture(path: Path, expected_status: str) -> 
         fail(f"{label} missing next_action mapping")
     if next_action.get("type") != "new_task" or next_action.get("tool") != "new_task":
         fail(f"{label} SESSION_START_V1.next_action must use new_task")
-    if next_action.get("mode") != assigned_mode:
+    if next_action.get("mode") != assigned_mode and expected_status != "ROUTE_NOT_PERMITTED":
         fail(f"{label} SESSION_START_V1.next_action.mode must match assigned_mode")
     routing = session.get("routing_control")
     if not isinstance(routing, dict):
@@ -1001,8 +1011,9 @@ def validate_session_start_routing_fixture(path: Path, expected_status: str) -> 
         require_list(routing, "forbidden_next_modes", ["verified-integrator"], label)
     if expected_status == "ROUTE_NOT_PERMITTED":
         allowed = routing.get("allowed_next_modes")
-        if isinstance(allowed, list) and assigned_mode in allowed:
-            fail(f"{label}: not-permitted fixture must not allow assigned_mode")
+        next_mode = next_action.get("mode")
+        if isinstance(allowed, list) and assigned_mode in allowed and next_mode == assigned_mode:
+            fail(f"{label}: not-permitted fixture must either disallow assigned_mode or mismatch next_action.mode")
     if expected_status == "ROUTE_PERMITTED":
         require_list(routing, "allowed_next_modes", [assigned_mode], label)
         forbidden = routing.get("forbidden_next_modes")
@@ -1020,6 +1031,10 @@ def validate_session_start_routing_fixtures() -> None:
     )
     validate_session_start_routing_fixture(
         ROOT / "docs" / "examples" / "session-start-routing-not-permitted.yaml",
+        "ROUTE_NOT_PERMITTED",
+    )
+    validate_session_start_routing_fixture(
+        ROOT / "docs" / "examples" / "session-start-routing-next-action-mismatch.yaml",
         "ROUTE_NOT_PERMITTED",
     )
     validate_session_start_routing_fixture(
