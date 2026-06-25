@@ -1,0 +1,21 @@
+scenario: A
+name: orchestrator-needs-git-status
+input:
+  active_mode: orchestrator
+  needed_fact: git status
+  forbidden_fallback_slash_command: /git-status-leader
+expected_behavior:
+  forbidden_tool_calls:
+    - tool: run_slash_command
+      command: git-status-leader
+  forbidden_user_requests:
+    - ask_user_for_git_status
+    - ask_user_to_paste_command_output
+  next_action:
+    type: new_task
+    mode_class: command-capable
+    candidate_modes: [exact-command-runner, environment-inspector]
+    commands:
+      - git status --short
+    action_contract: non-destructive workspace inspection
+  delegation_blocker_if_unavailable: DELEGATION_BLOCKED

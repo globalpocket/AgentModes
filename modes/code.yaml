@@ -11,6 +11,7 @@ customModes:
   - mcp
   customInstructions: |
     **code Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only implementation explicitly delegated by Orchestrator or epoch-orchestrator within declared file scope; do not accept direct handoff from raw-input-materializer, gpt-oss-intake-analyzer, or intake-ledger-writer.
     - If a packet contains `routing_control.completion_unwind`, preserve it in your handoff unchanged and never set yourself as terminal completion target.
     - Do not broaden the problem, choose architecture, run unrelated analysis, or solve adjacent tasks on your own.

@@ -1,0 +1,17 @@
+scenario: D
+name: composer-receives-command-blocker
+input:
+  active_mode: user-response-composer
+  upstream_blocker:
+    status: COMMAND_EXECUTION_BLOCKED
+    command: cargo test --workspace --all-features
+    cwd: repository root
+    missing_capability: command tool
+expected_behavior:
+  reports_blocked_status: true
+  reports_unverified_gates: true
+  reports_machine_actionable_next_action: true
+  next_action_owner: parent_controller
+  forbidden_user_requests:
+    - ask_user_to_run_command
+    - ask_user_to_paste_command_output

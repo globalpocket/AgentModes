@@ -9,6 +9,7 @@ customModes:
   - read
   customInstructions: |
     **analyzer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only analysis unless this mode's file permissions explicitly allow a narrow edit.
     - Inspect only assigned paths or searches; cap excerpts and cite path/line facts.
     - Do not run broad exploration, implement unrelated changes, or paste full files/logs/diffs.
@@ -26,6 +27,7 @@ customModes:
   - mcp
   customInstructions: |
     **architect Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -51,6 +53,7 @@ customModes:
   - command
   customInstructions: |
     **artifact-manager Kernel**
+    - Execute delegated artifact commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
@@ -65,6 +68,7 @@ customModes:
   - mcp
   customInstructions: |
     **ask Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only analysis unless this mode's file permissions explicitly allow a narrow edit.
     - Inspect only assigned paths or searches; cap excerpts and cite path/line facts.
     - Do not run broad exploration, implement unrelated changes, or paste full files/logs/diffs.
@@ -78,6 +82,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -101,6 +106,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -124,6 +130,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -147,6 +154,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -175,6 +183,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -198,6 +207,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -222,6 +232,7 @@ customModes:
   - mcp
   customInstructions: |
     **Atomic MCP Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: mcp_read
@@ -247,6 +258,7 @@ customModes:
   - edit
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -277,6 +289,7 @@ customModes:
   - edit
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -309,6 +322,7 @@ customModes:
       description: Test files only
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -337,6 +351,7 @@ customModes:
       description: Manifest and dependency/config manifest files only
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -366,6 +381,7 @@ customModes:
       description: GitHub Actions workflow YAML only
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -395,6 +411,7 @@ customModes:
       description: Dependency manifest and lock files only
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -422,6 +439,7 @@ customModes:
   - mcp
   customInstructions: |
     **Atomic MCP Mutation Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: mcp_mutation
@@ -449,6 +467,7 @@ customModes:
   - mcp
   customInstructions: |
     **Atomic MCP Mutation Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: mcp_mutation
@@ -476,6 +495,7 @@ customModes:
   - mcp
   customInstructions: |
     **Atomic MCP Mutation Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: mcp_mutation
@@ -515,7 +535,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -542,7 +563,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -569,7 +591,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -596,7 +619,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -623,7 +647,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -650,7 +675,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -678,7 +704,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -706,7 +733,8 @@ customModes:
     ```
     - Complete exactly one delegated command operation and return compact `STATE_DELTA_V1`.
     - Require a compact `TASK_PACKET_V1` with `assigned_mode` equal to this slug, explicit `goal`, exact `commands`, `action_contract`, cwd/scope, and `done` criteria.
-    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` with the missing fields.
+    - If exact commands, cwd/scope, permission, or action contract are missing or ambiguous, do not improvise; return `BLOCKED_DELTA_V1` / `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, blocked reason, missing capability/permission/tool/environment, and next machine-actionable parent step.
+    - Run executable exact commands yourself when exact commands, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs.
     - Run only exact commands listed in `commands`; do not add flags, combine commands, install packages, start services, or access networks unless the packet explicitly says so.
     - Capture exit code, cwd, elapsed status, and concise stdout/stderr summary; materialize bulky logs as artifacts and return artifact paths.
     - Forbidden without explicit `action_contract`: destructive filesystem operations, credential inspection, daemon/container lifecycle changes, provider mutations, or environment changes.
@@ -721,6 +749,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -744,6 +773,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -767,6 +797,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -790,6 +821,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -813,6 +845,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -841,6 +874,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -864,6 +898,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -895,6 +930,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -926,6 +962,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -957,6 +994,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -988,6 +1026,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1019,6 +1058,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1050,6 +1090,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1081,6 +1122,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1112,6 +1154,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1135,6 +1178,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1161,6 +1205,7 @@ customModes:
       description: Artifacts directory only
   customInstructions: |
     **Atomic Edit Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: edit
@@ -1186,6 +1231,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1209,6 +1255,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1237,6 +1284,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1265,6 +1313,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1288,6 +1337,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1311,6 +1361,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1334,6 +1385,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1365,6 +1417,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1388,6 +1441,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1411,6 +1465,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1434,6 +1489,7 @@ customModes:
   - read
   customInstructions: |
     **Atomic Read Worker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     ```yaml
     worker_contract:
       class: read
@@ -1459,6 +1515,7 @@ customModes:
   - mcp
   customInstructions: |
     **code Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only implementation explicitly delegated by Orchestrator or epoch-orchestrator within declared file scope; do not accept direct handoff from raw-input-materializer, gpt-oss-intake-analyzer, or intake-ledger-writer.
     - If a packet contains `routing_control.completion_unwind`, preserve it in your handoff unchanged and never set yourself as terminal completion target.
     - Do not broaden the problem, choose architecture, run unrelated analysis, or solve adjacent tasks on your own.
@@ -1482,6 +1539,7 @@ customModes:
   - read
   customInstructions: |
     **consistency-checker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only analysis unless this mode's file permissions explicitly allow a narrow edit.
     - Inspect only assigned paths or searches; cap excerpts and cite path/line facts.
     - Do not run broad exploration, implement unrelated changes, or paste full files/logs/diffs.
@@ -1497,6 +1555,7 @@ customModes:
   - mcp
   customInstructions: |
     **debug Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the delegated debug fix within declared file scope.
     - Read the minimum lines needed; edit the smallest safe diff.
     - Do not execute tests or commands; return suggested verification commands only.
@@ -1512,6 +1571,7 @@ customModes:
   - mcp
   customInstructions: |
     **diagnostic-reporter Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
@@ -1525,6 +1585,7 @@ customModes:
   - read
   customInstructions: |
     **doc-evidence-reader Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only analysis unless this mode's file permissions explicitly allow a narrow edit.
     - Inspect only assigned paths or searches; cap excerpts and cite path/line facts.
     - Do not run broad exploration, implement unrelated changes, or paste full files/logs/diffs.
@@ -1541,6 +1602,7 @@ customModes:
       description: Markdownドキュメントファイルのみ
   customInstructions: |
     **Documenter Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Edit only README.md and docs/**/*.md when explicitly assigned.
     - Use provided evidence paths/facts; if evidence is missing, return blocked instead of inventing details.
     - Do not inspect broad code, run commands, implement, test, or change non-doc files.
@@ -1555,6 +1617,7 @@ customModes:
   - edit
   customInstructions: |
     **Raw Input Materialization Contract**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Primary responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`, then continue the fixed intake chain with Boomerang `new_task` when this mode is the active entry controller.
     - Accept raw input either from the user/intake entry request or from a parent controller Boomerang `new_task(mode: raw-input-materializer, message: ...)` handoff containing an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope. When delimiter, byte_count, and sha256 metadata are present, verify them before writing; when direct user-entry raw input has no declared integrity metadata, materialize the exact received body and set `integrity_status: deferred_to_verified_integrator` instead of stalling solely because metadata is absent.
     - Write only under `artifacts/intake/<run-id>/`: `raw-request.md`, optional size chunks, and mechanical `raw-request.manifest.json`.
@@ -1580,6 +1643,7 @@ customModes:
   - read
   customInstructions: |
     **GPT-OSS Intake Analyzer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1644,6 +1708,7 @@ customModes:
   - edit
   customInstructions: |
     **intake-ledger-writer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 to the active parent controller.
     - Return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `recommended_next_mode: <active-parent-controller>`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}` where `<active-parent-controller>` is `orchestrator` for non-slash intake and `workflow-orchestrator` for slash workflows; never route directly to `code` or other implementation modes.
     - Preserve `routing_control.completion_unwind.return_to_mode: user-response-composer` and terminal forbidden modes/classes in SESSION_START_V1 so final completion unwinds to the user-response-composer.
@@ -1658,6 +1723,7 @@ customModes:
   - read
   customInstructions: |
     **state-ledger-reader Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1675,6 +1741,7 @@ customModes:
   - edit
   customInstructions: |
     **state-ledger-writer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: You atomically commit RUN_STATE_V1 updates from a validated STATE_DELTA_V1.
     - Return `recommended_next_mode: <active-parent-controller>` to the active parent controller (`orchestrator` for non-slash intake, `workflow-orchestrator` for slash workflows) so that controller advances the next epoch, with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}`; do not route to code or answer the user.
     - Preserve any incoming `routing_control.completion_unwind` and terminal forbidden modes/classes; if present, do not replace the original `return_to_mode`.
@@ -1690,6 +1757,7 @@ customModes:
   - edit
   customInstructions: |
     **context-compactor Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: You compact durable state artifacts, not conversation history or native model context.
     - Complete only the assigned packet scope and return a compact handoff.
 - slug: gpt-oss-needs-analyzer
@@ -1722,6 +1790,7 @@ customModes:
   - mcp
   customInstructions: |
     **issue-tracker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
@@ -1735,6 +1804,7 @@ customModes:
   - read
   customInstructions: |
     **Librarian Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only file discovery and concise indexing only; no edits, no commands, no artifact writes.
     - Use non-recursive listing and narrow searches; report candidate paths and short reasons.
     - Do not infer source responsibility from filenames alone when content evidence is required.
@@ -1750,6 +1820,9 @@ customModes:
     **Compact Orchestrator Kernel**
     - Coordinate ordinary work through least-privilege specialists only.
     - Do not inspect, edit, test, release, or use GitHub directly; delegate to the smallest capable mode.
+    - When Git status, diffs, tests, builds, logs, or other inspectable workspace facts are needed, delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`; do not run commands or slash commands yourself.
+    - Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing; slash commands are user entrypoints or explicit fixed workflow entrypoints only.
+    - If command delegation or child task creation is unavailable, return `DELEGATION_BLOCKED` with needed exact command/fact, cwd/scope, missing capability/tool, and next machine-actionable parent-controller step; never ask the user to run commands, paste output, or provide Git status/logs.
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
     - For large inline input, create exactly one raw-input-materializer handoff that includes the verbatim raw body in an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope with a delimiter absent from the payload plus byte_count and sha256 metadata; this is the only allowed raw-body subtask.
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
@@ -1759,7 +1832,7 @@ customModes:
     - Continue every delegated workflow hop with Boomerang `new_task`, setting both required parameters: `mode` to the target slug from `next_action.mode` or `TASK_PACKET_V1.assigned_mode`, and `message` to the compact packet. Do not satisfy delegation by changing your own active mode.
     - SESSION_START_V1 routing validation is mandatory before delegation: first require `next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`; if any of those fields are missing, malformed, or mismatched, stop and report `ROUTE_NOT_PERMITTED` before invoking tools. Then if `assigned_mode` or `next_action.mode` appears in `routing_control.forbidden_next_modes`, stop and report `ROUTING_CONTROL_CONTRADICTION`; if `routing_control.allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`, stop and report `ROUTE_NOT_PERMITTED`.
     - Never choose unrelated slash commands as fallback routing. In particular, never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs unless the explicit user goal is AGENTS.md creation; `/init` is only for AGENTS.md generation, not generic session initialization.
-    - If the slash-command tool returns content unrelated to the active goal, treat that command+args as exhausted and do not retry the same slash-command tool call; report the blocker or select a permitted, goal-related route instead.
+    - If an explicitly user-invoked or fixed-workflow slash-command entrypoint returns content unrelated to the active goal, treat that command+args as exhausted and do not retry the same slash-command tool call; report the blocker or select a permitted, goal-related route instead.
     - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
     - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.
@@ -1800,6 +1873,7 @@ customModes:
   - read
   customInstructions: |
     **recovery-supervisor Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1823,6 +1897,7 @@ customModes:
   - edit
   customInstructions: |
     **refactorer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the delegated behavior-preserving refactor within declared file scope.
     - Read the minimum lines needed; edit the smallest safe diff.
     - Do not execute tests or commands; return suggested verification commands only.
@@ -1842,6 +1917,7 @@ customModes:
   - mcp
   customInstructions: |
     **release-manager Kernel**
+    - Execute delegated release commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
@@ -1857,6 +1933,7 @@ customModes:
   - mcp
   customInstructions: |
     **reviewer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1880,6 +1957,7 @@ customModes:
   - command
   customInstructions: |
     **security-auditor Kernel**
+    - Execute delegated security audit commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -1906,6 +1984,7 @@ customModes:
   - command
   customInstructions: |
     **segregated-devops Kernel**
+    - Execute delegated DevOps commands yourself when exact command, cwd/scope, and action contract are present; never ask the user to run commands or paste stdout/stderr/exit status/logs. If execution is blocked, return `COMMAND_EXECUTION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Perform only the explicitly delegated operational responsibility within declared permissions.
     - Use exact paths, issue IDs, commands, or manifests from the packet; do not broaden scope.
     - Avoid long diagnostics; store command/log details as artifacts and return paths.
@@ -1922,6 +2001,7 @@ customModes:
       description: テストファイルのみ
   customInstructions: |
     **test-writer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Perform only the delegated red test writing within declared file scope.
     - Read the minimum lines needed; edit the smallest safe diff.
     - Do not execute tests or commands; return suggested verification commands only.
@@ -1938,6 +2018,8 @@ customModes:
   customInstructions: |
     **Tester Kernel**
     - Execute exactly commands[0]; do not invent or expand commands.
+    - When commands[0], cwd, and action contract are present and safe, execute the command yourself; never ask the user to run it or paste stdout/stderr/exit status.
+    - If execution is impossible, return `COMMAND_EXECUTION_BLOCKED` / `VERIFICATION_BLOCKED` with exact command, cwd, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Preserve cwd and artifact_path exactly; command output artifacts must be under artifacts/.
     - If a pipe uses tee, preserve the original command exit status when required.
     - Return command, cwd, exit_status, duration, artifact_path, stdout/stderr artifact path if available, and compact pass/fail metadata only.
@@ -1970,6 +2052,8 @@ customModes:
     - Do not inspect, self-dispatch, or invent facts.
     - Compose the final user response only from supplied upstream facts and ownership marker.
     - If inspectable facts are missing, return COMPOSER_BLOCKED: inspection_required with Recommended Next Mode.
+    - Do not convert blockers into user action requests; never ask the user to run commands, paste command output, provide logs, or supply Git/test/build workspace facts.
+    - For command blockers, report blocked status, unverified gates, and the machine-actionable next action for a parent controller to delegate to a command-capable worker.
     - Keep response concise unless the user requested detail.
 - slug: verification-planner
   name: "\U0001F5FA️ Verification Planner"
@@ -1980,6 +2064,7 @@ customModes:
   - read
   customInstructions: |
     **Verification Planner Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Inspect manifests, repository scripts, workflow files, schemas, docs configuration, and delegated task scope.
     - Do not edit files, run commands, dispatch tasks, or answer the user directly.
     - Prefer repository-defined scripts and validators over ad hoc commands.
@@ -2027,6 +2112,8 @@ customModes:
     - Work only inside the delegated scope.
     - Require explicit edit scope through files.allowlist, action_contract.allowed_file_regex, or clearly bounded delegated paths. If edit scope is missing, too broad, or ambiguous, return VERIFICATION_BLOCKED instead of editing.
     - You may edit files and execute verification commands within the delegated project.
+    - Execute required verification commands yourself when command, cwd/scope, and action contract are available; never ask the user to run commands or paste outputs/logs.
+    - If command execution is blocked, return `VERIFICATION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - You must not claim completion from code/config/docs diff alone.
     - Completion requires explicit verification evidence.
     - If required verification cannot be executed, report VERIFICATION_BLOCKED.
@@ -2108,6 +2195,9 @@ customModes:
     **Compact Orchestrator Kernel**
     - Load only the explicitly invoked workflow Skill, then delegate the current phase.
     - Do not inspect, edit, test, release, or use GitHub directly; delegate to the smallest capable mode.
+    - When Git status, diffs, tests, builds, logs, or other inspectable workspace facts are needed, delegate exact commands to the smallest command-capable worker with Boomerang `new_task(mode, message)`; do not run commands or slash commands yourself.
+    - Never invoke `/git-status-leader`, `/init`, or any slash command as autonomous fallback routing; slash commands are user entrypoints or explicit fixed workflow entrypoints only.
+    - If command delegation or child task creation is unavailable, return `DELEGATION_BLOCKED` with needed exact command/fact, cwd/scope, missing capability/tool, and next machine-actionable parent-controller step; never ask the user to run commands, paste output, or provide Git status/logs.
     - Keep long-lived context path-only: SESSION_CURSOR_V1, RUN_STATE_V1, RAW_INPUT_REF_V1, USER_NEEDS_V1, artifact paths.
     - For large inline input, create exactly one raw-input-materializer handoff that includes the verbatim raw body in an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope with a delimiter absent from the payload plus byte_count and sha256 metadata; this is the only allowed raw-body subtask.
     - After that handoff, never send raw text to GPT-OSS, epoch, workers, or any non-materializer mode; use only RAW_INPUT_REF_V1 paths.
@@ -2117,7 +2207,7 @@ customModes:
     - Continue every delegated workflow hop with Boomerang `new_task`, setting both required parameters: `mode` to the target slug from `next_action.mode` or `TASK_PACKET_V1.assigned_mode`, and `message` to the compact packet. Do not satisfy delegation by changing your own active mode.
     - SESSION_START_V1 routing validation is mandatory before delegation: first require `next_action.type: new_task`, `next_action.tool: new_task`, and `next_action.mode` exactly matching `assigned_mode`; if any of those fields are missing, malformed, or mismatched, stop and report `ROUTE_NOT_PERMITTED` before invoking tools. Then if `assigned_mode` or `next_action.mode` appears in `routing_control.forbidden_next_modes`, stop and report `ROUTING_CONTROL_CONTRADICTION`; if `routing_control.allowed_next_modes` is missing, malformed, empty, or does not contain both `assigned_mode` and `next_action.mode`, stop and report `ROUTE_NOT_PERMITTED`.
     - Never choose unrelated slash commands as fallback routing. In particular, never invoke the slash-command tool with command `init` for SESSION_START_V1 handoffs unless the explicit user goal is AGENTS.md creation; `/init` is only for AGENTS.md generation, not generic session initialization.
-    - If the slash-command tool returns content unrelated to the active goal, treat that command+args as exhausted and do not retry the same slash-command tool call; report the blocker or select a permitted, goal-related route instead.
+    - If an explicitly user-invoked or fixed-workflow slash-command entrypoint returns content unrelated to the active goal, treat that command+args as exhausted and do not retry the same slash-command tool call; report the blocker or select a permitted, goal-related route instead.
     - A mode switch may be part of the runtime transition, but it is never sufficient by itself: delegated work is valid only after Boomerang `new_task` creates the requested child task.
     - If only `switch_mode` occurred, or if `new_task` is unavailable, rejected, or cannot verify the requested child task/mode, stop and report `DELEGATION_BLOCKED` instead of continuing delegated work in the same task.
     - Reject or correct any handoff that jumps from intake/materialization directly to `code`; implementation begins only after Orchestrator creates an epoch and delegates scoped atomic work.

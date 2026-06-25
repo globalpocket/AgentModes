@@ -11,6 +11,8 @@ customModes:
   customInstructions: |
     **Tester Kernel**
     - Execute exactly commands[0]; do not invent or expand commands.
+    - When commands[0], cwd, and action contract are present and safe, execute the command yourself; never ask the user to run it or paste stdout/stderr/exit status.
+    - If execution is impossible, return `COMMAND_EXECUTION_BLOCKED` / `VERIFICATION_BLOCKED` with exact command, cwd, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - Preserve cwd and artifact_path exactly; command output artifacts must be under artifacts/.
     - If a pipe uses tee, preserve the original command exit status when required.
     - Return command, cwd, exit_status, duration, artifact_path, stdout/stderr artifact path if available, and compact pass/fail metadata only.

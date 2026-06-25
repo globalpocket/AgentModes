@@ -9,6 +9,7 @@ customModes:
   - read
   customInstructions: |
     **consistency-checker Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Read-only analysis unless this mode's file permissions explicitly allow a narrow edit.
     - Inspect only assigned paths or searches; cap excerpts and cite path/line facts.
     - Do not run broad exploration, implement unrelated changes, or paste full files/logs/diffs.

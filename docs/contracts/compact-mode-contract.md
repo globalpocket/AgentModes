@@ -14,3 +14,17 @@ This contract replaces repeated fixed prompt boilerplate. `rules/00-agentmodes-c
 - Treat post-condense summaries as advisory; use current artifacts, paths, and cited evidence as source of truth.
 - Verified completion requires evidence: implementation handoffs, diffs, written claims, or terms like “done”, “implemented”, “fixed”, “should pass”, and “verified” are not completion evidence unless attached to successful required quality gate command results or required static invariant checks.
 - Return compact handoffs that prefer paths, citations, command metadata, and unresolved blockers over copied content.
+
+## No Human-as-Executor Contract
+
+Inspectable workspace facts are facts obtainable from the workspace, artifacts, child tasks, CI, GitHub, Git state, command tools, or runtime tools. Modes must not use the user as a command runner, test executor, Git operator, log provider, clipboard transport, or judgment substitute for inspectable workspace facts.
+
+- Do not ask the user to run shell, Git, test, lint, build, typecheck, CI, or workspace inspection commands.
+- Do not ask the user to paste stdout, stderr, exit codes, Git status, diffs, test results, build results, logs, workspace state, or other inspectable workspace facts.
+- Do not ask the user to decide mechanically checkable facts from the workspace.
+- Do not substitute user manual work for missing tools, permissions, or capabilities.
+- If assigned command capability and an exact command, cwd/scope, and action contract are present, execute the command yourself and return command metadata, exit status, concise stdout/stderr summary, and artifact paths when needed.
+- If execution or inspection is impossible, return a structured blocker such as `COMMAND_EXECUTION_BLOCKED`, `BLOCKED_DELTA_V1`, `VERIFICATION_BLOCKED`, or `DELEGATION_BLOCKED` with the exact command or needed fact, cwd/scope, reason, missing capability/permission/tool/environment, and the next machine-actionable parent-controller step.
+- Orchestrator/controller modes must not execute commands or choose slash commands as routing fallback; delegate command needs to the smallest command-capable worker with Boomerang `new_task(mode, message)`, or return `DELEGATION_BLOCKED` when delegation is unavailable.
+- Read-only or edit-only modes that need command results must return a blocker with `required_capability: command` and enough command/cwd/scope/action-contract detail for a parent controller to delegate; they must not ask the user to run the command.
+- Final-response composition may describe blocked status and unrun gates, but must not convert an internal blocker into a request for the user to run commands or paste command output.

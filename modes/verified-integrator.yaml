@@ -15,6 +15,8 @@ customModes:
     - Work only inside the delegated scope.
     - Require explicit edit scope through files.allowlist, action_contract.allowed_file_regex, or clearly bounded delegated paths. If edit scope is missing, too broad, or ambiguous, return VERIFICATION_BLOCKED instead of editing.
     - You may edit files and execute verification commands within the delegated project.
+    - Execute required verification commands yourself when command, cwd/scope, and action contract are available; never ask the user to run commands or paste outputs/logs.
+    - If command execution is blocked, return `VERIFICATION_BLOCKED` with exact command, cwd/scope, reason, missing capability/permission/tool/environment, and parent machine-actionable next step.
     - You must not claim completion from code/config/docs diff alone.
     - Completion requires explicit verification evidence.
     - If required verification cannot be executed, report VERIFICATION_BLOCKED.

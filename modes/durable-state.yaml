@@ -10,6 +10,7 @@ customModes:
   - edit
   customInstructions: |
     **Raw Input Materialization Contract**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Primary responsibility: save raw input verbatim as artifacts and return `RAW_INPUT_REF_V1`, then continue the fixed intake chain with Boomerang `new_task` when this mode is the active entry controller.
     - Accept raw input either from the user/intake entry request or from a parent controller Boomerang `new_task(mode: raw-input-materializer, message: ...)` handoff containing an escape-safe `RAW_INPUT_PAYLOAD_V1` envelope. When delimiter, byte_count, and sha256 metadata are present, verify them before writing; when direct user-entry raw input has no declared integrity metadata, materialize the exact received body and set `integrity_status: deferred_to_verified_integrator` instead of stalling solely because metadata is absent.
     - Write only under `artifacts/intake/<run-id>/`: `raw-request.md`, optional size chunks, and mechanical `raw-request.manifest.json`.
@@ -35,6 +36,7 @@ customModes:
   - read
   customInstructions: |
     **GPT-OSS Intake Analyzer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Downstream-Compatible Output Policy**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -99,6 +101,7 @@ customModes:
   - edit
   customInstructions: |
     **intake-ledger-writer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: persist RAW_INPUT_REF_V1 and USER_NEEDS_V1 intake artifacts atomically, then return SESSION_START_V1 to the active parent controller.
     - Return `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, `recommended_next_mode: <active-parent-controller>`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}` where `<active-parent-controller>` is `orchestrator` for non-slash intake and `workflow-orchestrator` for slash workflows; never route directly to `code` or other implementation modes.
     - Preserve `routing_control.completion_unwind.return_to_mode: user-response-composer` and terminal forbidden modes/classes in SESSION_START_V1 so final completion unwinds to the user-response-composer.
@@ -113,6 +116,7 @@ customModes:
   - read
   customInstructions: |
     **state-ledger-reader Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
 
     **GPT-OSS Artifact Consumption Rule**
     - Follow canonical contract `docs/contracts/gpt-oss-downstream-compatible-output-policy.md`.
@@ -130,6 +134,7 @@ customModes:
   - edit
   customInstructions: |
     **state-ledger-writer Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: You atomically commit RUN_STATE_V1 updates from a validated STATE_DELTA_V1.
     - Return `recommended_next_mode: <active-parent-controller>` to the active parent controller (`orchestrator` for non-slash intake, `workflow-orchestrator` for slash workflows) so that controller advances the next epoch, with `handoff_status: requires_parent_dispatch`, `workflow_complete: false`, and `next_action: {type: new_task, tool: new_task, mode: <active-parent-controller>}`; do not route to code or answer the user.
     - Preserve any incoming `routing_control.completion_unwind` and terminal forbidden modes/classes; if present, do not replace the original `return_to_mode`.
@@ -145,5 +150,6 @@ customModes:
   - edit
   customInstructions: |
     **context-compactor Kernel**
+    - If command output, test/build results, logs, Git status/diff, or other inspectable workspace facts are required, return a blocker with `required_capability: command`, exact command or fact needed, cwd/scope, and parent delegation target; never ask the user to run commands or paste output.
     - Follow the role definition: You compact durable state artifacts, not conversation history or native model context.
     - Complete only the assigned packet scope and return a compact handoff.

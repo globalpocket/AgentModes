@@ -1,0 +1,16 @@
+scenario: C
+name: read-only-mode-needs-test-result
+input:
+  active_mode_class: read-only
+  needed_fact: test result
+  proposed_command: cargo test --workspace --all-features
+expected_behavior:
+  returns_blocker: true
+  blocker_fields:
+    required_capability: command
+    exact_command: cargo test --workspace --all-features
+    cwd_or_scope: repository root
+    parent_delegation_target_class: command-capable
+  forbidden_user_requests:
+    - ask_user_to_run_tests
+    - ask_user_to_paste_test_output
