@@ -17,6 +17,7 @@ Use only after the user explicitly invokes `/github-issue-main-task`.
 - Issue URLs are read by `issue-reader`; GPT-OSS modes must not infer issue contents from a URL.
 - GitHub read and mutation workers are separate: `issue-reader`, `issue-comment-writer`, `sub-issue-creator`, and `issue-closer`.
 - Preserve one visible TODO for the current phase only when TODOs are needed.
+- Format visible TODOs as a multi-line Zoo/Roo TODO body with actual newline characters between the heading and checklist items; do not serialize the TODO as a single escaped string and do not include literal `\n` escape sequences.
 - Use `VISIBLE_TODO_V1` (`docs/contracts/visible-todo-v1.md`) for visible TODO handoffs, keeping `title` and `items` structured until the final Zoo/Roo rendering boundary.
 
 ## Phase outline
