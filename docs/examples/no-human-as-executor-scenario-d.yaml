@@ -11,6 +11,8 @@ expected_behavior:
   reports_blocked_status: true
   reports_unverified_gates: true
   reports_machine_actionable_next_action: true
+  terminal_completion_required: true
+  plain_text_blocker_forbidden: true
   next_action_owner: parent_controller
   forbidden_user_requests:
     - ask_user_to_run_command
