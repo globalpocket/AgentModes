@@ -62,7 +62,8 @@ python maintenance/validate-contracts.py
 - `Qwen3.6-9B` は長寿命cursor管理、ledger I/O、構造化compaction、定型command metadataに使う。
 - `Qwen3.5-122B` は短命な `epoch-orchestrator`、実装、レビュー、整合判定、DevOps など判断密度の高いローカル実行モードに使う。
 - `Qwen3.5-9B` は限定的な読み取り、索引、単純実行に使う。
-- `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う。文書化の根拠収集は `doc-evidence-reader` に分離する。
+- `Gemma4-12B-it` は `documenter` のような文章生成・整形系に使う。`user-response-composer` は最終応答整形であっても `Qwen3.5-122B` など `attempt_completion` を安定して呼べるモデルを割り当てる。文書化の根拠収集は `doc-evidence-reader` に分離する。
+- `user-response-composer` の profile は、runtime が要求する terminal completion tool（Roo/Zoo では通常 `attempt_completion`、別runtimeでは同等の terminal completion tool）を実際に公開し、provider 側で tool calling / function calling が有効であることを `docs/contracts/composer-terminal-tool-smoke-test.md` の smoke test で確認してから割り当てる。
 - `tester` / `artifact-manager` / command runner系 atomic worker は推論オフを推奨し、過剰判断や completion ループを避ける。
 
 ### GPT-OSS → Qwen handoff policy
@@ -165,7 +166,7 @@ READMEで `GPT-OSS-120B` または `GPT-OSS-*` 推奨として列挙するmode�
 | `doc-evidence-reader` | `Qwen3.5-9B` | オン / 中 | read-only の根拠付き事実抽出が主責務で、広範な設計判断や文章生成を行わないため |
 | `documenter` | `Gemma4-12B-it` | オフ | `DOC_FACTS_V1` からMarkdown文書を生成・整形する専任で、事実収集や仕様解釈を行わないため |
 | `ask` | `Qwen3.5-122B` | オン / 中 | 技術説明、既存コード理解、計画相談に文脈理解が必要 |
-| `user-response-composer` | `Gemma4-12B-it` | オフ | 上流結果を最終ユーザー向け文面に整形するだけで、判断や追加事実生成を禁止するため |
+| `user-response-composer` | `Qwen3.5-122B` または同等のtool-use安定モデル | オフ | 上流結果を最終ユーザー向け文面に整形するだけだが、成功・blockedのどちらも terminal completion tool で終える必要があるため |
 
 ### Atomic read / index workers
 
@@ -247,7 +248,8 @@ READMEで `GPT-OSS-120B` または `GPT-OSS-*` 推奨として列挙するmode�
 ## 最小運用ポリシー
 
 - GPT系モデルは `GPT-OSS-*` のみを推奨表に含める
-- `Gemma4-12B-it` は `documenter` / `user-response-composer` のような文章生成・整形系に使う
+- `Gemma4-12B-it` は `documenter` のような文章生成・整形系に使う。`user-response-composer` には `Qwen3.5-122B` など terminal tool use が安定したモデルを使う
+- `user-response-composer` の代替モデルを使う場合は、model name だけで判断せず、該当 provider/profile が terminal completion tool を advertise し、tool calling / function calling を有効化し、`docs/contracts/composer-terminal-tool-smoke-test.md` に合格していることを事前確認する
 - 文書更新は `doc-evidence-reader` が根拠事実を `DOC_FACTS_V1` として抽出し、`documenter` が `DOC_FACTS_V1` に基づいてMarkdownを編集する二段構成にする
 - `documenter` の編集対象は `README.md` と `docs/**/*.md` のみ。API reference、architecture notes、handoff summary も `docs/` 配下または `README.md` に割り当てる
 - `plans/` 配下の計画文書は原則 `architect` 担当であり、`documenter` へ任意Markdownや `plans/**/*.md` を割り当てない
@@ -303,7 +305,8 @@ Workflowの詳細phase順序は workflow-specific Skill（`skills/tdd-quality-ga
 
 - コストやレイテンシを優先する場合も、GPT系は `GPT-OSS-*` の範囲に限定する
 - `recovery-supervisor` は可能な限り最上位の推論性能を持つモデルを維持する
-- 文書生成・最終応答整形は `Gemma4-12B-it` を優先し、追加判断を持たせない
+- 文書生成は `Gemma4-12B-it` を優先し、最終応答整形は `Qwen3.5-122B` など terminal tool use が安定したモデルを優先する。どちらも追加判断を持たせない
+- 別runtimeで terminal tool 名が `attempt_completion` ではない場合は、runtime-supplied terminal completion tool へ明示的に mapping し、plain text 終了が拒否されることを検証してから運用する
 
 ## Durable ledger architecture target
 
@@ -393,6 +396,7 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 | `TASK_PACKET_V1` | `docs/contracts/task-packet-v1.md` | Compact delegated-subtask prompt budget |
 | Compact mode contract | `docs/contracts/compact-mode-contract.md` + `rules/00-agentmodes-compact-mode-contract.md` | Reviewed contract plus live Zoo/Roo Global Rules copy for common control-plane/slash/todo/routing/post-condense boilerplate |
 | Visible TODO contract | `docs/contracts/visible-todo-v1.md` | Structured TODO handoff shape that keeps title/items separate and prevents backslash+n rendering regressions |
+| Composer terminal tool smoke test | `docs/contracts/composer-terminal-tool-smoke-test.md` | Runtime/provider profile smoke test for `user-response-composer` terminal completion, tool/function-calling, and plain-text fallback rejection |
 | `USER_NEEDS_V1` | `docs/contracts/user-needs-v1.md` | Normalized intake artifact schema |
 | Example ledger | `docs/examples/run-state-v1.json` | Minimal state ledger fixture for prompts and validators |
 | Phase 3 | `docs/phases/phase-3-control-plane.md` | Control-plane recomposition scope |

@@ -754,9 +754,36 @@ def validate_readme() -> None:
         "`TASK_PACKET_V1` is sparse and compact",
         "common control-plane/slash/todo/routing/post-condense boilerplate is installed as Zoo/Roo Global Rules from `rules/`",
         "docs/contracts/gpt-oss-downstream-compatible-output-policy.md",
+        "docs/contracts/composer-terminal-tool-smoke-test.md",
+        "| `user-response-composer` | `Qwen3.5-122B` または同等のtool-use安定モデル |",
+        "provider 側で tool calling / function calling が有効",
+        "runtime-supplied terminal completion tool へ明示的に mapping",
     ]:
         if needle not in text:
             fail(f"README missing: {needle}")
+
+    forbidden_model_guidance = "| `user-response-composer` | `Gemma4-12B-it` |"
+    if forbidden_model_guidance in text:
+        fail("README must not recommend Gemma4-12B-it for user-response-composer because terminal tool use is required")
+
+
+def validate_composer_terminal_tool_smoke_test() -> None:
+    path = ROOT / "docs" / "contracts" / "composer-terminal-tool-smoke-test.md"
+    text = path.read_text(encoding="utf-8")
+    for needle in [
+        "# Composer Terminal Tool Smoke Test",
+        "runtime advertises exactly one terminal completion path",
+        "tool calling or function calling enabled",
+        "Plain assistant text is rejected as a terminal response",
+        "Case A: successful final response uses terminal completion",
+        "Case B: missing upstream facts returns a terminal blocker",
+        "COMPOSER_BLOCKED: missing_upstream_artifacts",
+        "does not call `ask_followup_question`",
+        "does not ask the user to run commands",
+        "do not assign that provider/profile to `user-response-composer`",
+    ]:
+        if needle not in text:
+            fail(f"docs/contracts/composer-terminal-tool-smoke-test.md missing: {needle}")
 
 
 def validate_verified_completion_contract(modes: dict[str, dict]) -> None:
@@ -1157,6 +1184,13 @@ def validate_no_human_as_executor_contract(modes: dict[str, dict]) -> None:
 
     composer = modes.get("user-response-composer") or fail("missing user-response-composer")
     for needle in [
+        "Always finish by calling `attempt_completion`",
+        "Use the terminal completion tool for both successful final responses and composer blockers",
+        "Runtime/profile configuration must expose exactly one usable terminal completion path",
+        "If neither is available, treat the mode configuration as invalid rather than producing plain text",
+        "Do not use `ask_followup_question` for missing inspectable workspace facts",
+        "COMPOSER_BLOCKED: missing_upstream_artifacts",
+        "Required upstream facts for implementation/session completion reports",
         "Do not convert blockers into user action requests",
         "never ask the user to run commands, paste command output, provide logs, or supply Git/test/build workspace facts",
         "machine-actionable next action for a parent controller to delegate to a command-capable worker",
@@ -1240,7 +1274,13 @@ def validate_no_human_as_executor_scenario_fixture(path: Path, expected_scenario
         if fields.get("parent_delegation_target_class") != "command-capable":
             fail(f"{label}: Scenario C must identify command-capable parent delegation target")
     elif expected_scenario == "D":
-        for key in ["reports_blocked_status", "reports_unverified_gates", "reports_machine_actionable_next_action"]:
+        for key in [
+            "reports_blocked_status",
+            "reports_unverified_gates",
+            "reports_machine_actionable_next_action",
+            "terminal_completion_required",
+            "plain_text_blocker_forbidden",
+        ]:
             if expected.get(key) is not True:
                 fail(f"{label}: Scenario D must set {key}: true")
         if expected.get("next_action_owner") != "parent_controller":
@@ -1290,6 +1330,7 @@ def main() -> None:
     validate_visible_todo_formatting_contract()
     validate_workflow_skill_phase_contracts()
     validate_readme()
+    validate_composer_terminal_tool_smoke_test()
     validate_verified_completion_contract(modes)
     validate_gpt_oss_downstream_policy(modes)
     validate_session_start_routing_contract()
