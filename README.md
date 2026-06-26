@@ -392,6 +392,7 @@ Do not assign `qwen35-MTP` to `orchestrator`, `workflow-orchestrator`, `epoch-or
 | `SESSION_CURSOR_V1` | `docs/contracts/session-cursor-v1.md` | Long-lived Orchestrator pointer-only context |
 | `TASK_PACKET_V1` | `docs/contracts/task-packet-v1.md` | Compact delegated-subtask prompt budget |
 | Compact mode contract | `docs/contracts/compact-mode-contract.md` + `rules/00-agentmodes-compact-mode-contract.md` | Reviewed contract plus live Zoo/Roo Global Rules copy for common control-plane/slash/todo/routing/post-condense boilerplate |
+| Visible TODO contract | `docs/contracts/visible-todo-v1.md` | Structured TODO handoff shape that keeps title/items separate and prevents backslash+n rendering regressions |
 | `USER_NEEDS_V1` | `docs/contracts/user-needs-v1.md` | Normalized intake artifact schema |
 | Example ledger | `docs/examples/run-state-v1.json` | Minimal state ledger fixture for prompts and validators |
 | Phase 3 | `docs/phases/phase-3-control-plane.md` | Control-plane recomposition scope |
