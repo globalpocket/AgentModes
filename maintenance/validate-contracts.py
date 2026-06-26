@@ -605,6 +605,34 @@ def validate_no_large_body_regressions(modes: dict[str, dict]) -> None:
 
 def validate_visible_todo_formatting_contract() -> None:
     expected = "literal `\\n` escape sequences"
+    expected_serialization = "single escaped string"
+    expected_contract = "VISIBLE_TODO_V1"
+    expected_shape_terms = ["visible_todo:", "title:", "items:", "status:"]
+    visible_contract = (ROOT / "docs" / "contracts" / "visible-todo-v1.md").read_text(encoding="utf-8")
+    for term in expected_shape_terms:
+        if term not in visible_contract:
+            fail(f"docs/contracts/visible-todo-v1.md: missing visible TODO shape term: {term}")
+    for needle in ["do not pre-join items", "final UI/tool boundary", "backslash+n"]:
+        if needle not in visible_contract:
+            fail(f"docs/contracts/visible-todo-v1.md: missing visible TODO runtime serialization guard: {needle}")
+    for needle in ["status` controls checklist rendering", "(in progress)", "- [x]"]:
+        if needle not in visible_contract:
+            fail(f"docs/contracts/visible-todo-v1.md: missing visible TODO status rendering semantics: {needle}")
+
+    for rel in [
+        "rules/00-agentmodes-compact-mode-contract.md",
+        "docs/contracts/compact-mode-contract.md",
+        "skills/tdd-quality-gate/SKILL.md",
+        "skills/github-issue-main-task/SKILL.md",
+    ]:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        if expected_contract not in text:
+            fail(f"{rel}: missing VISIBLE_TODO_V1 structured TODO handoff guard")
+        if "Prefer `VISIBLE_TODO_V1`" in text:
+            fail(f"{rel}: VISIBLE_TODO_V1 is still optional/preferred instead of required")
+        if "Use `VISIBLE_TODO_V1`" not in text:
+            fail(f"{rel}: missing required-use VISIBLE_TODO_V1 wording")
+
     for rel in [
         "rules/00-agentmodes-compact-mode-contract.md",
         "docs/contracts/compact-mode-contract.md",
@@ -613,12 +641,23 @@ def validate_visible_todo_formatting_contract() -> None:
         text = (ROOT / rel).read_text(encoding="utf-8")
         if expected not in text:
             fail(f"{rel}: missing visible TODO literal newline escape guard")
+        if expected_serialization not in text:
+            fail(f"{rel}: missing visible TODO escaped-string serialization guard")
 
     expected_japanese = "文字列 `\\n` を含めない"
+    expected_japanese_serialization = "単一のエスケープ済み文字列としてシリアライズせず"
     for rel in ["commands/tdd-quality-gate.md", "commands/github-issue-main-task.md"]:
         text = (ROOT / rel).read_text(encoding="utf-8")
+        if expected_contract not in text:
+            fail(f"{rel}: missing VISIBLE_TODO_V1 structured TODO handoff guard")
+        if "可能な限り`VISIBLE_TODO_V1`" in text:
+            fail(f"{rel}: VISIBLE_TODO_V1 is still optional/preferred instead of required")
+        if "必ず`VISIBLE_TODO_V1`" not in text:
+            fail(f"{rel}: missing required-use VISIBLE_TODO_V1 wording")
         if expected_japanese not in text:
             fail(f"{rel}: missing visible TODO literal newline escape guard")
+        if expected_japanese_serialization not in text:
+            fail(f"{rel}: missing visible TODO escaped-string serialization guard")
 
 
 def validate_workflow_skill_phase_contracts() -> None:

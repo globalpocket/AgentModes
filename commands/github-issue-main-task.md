@@ -15,5 +15,6 @@ mode: workflow-orchestrator
 - phaseごとに1つのTASK_PACKETだけを作成する
 - 各delegation前にTASK_PACKET Preflightを行う
 - visible TODOには現在phaseのtask 1件だけを置く
-- visible TODOは見出しと各チェック項目を実改行で区切り、文字列 `\n` を含めない
+- visible TODOはZoo/Rooへ複数行本文として渡し、見出しと各チェック項目を実改行で区切る。単一のエスケープ済み文字列としてシリアライズせず、文字列 `\n` を含めない
+- visible TODOのhandoffでは必ず`VISIBLE_TODO_V1`形式を使い、`title`と`items`を最終レンダリング境界まで分離する
 - 親workflow全体をdelegated modeのREMINDERSへ残さない
