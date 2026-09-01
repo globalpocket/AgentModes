@@ -1,8 +1,8 @@
 # AgentModes v2
 
-AgentModes v2 is a Brownie Runtime contract library. It is no longer a ZooCodeCustom or RooCode custom-mode import bundle.
+AgentModes v2 is an optional Brownie workspace framework and contract library. It is no longer a ZooCodeCustom or RooCode custom-mode import bundle.
 
-In v2, an AgentMode is a single-pass, bounded role contract invoked by Brownie Runtime. The Runtime owns loop control, phase management, retries, stop decisions, next-role selection, context assembly, Git operations, and model routing.
+In v2, an AgentMode is a single-pass, bounded role contract invoked by Brownie Runtime. The installable framework is made from a YAML workflow entrypoint plus Markdown role prompts. The Runtime owns loop control, phase management, retries, stop decisions, next-role selection, context assembly, Git operations, and model routing.
 
 ## Distribution Model
 
@@ -10,6 +10,8 @@ The free and open-source AgentModes distribution includes AgentModes Core only.
 
 AgentModes Core includes:
 
+- `workflow.yaml`
+- `prompts/`
 - `schemas/`
 - `core/`
 - `runtime-policies/brownie/`
@@ -17,7 +19,28 @@ AgentModes Core includes:
 
 AgentModes Core does not include full workflow packs. The `packs/development` role contracts are part of the member-only pack distribution delivered through GitHub Sponsors or another private member channel. The development pack is expected to move to a separate repository as the distribution matures.
 
-This keeps the open-source project useful as a stable contract OS for Brownie while making specialized execution packs a sustainable paid layer.
+This keeps the open-source project useful as a stable optional framework for Brownie while making specialized execution packs a sustainable paid layer.
+
+## Brownie Workspace Installation
+
+Brownie reads frameworks from the current workspace's `.brownie/` directory at `brownie run` time. There is no global AgentModes area and no required `modepack.json`.
+
+To use AgentModes Core in a Brownie workspace, place this repository's framework files under:
+
+```text
+<workspace>/
+└─ .brownie/
+   └─ AgentModes/
+      ├─ workflow.yaml
+      ├─ prompts/
+      ├─ schemas/
+      ├─ core/
+      └─ runtime-policies/
+```
+
+Brownie then loads `.brownie/AgentModes/workflow.yaml`. The YAML defines mode ids, permissions, completion rules, and prompt file paths. The Markdown files in `prompts/` are the role prompts used at runtime.
+
+AgentModes is only one possible Brownie framework. A workspace may omit it entirely, or replace it with another framework under `.brownie/framework` that follows the same YAML-plus-Markdown contract.
 
 ## Core Principles
 
@@ -63,6 +86,8 @@ AgentModes must not:
 
 | Path | Purpose |
 | --- | --- |
+| `workflow.yaml` | Brownie-readable framework entrypoint for AgentModes Core. |
+| `prompts/` | Runtime role prompts referenced by `workflow.yaml`. |
 | `schemas/` | Shared schemas for roles, invocations, results, permissions, and quality gates. |
 | `core/` | Runtime-neutral role contracts such as orchestrator, reviewer, and reporter. |
 | `packs/` | Pack extension points and placeholders. Full workflow packs are distributed separately when they are member-only, and may live in separate repositories. |
@@ -119,7 +144,7 @@ confidence: medium
 
 ## Core Role Set
 
-The open-source Core role set is intentionally small:
+The open-source Core role set is intentionally small and is exposed through `workflow.yaml`:
 
 - `core.orchestrator`
 - `core.reviewer`
@@ -157,4 +182,4 @@ Run:
 python maintenance/validate-v2.py
 ```
 
-The validator checks that required v2 Core files exist, Core role definitions contain the required contract fields, member-only pack role YAML is not present in the open-source tree, and v2 role/policy contracts do not contain legacy dispatch markers.
+The validator checks that required v2 Core files exist, `workflow.yaml` references existing Markdown prompts, Core role definitions contain the required contract fields, member-only pack role YAML is not present in the open-source tree, and v2 role/policy contracts do not contain legacy dispatch markers.

@@ -1,0 +1,51 @@
+name: agentmodes-core
+schema_version: 1
+default_mode_id: core.orchestrator
+modes:
+  - mode_id: core.orchestrator
+    display_name: AgentModes Core Orchestrator
+    prompt_file: prompts/core.orchestrator.md
+    permissions:
+      read: true
+      edit: false
+      command: false
+      git: false
+      network: false
+      mcp: false
+      phase_write: false
+      dispatch: false
+    completion_rules:
+      - Return an ORCHESTRATOR_PROPOSAL_V1-compatible structured result.
+      - Treat next_recommendation as advisory; Brownie Runtime owns scheduling.
+
+  - mode_id: core.reviewer
+    display_name: AgentModes Core Reviewer
+    prompt_file: prompts/core.reviewer.md
+    permissions:
+      read: true
+      edit: false
+      command: false
+      git: false
+      network: false
+      mcp: false
+      phase_write: false
+      dispatch: false
+    completion_rules:
+      - Return a REVIEW_RESULT_V1-compatible structured result.
+      - Ground every blocking finding in supplied artifacts or context.
+
+  - mode_id: core.reporter
+    display_name: AgentModes Core Reporter
+    prompt_file: prompts/core.reporter.md
+    permissions:
+      read: true
+      edit: false
+      command: false
+      git: false
+      network: false
+      mcp: false
+      phase_write: false
+      dispatch: false
+    completion_rules:
+      - Return a REPORT_RESULT_V1-compatible structured result.
+      - Do not claim completion beyond supplied Runtime results.

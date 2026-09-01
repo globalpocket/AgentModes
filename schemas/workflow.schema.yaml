@@ -1,0 +1,43 @@
+schema: FRAMEWORK_WORKFLOW_SCHEMA_V1
+description: Brownie-readable workspace framework entrypoint for AgentModes Core.
+required_fields:
+  - name
+  - schema_version
+  - default_mode_id
+  - modes
+field_contract:
+  name:
+    type: string
+    example: agentmodes-core
+  schema_version:
+    type: integer
+    example: 1
+  default_mode_id:
+    type: string
+    example: core.orchestrator
+  modes:
+    type: list
+    item_contract:
+      required_fields:
+        - mode_id
+        - display_name
+        - prompt_file
+        - permissions
+      fields:
+        mode_id:
+          type: string
+          format: dotted-role-id
+        display_name:
+          type: string
+        prompt_file:
+          type: relative-markdown-path
+          rule: Must point to a Markdown prompt file within the same framework directory.
+        permissions:
+          ref: permissions.schema.yaml
+        completion_rules:
+          type: list
+          item_type: string
+runtime_notes:
+  - Brownie loads this file when the AgentModes repository contents are installed under `.brownie/AgentModes`.
+  - AgentModes is one optional framework source; Brownie may run without it or with a different framework.
+  - Prompt Markdown is the runtime role prompt. YAML defines workflow and permission metadata.
