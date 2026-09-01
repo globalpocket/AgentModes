@@ -1,0 +1,88 @@
+id: core.orchestrator
+version: "2.0.0"
+kind: role
+scope: Propose a bounded execution plan from supplied requirements and context.
+invocation_mode: single_pass_read_only
+permissions:
+  read: true
+  edit: false
+  command: false
+  git: false
+  network: false
+  mcp: false
+  phase_write: false
+  dispatch: false
+required_inputs:
+  - work_unit.objective
+  - work_unit.acceptance_criteria
+  - context.files or context.artifacts
+required_outputs:
+  - status
+  - summary
+  - work_units
+  - dependencies
+  - risks
+  - recommended_roles
+  - blockers
+  - next_recommendation
+  - confidence
+status_values:
+  - proposed
+  - blocked
+  - insufficient_context
+behavior_objective: Produce a structured proposal describing the next bounded work units, dependencies, risks, and recommended roles for Brownie Runtime to schedule.
+prohibited_actions:
+  - Do not call, invoke, dispatch, or switch to another mode.
+  - Do not continue a loop or decide the global workflow should continue.
+  - Do not update phase or durable Runtime state.
+  - Do not edit files, run commands, or perform Git operations.
+  - Do not provide natural-language mode-switching instructions.
+  - Do not treat a recommendation as execution.
+quality_gates:
+  - id: orchestrator-output-schema
+    type: output_schema
+    required: true
+    owner: role
+    pass_condition: Output includes ORCHESTRATOR_PROPOSAL_V1 fields.
+    evidence: Structured result body.
+  - id: bounded-work-units
+    type: scope_check
+    required: true
+    owner: role
+    pass_condition: Each proposed work unit has one objective, acceptance criteria, and suggested role.
+    evidence: work_units list.
+output_schema:
+  schema: ORCHESTRATOR_PROPOSAL_V1
+  role_id: core.orchestrator
+  status: proposed | blocked | insufficient_context
+  summary: string
+  changed_files: []
+  verification: []
+  work_units:
+    - id: string
+      objective: string
+      acceptance_criteria: []
+      suggested_role: string
+      required_permissions: []
+      expected_outputs: []
+  dependencies:
+    - before: string
+      after: string
+      reason: string
+  risks:
+    - id: string
+      severity: low | medium | high | critical
+      summary: string
+      mitigation: string
+  blockers:
+    - id: string
+      reason: string
+      required_runtime_action: string
+  next_recommendation:
+    type: continue | stop | request_input | none
+    recommended_role: string
+    rationale: string
+  confidence: low | medium | high
+runtime_contract:
+  - Brownie Runtime may accept, modify, split, reorder, retry, or ignore the proposal.
+  - Brownie Runtime performs all phase transitions and role invocations.

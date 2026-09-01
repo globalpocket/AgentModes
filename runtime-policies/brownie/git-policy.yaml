@@ -1,0 +1,32 @@
+id: brownie.git-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime owns Git state and integration operations.
+git_authority:
+  runtime_only_by_default: true
+role_git_allowed: false
+runtime_operations:
+  - read_status
+  - create_branch
+  - stage
+  - commit
+  - merge
+  - rebase
+  - revert
+  - restore
+  - tag
+  - push
+rules:
+  - Roles may report changed_files and risks, but do not perform Git operations unless a future policy grants a narrow exception.
+  - Runtime checks worktree cleanliness before and after mutation roles.
+  - Runtime associates commits with approved integration decisions.
+  - Runtime prevents roles from hiding unrelated dirty worktree changes.
+  - Runtime records diff refs supplied to review and integration roles.
+integration_gate:
+  required_inputs:
+    - accepted_diff_ref
+    - verification_result_refs
+    - review_result_ref
+    - verified_integrator_decision
+  commit_allowed_when: verified_integrator_decision.result is approve and Runtime gates pass.

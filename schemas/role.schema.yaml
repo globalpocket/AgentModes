@@ -1,0 +1,58 @@
+schema: ROLE_CONTRACT_SCHEMA_V1
+description: Common contract shape for every AgentModes v2 role.
+required_fields:
+  - id
+  - version
+  - kind
+  - scope
+  - invocation_mode
+  - permissions
+  - required_inputs
+  - required_outputs
+  - status_values
+  - behavior_objective
+  - prohibited_actions
+  - quality_gates
+field_contract:
+  id:
+    type: string
+    format: dotted-role-id
+    example: core.orchestrator
+  version:
+    type: string
+    example: "2.0.0"
+  kind:
+    enum:
+      - role
+  scope:
+    type: string
+    rule: Must describe the bounded responsibility of one invocation.
+  invocation_mode:
+    enum:
+      - single_pass
+      - single_pass_read_only
+      - single_pass_mutation
+      - single_pass_verification
+      - single_pass_reporting
+  permissions:
+    ref: permissions.schema.yaml
+  required_inputs:
+    type: list
+    item_type: string
+  required_outputs:
+    type: list
+    item_type: string
+  status_values:
+    type: list
+    item_type: string
+  behavior_objective:
+    type: string
+  prohibited_actions:
+    type: list
+    item_type: string
+  quality_gates:
+    ref: quality-gate.schema.yaml
+runtime_notes:
+  - Brownie Runtime validates permissions before invocation.
+  - Brownie Runtime rejects roles that attempt dispatch, phase transition, recursive handoff, or loop control.
+  - Role output is advisory unless a Runtime policy treats it as a gate result.

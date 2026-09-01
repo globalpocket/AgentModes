@@ -1,0 +1,31 @@
+schema: PERMISSIONS_SCHEMA_V1
+description: Permission grants available to a single AgentMode invocation.
+fields:
+  read:
+    type: boolean
+    description: May inspect files, artifacts, and supplied context.
+  edit:
+    type: boolean
+    description: May modify files explicitly allowed by the invocation.
+  command:
+    type: boolean
+    description: May run commands explicitly allowed by the invocation.
+  git:
+    type: boolean
+    description: May perform Git operations explicitly delegated by Brownie Runtime.
+  network:
+    type: boolean
+    description: May access network resources explicitly delegated by Brownie Runtime.
+  mcp:
+    type: boolean
+    description: May use configured external tools explicitly delegated by Brownie Runtime.
+  phase_write:
+    const: false
+    description: AgentModes v2 roles do not mutate Runtime phase.
+  dispatch:
+    const: false
+    description: AgentModes v2 roles do not call other modes.
+rules:
+  - A role may declare maximum capability, but Brownie Runtime supplies the effective grant per invocation.
+  - If required permission is missing, return `blocked` with a machine-actionable blocker.
+  - Git operations are Runtime-owned by default and require an explicit policy exception.

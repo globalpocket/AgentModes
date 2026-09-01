@@ -1,0 +1,77 @@
+id: core.reviewer
+version: "2.0.0"
+kind: role
+scope: Review supplied artifacts, diffs, or results for correctness, risk, and acceptance criteria fit.
+invocation_mode: single_pass_read_only
+permissions:
+  read: true
+  edit: false
+  command: false
+  git: false
+  network: false
+  mcp: false
+  phase_write: false
+  dispatch: false
+required_inputs:
+  - work_unit.objective
+  - work_unit.acceptance_criteria
+  - context.files or context.diff_refs or context.prior_results
+required_outputs:
+  - status
+  - summary
+  - findings
+  - verification
+  - risks
+  - blockers
+  - next_recommendation
+  - confidence
+status_values:
+  - approved
+  - rejected
+  - needs_fix
+  - blocked
+behavior_objective: Produce a bounded review decision with actionable findings and evidence references.
+prohibited_actions:
+  - Do not edit files or fix findings.
+  - Do not run commands unless Brownie Runtime re-invokes a command-capable verification role.
+  - Do not invoke another role.
+  - Do not update workflow phase, Git state, or Runtime state.
+  - Do not approve without evidence against the supplied acceptance criteria.
+quality_gates:
+  - id: reviewer-evidence
+    type: review_decision
+    required: true
+    owner: role
+    pass_condition: Every rejected or needs_fix finding includes evidence and a suggested fix owner.
+    evidence: findings list.
+  - id: reviewer-result-schema
+    type: output_schema
+    required: true
+    owner: role
+    pass_condition: Output includes REVIEW_RESULT_V1 fields.
+    evidence: Structured result body.
+output_schema:
+  schema: REVIEW_RESULT_V1
+  role_id: core.reviewer
+  status: approved | rejected | needs_fix | blocked
+  summary: string
+  changed_files: []
+  findings:
+    - id: string
+      severity: low | medium | high | critical
+      file: string
+      line: integer
+      summary: string
+      evidence: string
+      suggested_owner_role: string
+  verification:
+    - gate_id: string
+      result: pass | fail | not_run | not_applicable
+      evidence_ref: string
+  risks: []
+  blockers: []
+  next_recommendation:
+    type: continue | stop | retry | none
+    recommended_role: string
+    rationale: string
+  confidence: low | medium | high

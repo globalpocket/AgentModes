@@ -1,0 +1,48 @@
+id: brownie.phase-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime owns phase state and transitions.
+phase_authority:
+  runtime_only: true
+  role_phase_write_allowed: false
+transition_inputs:
+  - role_result.status
+  - role_result.verification
+  - role_result.blockers
+  - role_result.risks
+  - acceptance_criteria_state
+  - retry_state
+transition_rules:
+  - name: discovery-complete
+    from: DISCOVER
+    to: PLAN
+    condition: Requirements artifact exists or Runtime has enough objective and acceptance criteria.
+  - name: plan-ready
+    from: PLAN
+    to: IMPLEMENT
+    condition: Runtime accepts at least one bounded work unit.
+  - name: implementation-produced
+    from: IMPLEMENT
+    to: TEST
+    condition: Implementation result is completed or partial with changed_files in allowed scope.
+  - name: verification-needed
+    from: TEST
+    to: REVIEW
+    condition: Required test and verification evidence has been collected or marked blocked.
+  - name: review-ready
+    from: REVIEW
+    to: INTEGRATE
+    condition: Review decision is approved or needs integrator judgment.
+  - name: integration-complete
+    from: INTEGRATE
+    to: REPORT
+    condition: Integrator approves, rejects, needs_fix, or blocks with sufficient evidence.
+  - name: report-complete
+    from: REPORT
+    to: STOP
+    condition: User-facing report has been generated from structured results.
+prohibited_role_behavior:
+  - Roles must not set current_phase.
+  - Roles must not advance phase by prose.
+  - Roles must not persist Runtime ledger transitions.

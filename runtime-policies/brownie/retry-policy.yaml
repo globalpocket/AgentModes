@@ -1,0 +1,28 @@
+id: brownie.retry-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime owns retry decisions and budgets.
+retry_authority:
+  runtime_only: true
+role_retry_allowed: false
+retry_inputs:
+  - role_result.status
+  - role_result.blockers
+  - verification failures
+  - transient tool failures
+  - changed context or changed files
+default_budgets:
+  same_role_retry_limit: 1
+  fix_cycle_limit: 2
+  command_retry_limit: 1
+rules:
+  - Retry only when the Runtime can change inputs, permissions, context, or assigned role.
+  - Do not retry a role just because it recommended retry.
+  - Stop or request input when the same blocker recurs without a new Runtime action.
+  - Record retry reason and previous invocation id.
+non_retriable:
+  - Missing user decision.
+  - Required permission denied by policy.
+  - Unsafe requested operation.
+  - Acceptance criteria contradiction.

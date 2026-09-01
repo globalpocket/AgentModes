@@ -1,0 +1,52 @@
+schema: ROLE_INVOCATION_SCHEMA_V1
+description: Input envelope Brownie Runtime passes to one AgentMode invocation.
+required_fields:
+  - schema
+  - invocation_id
+  - role_id
+  - work_unit
+  - context
+  - permissions
+  - budgets
+fields:
+  schema:
+    const: ROLE_INVOCATION_V1
+  invocation_id:
+    type: string
+  role_id:
+    type: string
+  work_unit:
+    required_fields:
+      - id
+      - objective
+      - acceptance_criteria
+    optional_fields:
+      - constraints
+      - target_files
+      - quality_gate_ids
+      - risk_tolerance
+  context:
+    required_fields:
+      - artifacts
+      - files
+      - prior_results
+    optional_fields:
+      - repository_root
+      - durable_state_refs
+      - diff_refs
+      - test_result_refs
+  permissions:
+    ref: permissions.schema.yaml
+  budgets:
+    required_fields:
+      - max_iterations
+    optional_fields:
+      - max_files
+      - max_commands
+      - max_changed_files
+      - max_runtime_seconds
+      - max_output_tokens
+rules:
+  - max_iterations must be 1 for AgentModes v2 role invocations.
+  - Runtime may pass prior results, but the role must not infer hidden workflow state from conversation history.
+  - Runtime, not the role, decides whether missing inputs are retried, escalated, or stopped.

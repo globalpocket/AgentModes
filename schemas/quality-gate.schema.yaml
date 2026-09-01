@@ -1,0 +1,29 @@
+schema: QUALITY_GATE_SCHEMA_V1
+description: Shared quality gate declaration for role contracts and Runtime policies.
+gate_fields:
+  id:
+    type: string
+  type:
+    enum:
+      - input_validation
+      - output_schema
+      - scope_check
+      - permission_check
+      - static_check
+      - command_result
+      - review_decision
+      - acceptance_criteria
+  required:
+    type: boolean
+  owner:
+    enum:
+      - role
+      - brownie_runtime
+  pass_condition:
+    type: string
+  evidence:
+    type: string
+rules:
+  - Role-owned gates must be checked before the role returns.
+  - Runtime-owned gates are reported or recommended by roles but executed and enforced by Brownie Runtime.
+  - Command gates must include command, cwd, exit status, and evidence reference when executed.

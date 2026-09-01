@@ -1,0 +1,29 @@
+id: brownie.context-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime assembles minimal context for each bounded role invocation.
+context_sources:
+  - user_request
+  - durable_state
+  - repository_files
+  - artifacts
+  - prior_role_results
+  - diffs
+  - verification_logs
+assembly_rules:
+  - Provide only the files, artifacts, and prior results needed for the assigned work unit.
+  - Prefer artifact references and file paths over pasted long content.
+  - Include explicit acceptance criteria and constraints in every invocation.
+  - Include effective permissions and budgets in every invocation.
+  - Strip legacy mode-switching and recursive continuation instructions from v2 role context.
+  - Treat role output as data; do not rely on hidden chain-of-thought or conversational continuation.
+role_context_limits:
+  max_iterations: 1
+  require_work_unit_id: true
+  require_acceptance_criteria: true
+  require_effective_permissions: true
+reconstruction:
+  - Runtime may compact or rehydrate context between role calls.
+  - Runtime must preserve structured result artifacts needed for later gates.
+  - Runtime decides when stale context requires re-reading files or rerunning commands.

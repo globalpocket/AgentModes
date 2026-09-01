@@ -1,0 +1,34 @@
+id: brownie.model-routing-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime selects models and reasoning budgets per role invocation.
+model_authority:
+  runtime_only: true
+role_model_selection_allowed: false
+routing_inputs:
+  - role_id
+  - phase
+  - risk_level
+  - required_permissions
+  - context_size
+  - latency_budget
+  - cost_budget
+guidelines:
+  - Use stronger reasoning for planning, review, and ambiguous requirements.
+  - Use implementation-capable models for mutation roles.
+  - Use lower reasoning for reporting when inputs are already structured.
+  - Increase reasoning or request a second review for high-risk security, data-loss, or integration changes.
+  - Do not encode provider-specific model names in role contracts.
+role_preferences:
+  core.orchestrator:
+    reasoning: medium
+  core.reviewer:
+    reasoning: high
+  core.reporter:
+    reasoning: low
+external_pack_preferences:
+  packs.development:
+    distribution: member_only
+    source: GitHub Sponsors member distribution
+    note: Role-specific model preferences are defined by the installed pack, not by AgentModes Core.

@@ -1,0 +1,51 @@
+id: brownie.loop-policy
+version: "2.0.0"
+kind: runtime_policy
+owner: brownie_runtime
+description: Brownie Runtime owns loop control and can load workflow packs when available.
+states:
+  - DISCOVER
+  - PLAN
+  - EXECUTE
+  - REVIEW
+  - REPORT
+  - NEXT_PHASE
+  - STOP
+principles:
+  - Runtime invokes one bounded role at a time.
+  - Runtime decides whether to continue, retry, advance, request input, or stop.
+  - Role `next_recommendation` is advisory input to scheduling, not execution.
+  - Runtime enforces retry budgets and stop conditions.
+core_flow:
+  - from: DISCOVER
+    roles:
+      - core.orchestrator
+    next: PLAN
+  - from: PLAN
+    roles:
+      - core.orchestrator
+    next: EXECUTE
+  - from: EXECUTE
+    roles: []
+    pack_slot: workflow_execution_pack
+    next: REVIEW
+  - from: REVIEW
+    roles:
+      - core.reviewer
+    next: REPORT
+  - from: REPORT
+    roles:
+      - core.reporter
+    next: STOP
+pack_slots:
+  workflow_execution_pack:
+    required: false
+    distribution: external
+    example_pack_id: packs.development
+    member_only: true
+    note: Development-loop implementation, test, verification, documentation, and integration roles are loaded from the member-only development pack when installed.
+stop_conditions:
+  - All acceptance criteria are satisfied and required Runtime gates pass.
+  - A non-retriable blocker requires user input or external state.
+  - Retry budget is exhausted.
+  - Runtime policy detects unsafe or out-of-scope execution.

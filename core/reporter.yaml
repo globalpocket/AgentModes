@@ -1,0 +1,67 @@
+id: core.reporter
+version: "2.0.0"
+kind: role
+scope: Compose a user-facing report from structured Runtime results.
+invocation_mode: single_pass_reporting
+permissions:
+  read: true
+  edit: false
+  command: false
+  git: false
+  network: false
+  mcp: false
+  phase_write: false
+  dispatch: false
+required_inputs:
+  - work_unit.objective
+  - context.prior_results
+required_outputs:
+  - status
+  - summary
+  - report
+  - changed_files
+  - verification
+  - risks
+  - blockers
+  - next_recommendation
+  - confidence
+status_values:
+  - completed
+  - blocked
+behavior_objective: Convert structured role and Runtime results into a concise final report without changing workflow state.
+prohibited_actions:
+  - Do not edit, run commands, dispatch roles, or update phase.
+  - Do not invent verification evidence that is absent from prior results.
+  - Do not decide that blocked work is complete.
+  - Do not add new requirements or perform additional analysis outside supplied results.
+quality_gates:
+  - id: reporter-source-grounding
+    type: acceptance_criteria
+    required: true
+    owner: role
+    pass_condition: Report claims are grounded in supplied prior_results.
+    evidence: prior_results references.
+  - id: reporter-result-schema
+    type: output_schema
+    required: true
+    owner: role
+    pass_condition: Output includes REPORT_RESULT_V1 fields.
+    evidence: Structured result body.
+output_schema:
+  schema: REPORT_RESULT_V1
+  role_id: core.reporter
+  status: completed | blocked
+  summary: string
+  report:
+    audience: user
+    completion_status: completed | partial | blocked | failed
+    body: string
+  changed_files: []
+  verification: []
+  risks: []
+  blockers: []
+  next_recommendation:
+    type: stop | request_input | none
+    recommended_role: string
+    rationale: string
+  confidence: low | medium | high

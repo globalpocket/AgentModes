@@ -1,0 +1,78 @@
+schema: ROLE_RESULT_SCHEMA_V1
+description: Shared machine-readable result envelope returned by every AgentModes v2 role.
+required_fields:
+  - schema
+  - invocation_id
+  - role_id
+  - status
+  - summary
+  - changed_files
+  - verification
+  - risks
+  - blockers
+  - next_recommendation
+  - confidence
+fields:
+  schema:
+    const: ROLE_RESULT_V1
+  invocation_id:
+    type: string
+  role_id:
+    type: string
+  status:
+    enum:
+      - completed
+      - blocked
+      - failed
+      - partial
+      - approved
+      - rejected
+      - needs_fix
+      - no_op
+  summary:
+    type: string
+  changed_files:
+    type: list
+    item_schema:
+      path: string
+      change_type: added | modified | deleted | renamed | none
+      summary: string
+  verification:
+    type: list
+    item_schema:
+      gate_id: string
+      command: string
+      result: pass | fail | not_run | not_applicable
+      evidence_ref: string
+  risks:
+    type: list
+    item_schema:
+      id: string
+      severity: low | medium | high | critical
+      summary: string
+      mitigation: string
+  blockers:
+    type: list
+    item_schema:
+      id: string
+      reason: string
+      required_runtime_action: string
+  next_recommendation:
+    type: object
+    required_fields:
+      - type
+      - rationale
+    fields:
+      type: continue | stop | retry | request_input | run_quality_gate | none
+      recommended_role: string
+      rationale: string
+      required_inputs: list
+  confidence:
+    enum:
+      - low
+      - medium
+      - high
+rules:
+  - Results must be parseable as YAML or JSON after removing surrounding prose.
+  - Free-form explanation may appear only inside structured string fields.
+  - `next_recommendation` never dispatches another role by itself.
